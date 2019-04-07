@@ -1,20 +1,4 @@
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-
-// C file for Marxan
-
-//    Marxan coded by Ian Ball, modified by Matthew Watts
-//    Written by Ian Ball and Hugh Possingham
-
-//    ian.ball@aad.gov.au
-//    hpossingham@zen.uq.edu.au
-//    m.watts@uq.edu.au
-
-
+// C code for Marxan
 #define DEBUGTRACEFILE
 #define PROB2D
 
@@ -66,13 +50,13 @@ int savelog;
 int asymmetricconnectivity = 0;
 int marxanisslave = 0;
 char sVersionString[80] = "Marxan v 3.0.0";
-// version 2.3 introduces multiple connectivity files and their associated weighting file
-// version 2.4.3 introduces 1D and 2D probability
+// version 2.3 introduced multiple connectivity files and their associated weighting file
+// version 2.4.3 introduced 1D and 2D probability
+// version 3.0.0 is refactoring of code in 2019
 char sIanBallEmail[100] = "ian.ball@aad.gov.au";
 char sHughPossinghamEmail[100] = "h.possingham@uq.edu.au";
 char sMattWattsEmail[100] = "m.watts@uq.edu.au";
-char sMarxanWebSite[100] = "http://www.uq.edu.au/marxan";
-//char sTraceFileName[80] = "TraceFile_MarOpt.txt";
+char sMarxanWebSite[100] = "http://marxan.net";
 char sTraceFileName[1000];
 char sApplicationPathName[1000];
 char* savelogname;
@@ -88,8 +72,12 @@ int fOptimiseConnectivityIn = 0;
 
 #include "input.c"
 #include "output.c"
+#include "clumping.c"
+#include "heuristics.c"
+#include "probability.c"
 
-void ExecuteRunLoop(long int repeats,int puno,int spno,double cm,int aggexist,double prop,int clumptype,double misslevel,
+// runs the loop for each "solution" marxan is generating
+void executeRunLoop(long int repeats,int puno,int spno,double cm,int aggexist,double prop,int clumptype,double misslevel,
                     char savename[],double costthresh,double tpf1,double tpf2,int heurotype,int runopts,
                     int itimptype,int *iBestRun,int sumsoln[],int marxanisslave)
 {
@@ -153,7 +141,7 @@ void ExecuteRunLoop(long int repeats,int puno,int spno,double cm,int aggexist,do
         
         InitReserve(puno,prop,R2D[irun-1]);  // Create Initial Reserve
        
-        AddReserve(puno,pu,R2D[irun-1]);
+        addReserve(puno,pu,R2D[irun-1]);
 
         if (aggexist)
            ClearClumps(spno,spec,pu,SM);
@@ -165,7 +153,7 @@ void ExecuteRunLoop(long int repeats,int puno,int spno,double cm,int aggexist,do
         if (verbosity > 1)
         {
            displayProgress1("\n  Init:");
-           PrintResVal(puno,spno,R2D[irun-1],reserve,spec,misslevel);
+           displayValueForPUs(puno,spno,R2D[irun-1],reserve,spec,misslevel);
         }
         if (verbosity > 5)
         {
@@ -204,7 +192,7 @@ void ExecuteRunLoop(long int repeats,int puno,int spno,double cm,int aggexist,do
            if (verbosity > 1 && (runopts == 2 || runopts == 5))
            {
               displayProgress1("  Heuristic:");
-              PrintResVal(puno,spno,R2D[irun-1],reserve,spec,misslevel);
+              displayValueForPUs(puno,spno,R2D[irun-1],reserve,spec,misslevel);
            }
 
            appendTraceFile("after Heuristics run %i\n",irun);
@@ -212,16 +200,16 @@ void ExecuteRunLoop(long int repeats,int puno,int spno,double cm,int aggexist,do
 
         if (runoptions.ItImpOn)
         {
-           appendTraceFile("before IterativeImprovement run %i\n",irun);
+           appendTraceFile("before iterativeImprovement run %i\n",irun);
 
-           IterativeImprovement(puno,spno,pu,connections,spec,SM,R2D[irun-1],cm,
+           iterativeImprovement(puno,spno,pu,connections,spec,SM,R2D[irun-1],cm,
                                 &reserve,&change,costthresh,tpf1,tpf2,clumptype,irun,savename);
 
            if (itimptype == 3)
-              IterativeImprovement(puno,spno,pu,connections,spec,SM,R2D[irun-1],cm,
+              iterativeImprovement(puno,spno,pu,connections,spec,SM,R2D[irun-1],cm,
                                    &reserve,&change,costthresh,tpf1,tpf2,clumptype,irun,savename);
 
-           appendTraceFile("after IterativeImprovement run %i\n",irun);
+           appendTraceFile("after iterativeImprovement run %i\n",irun);
 
            if (aggexist)
               ClearClumps(spno,spec,pu,SM);
@@ -230,7 +218,7 @@ void ExecuteRunLoop(long int repeats,int puno,int spno,double cm,int aggexist,do
            {
               ReserveCost(puno,spno,R2D[irun-1],pu,connections,SM,cm,spec,aggexist,&reserve,clumptype);
               displayProgress1("  Iterative Improvement:");
-              PrintResVal(puno,spno,R2D[irun-1],reserve,spec,misslevel);
+              displayValueForPUs(puno,spno,R2D[irun-1],reserve,spec,misslevel);
            }
 
         } // Activate Iterative Improvement
@@ -311,9 +299,9 @@ void ExecuteRunLoop(long int repeats,int puno,int spno,double cm,int aggexist,do
     // *******  The larger repetition loop ********
 }
 
-int Marxan(char sInputFileName[])
+int executeMarxan(char sInputFileName[])
 {
-    int iSparseMatrixFileLength = 0, iSparseMatrixFileLength_sporder = 0; //, iProbSparseMatrixFileLength = 0;
+    int iSparseMatrixFileLength = 0, iSparseMatrixFileLength_sporder = 0;
     long int repeats;
     int puno,spno,gspno;
     struct sgenspec *gspec;
@@ -323,7 +311,7 @@ int Marxan(char sInputFileName[])
     double misslevel;
     int iseed,seedinit;
     int aggexist=0,sepexist=0;
-    int *R_CalcPenalties; //,*bestrun,
+    int *R_CalcPenalties;
     int *sumsoln, iBestRun = 1;
     double costthresh,tpf1,tpf2, rBestScore;
     long int itemp;
@@ -343,7 +331,7 @@ int Marxan(char sInputFileName[])
                &runopts,&misslevel,&heurotype,&clumptype,&itimptype,&verbosity,
                &costthresh,&tpf1,&tpf2);
 
-    SetRunOptions(runopts,&runoptions);
+    setDefaultRunOptions(runopts,&runoptions);
 
     sprintf(sTraceFileName,"%s_TraceFile.txt",savename);
     createTraceFile();
@@ -489,10 +477,10 @@ int Marxan(char sInputFileName[])
     {
         displayProgress1("    Reading in the Block Definition File \n");
         readSpeciesBlockDefinition(&gspno,&gspec,fnames);
-        SetBlockDefs(gspno,spno,puno,gspec,spec,pu,SM);
+        setBlockDefinitions(gspno,spno,puno,gspec,spec,pu,SM);
     }
 
-    SetDefs(spno,spec);
+    setDefaultTargets(spno,spec);
 
     appendTraceFile("after process block definitions\n");
 
@@ -515,12 +503,12 @@ int Marxan(char sInputFileName[])
 
     if (fSpecPROPLoaded > 0)
     {
-       appendTraceFile("before ApplySpecProp\n");
+       appendTraceFile("before computeSpecProp\n");
 
        // species have prop value specified
-       ApplySpecProp(spno,spec,puno,pu,SM);
+       computeSpecProp(spno,spec,puno,pu,SM);
 
-       appendTraceFile("after ApplySpecProp\n");
+       appendTraceFile("after computeSpecProp\n");
     }
 
     displayProgress2("Checking to see if there are aggregating or separating species.\n");
@@ -585,7 +573,7 @@ int Marxan(char sInputFileName[])
            appendTraceFile("before CalcPenalties\n");
 
            // we don't have sporder matrix available, so use slow CalcPenalties method
-           itemp = CalcPenalties(puno,spno,pu,spec,connections,SM,R_CalcPenalties,aggexist,cm,clumptype);
+           itemp = computePenalties(puno,spno,pu,spec,connections,SM,R_CalcPenalties,aggexist,cm,clumptype);
 
            appendTraceFile("after CalcPenalties\n");
         }
@@ -596,7 +584,7 @@ int Marxan(char sInputFileName[])
             {
                appendTraceFile("before CalcPenaltiesOptimise\n");
 
-               itemp = CalcPenaltiesOptimise(puno,spno,pu,spec,connections,SM,SMsporder,R_CalcPenalties,aggexist,cm,clumptype);
+               itemp = computePenaltiesOptimise(puno,spno,pu,spec,connections,SM,SMsporder,R_CalcPenalties,aggexist,cm,clumptype);
 
                appendTraceFile("after CalcPenaltiesOptimise\n");
             }
@@ -605,7 +593,7 @@ int Marxan(char sInputFileName[])
                 appendTraceFile("before CalcPenalties\n");
 
                 // we have optimise calc penalties switched off, so use slow CalcPenalties method
-                itemp = CalcPenalties(puno,spno,pu,spec,connections,SM,R_CalcPenalties,aggexist,cm,clumptype);
+                itemp = computePenalties(puno,spno,pu,spec,connections,SM,R_CalcPenalties,aggexist,cm,clumptype);
 
                 appendTraceFile("after CalcPenalties\n");
             }
@@ -722,7 +710,7 @@ int Marxan(char sInputFileName[])
        ComputeP_AllPUsSelected_2D(tempname2,puno,spno,pu,SM,spec);
     }
   
-    ExecuteRunLoop(repeats,puno,spno,cm,aggexist,prop,clumptype,misslevel,
+    executeRunLoop(repeats,puno,spno,cm,aggexist,prop,clumptype,misslevel,
                    savename,costthresh,tpf1,tpf2,heurotype,runopts,
                    itimptype,&iBestRun,sumsoln,marxanisslave);
 
@@ -797,10 +785,10 @@ int Marxan(char sInputFileName[])
     appendTraceFile("\nMarxan end execution\n");
 
     return 0;
-}   // Marxan
+} // executeMarxan
 
 // returns the 0-base index of a species at a planning unit, if the species doesn't occur here, returns -1
-int rtnIdxSpecAtPu(struct spustuff PU[], struct spu SM[], int iPUIndex, int iSpecIndex)
+int returnIndexSpecAtPu(struct spustuff PU[], struct spu SM[], int iPUIndex, int iSpecIndex)
 {
     int i;
 
@@ -814,32 +802,8 @@ int rtnIdxSpecAtPu(struct spustuff PU[], struct spu SM[], int iPUIndex, int iSpe
     return -1;
 }
 
-// returns the clump number of a species at a planning unit, if the species doesn't occur here, returns 0
-int rtnClumpSpecAtPu(struct spustuff PU[], struct spu SM[], int iPUIndex, int iSpecIndex)
-{
-    int i;
-
-    if (PU[iPUIndex].richness > 0)
-       for (i=0;i<PU[iPUIndex].richness;i++)
-           if (SM[PU[iPUIndex].offset + i].spindex == iSpecIndex)
-              return SM[PU[iPUIndex].offset + i].clump;
-
-    return 0;
-}
-
-// sets the clump number of a species at a planning unit
-void setClumpSpecAtPu(struct spustuff PU[], struct spu SM[], int iPUIndex, int iSpecIndex, int iSetClump)
-{
-    int i;
-
-    if (PU[iPUIndex].richness > 0)
-       for (i=0;i<PU[iPUIndex].richness;i++)
-           if (SM[PU[iPUIndex].offset + i].spindex == iSpecIndex)
-              SM[PU[iPUIndex].offset + i].clump = iSetClump;
-}
-
 // returns the amount of a species at a planning unit, if the species doesn't occur here, returns 0
-double rtnAmountSpecAtPu(struct spustuff PU[], struct spu SM[], int iPUIndex, int iSpecIndex)
+double returnAmountSpecAtPu(struct spustuff PU[], struct spu SM[], int iPUIndex, int iSpecIndex)
 {
     int i;
 
@@ -851,8 +815,26 @@ double rtnAmountSpecAtPu(struct spustuff PU[], struct spu SM[], int iPUIndex, in
     return 0;
 }
 
-void SetBlockDefs(int gspno,int spno,int puno,struct sgenspec gspec[], struct sspecies spec[],
-                  struct spustuff PU[], struct spu SM[])
+// compute proportional target for species when prop target is specified
+// use the prop value from the conservation feature file to set a proportion target for species
+void computeSpecProp(int spno,typesp spec[],int puno,struct spustuff pu[],struct spu SM[])
+{
+     // compute and set target for species with a prop value
+     double totalamount;
+     int isp, ipu;
+
+     for (isp=0;isp<spno;isp++)
+         if (spec[isp].prop > 0)
+         {
+            for (ipu = 0,totalamount = 0;ipu<puno;ipu++)
+                totalamount += returnAmountSpecAtPu(pu,SM,ipu,isp);
+            spec[isp].target = totalamount * spec[isp].prop;
+         }
+}
+
+// apply settings from the block defintion file for species
+void setBlockDefinitions(int gspno,int spno,int puno,struct sgenspec gspec[], struct sspecies spec[],
+                         struct spustuff PU[], struct spu SM[])
 {
   int igsp,isp,ipu;
   double totalamount;
@@ -864,7 +846,7 @@ void SetBlockDefs(int gspno,int spno,int puno,struct sgenspec gspec[], struct ss
              if (spec[isp].type == gspec[igsp].type && spec[isp].target < 0)
              {
                 for (ipu=0,totalamount =0;ipu<puno;ipu++)
-                    totalamount += rtnAmountSpecAtPu(PU,SM,ipu,isp);
+                    totalamount += returnAmountSpecAtPu(PU,SM,ipu,isp);
                 spec[isp].target = totalamount * gspec[igsp].prop;
              } // Setting target with percentage
       if (gspec[igsp].target > 0)
@@ -902,9 +884,8 @@ void SetBlockDefs(int gspno,int spno,int puno,struct sgenspec gspec[], struct ss
 
 } // Set Block Defs
 
-// ******** Set Defaults *******
-// If '-1' values haven't been set yet then this one will do it
-void SetDefs(int spno, struct sspecies spec[])
+// set default targets for species
+void setDefaultTargets(int spno, struct sspecies spec[])
 {
      int isp;
      for (isp=0;isp<spno;isp++)
@@ -922,10 +903,10 @@ void SetDefs(int spno, struct sspecies spec[])
          if (spec[isp].spf < 0)
             spec[isp].spf = 1;
     }
-} // Set Defs
+}
 
-// *** Set run options. Takes an integer runopts value and returns flags ***
-void SetRunOptions(int runopts, struct srunoptions *runoptions)
+// set default run options based on the selection algorithm chosen
+void setDefaultRunOptions(int runopts, struct srunoptions *runoptions)
 {
      if (runopts < 0)
         return; // runopts < 0 indicates that these are set in some other way
@@ -1031,8 +1012,8 @@ void SetRunOptions(int runopts, struct srunoptions *runoptions)
      }
 } // Set Run Options
 
-// ******** Add Reserve to current system *******
-void AddReserve(int puno,struct spustuff pu[],int *R)
+// for pu's specified as reserved in pu.dat status, make them reserved in a pu status vector
+void addReserve(int puno,struct spustuff pu[],int *R)
 {
      int i;
      for (i=0;i<puno;i++)
@@ -1042,14 +1023,10 @@ void AddReserve(int puno,struct spustuff pu[],int *R)
      }
 }    // ******* Add Reserve **********
 
-// ******* Calculate Initial Penalties *************
-// This routine calculates the initial penalties or the penalty if you had no representation
-// This has been modified in March 2000 to allow a combination of area targets and occurrence
-//    targets
-// If species has spatial requirements then CalcPenaltyType4 is invoked and will handle that
-//    species
-int CalcPenalties(int puno,int spno,struct spustuff pu[],struct sspecies spec[],
-                  struct sconnections connections[],struct spu SM[],int PUtemp[],int aggexist,double cm,int clumptype)
+// compute initial penalties for species with a greedy algorithm.
+// If species has spatial requirements then CalcPenaltyType4 is used instead
+int computePenalties(int puno,int spno,struct spustuff pu[],struct sspecies spec[],
+                     struct sconnections connections[],struct spu SM[],int PUtemp[],int aggexist,double cm,int clumptype)
 {
     int i,j,ibest,imaxtarget,itargetocc;
     //int *PUtemp;
@@ -1058,7 +1035,7 @@ int CalcPenalties(int puno,int spno,struct spustuff pu[],struct sspecies spec[],
 
     //PUtemp = (int *) calloc(puno,sizeof(int));
 
-    AddReserve(puno,pu,PUtemp); // Adds existing reserve to PUtemp
+    addReserve(puno,pu,PUtemp); // Adds existing reserve to PUtemp
 
     for (i=0;i<spno;i++)
     {
@@ -1084,7 +1061,7 @@ int CalcPenalties(int puno,int spno,struct spustuff pu[],struct sspecies spec[],
                PUtemp[j] = 0;
             if (PUtemp[j] == 2)
             {
-               ftarget += rtnAmountSpecAtPu(pu,SM,j,i);
+               ftarget += returnAmountSpecAtPu(pu,SM,j,i);
                itargetocc++;
                spec[i].penalty += cost(j,pu,connections,cm);
             }
@@ -1107,7 +1084,7 @@ int CalcPenalties(int puno,int spno,struct spustuff pu[],struct sspecies spec[],
           fbest =0; imaxtarget = 0; fbestrat = 0;
           for (j=0;j<puno;j++)
           {
-              rAmount = rtnAmountSpecAtPu(pu,SM,j,i);
+              rAmount = returnAmountSpecAtPu(pu,SM,j,i);
               if (PUtemp[j] == 0 && rAmount>0)
               {
                  fcost = cost(j,pu,connections,cm);
@@ -1136,7 +1113,7 @@ int CalcPenalties(int puno,int spno,struct spustuff pu[],struct sspecies spec[],
           if (fbest > 0)
           {
              PUtemp[ibest] = 1;
-             ftarget += rtnAmountSpecAtPu(pu,SM,ibest,i);
+             ftarget += returnAmountSpecAtPu(pu,SM,ibest,i);
              itargetocc++;
              spec[i].penalty += fbest;
 
@@ -1180,9 +1157,10 @@ int CalcPenalties(int puno,int spno,struct spustuff pu[],struct sspecies spec[],
     return(badspecies);
 }
 
-int CalcPenaltiesOptimise(int puno,int spno,struct spustuff pu[],struct sspecies spec[],
-                          struct sconnections connections[],struct spu SM[],struct spusporder SMsp[],
-                          int PUtemp[],int aggexist,double cm,int clumptype)
+// compute initial penalties for species with a greedy algorithm.
+int computePenaltiesOptimise(int puno,int spno,struct spustuff pu[],struct sspecies spec[],
+                             struct sconnections connections[],struct spu SM[],struct spusporder SMsp[],
+                             int PUtemp[],int aggexist,double cm,int clumptype)
 {
     int i,j,ibest,imaxtarget,itargetocc,ism,ipu, iPUsToTest;
     //int *PUtemp;
@@ -1193,7 +1171,7 @@ int CalcPenaltiesOptimise(int puno,int spno,struct spustuff pu[],struct sspecies
 
     appendTraceFile("CalcPenaltiesOptimise start\n");
 
-    AddReserve(puno,pu,PUtemp); // Adds existing reserve to PUtemp
+    addReserve(puno,pu,PUtemp); // Adds existing reserve to PUtemp
 
     for (i=0;i<spno;i++)
     {
@@ -1454,167 +1432,6 @@ double ChangePen(int ipu,int puno,struct sspecies spec[],struct spustuff pu[],st
        #endif
        return (fcost);
 }  /*** Change in penalty for adding or deleting one PU ****/
-
-/************** Value of a Reserve System ********/
-void ComputeP_AllPUsSelected_1D(char savename[],int puno,int spno,struct spustuff pu[],struct spu SM[],struct sspecies spec[])
-{
-     FILE *fp;
-     int i,j,iHeavisideStepFunction,ism,isp;
-     double *ExpectedAmount1D, *VarianceInExpectedAmount1D, *TA,
-            rProbability, rRawP, rSumProbability = 0, rShortfallPenalty, rZScore;
-     char debugbuffer[200];
-
-     // create the output file
-     fp = fopen(savename,"w");
-     fprintf(fp,"SPID,amount held,ptarget1d,EA1D,VIEA1D,Z1D,rawP1D,heavisideSF1D,shortfallP1D,P1D\n");
-
-     // init arrays
-     ExpectedAmount1D = (double *) calloc(spno,sizeof(double));
-     VarianceInExpectedAmount1D = (double *) calloc(spno,sizeof(double));
-     TA = (double *) calloc(spno,sizeof(double));
-     for (i=0;i<spno;i++)
-     {
-         ExpectedAmount1D[i] = 0;
-         VarianceInExpectedAmount1D[i] = 0;
-         TA[i] = 0;
-     }
-
-     // compute EA, VIEA, TA
-     for (j=0;j<puno;j++)
-         if (pu[j].richness)
-            for (i=0;i<pu[j].richness;i++)
-            {
-                ism = pu[j].offset + i;
-                isp = SM[ism].spindex;
-
-                ExpectedAmount1D[isp] += SM[ism].amount * (1 - pu[j].prob);
-                VarianceInExpectedAmount1D[isp] += SM[ism].amount * SM[ism].amount * pu[j].prob * (1 - pu[j].prob);
-                TA[isp] += SM[ism].amount;
-            }
-
-     // compute probability for each feature
-     for (i=0;i<spno;i++)
-     {
-         if (VarianceInExpectedAmount1D[i] > 0)
-            rZScore = (spec[i].target - ExpectedAmount1D[i]) / sqrt(VarianceInExpectedAmount1D[i]);
-         else
-             rZScore = 4;
-
-         if (rZScore >= 0)
-            rRawP = probZUT(rZScore);
-         else
-             rRawP = 1 - probZUT(-1 * rZScore);
-
-         if (spec[i].ptarget1d > rRawP)
-            iHeavisideStepFunction = 1;
-         else
-             iHeavisideStepFunction = 0;
-
-         if (spec[i].ptarget1d > 0)
-            rShortfallPenalty = (spec[i].ptarget1d - rRawP) / spec[i].ptarget1d;
-         else
-             rShortfallPenalty = 0;
-
-         rProbability = iHeavisideStepFunction * rShortfallPenalty;
-
-         rSumProbability += rProbability;
-
-         fprintf(fp,"%i,%f,%f,%f,%f,%f,%f,%i,%f,%f\n",
-                    spec[i].name,TA[i],spec[i].ptarget1d,
-                    ExpectedAmount1D[i],VarianceInExpectedAmount1D[i],rZScore,
-                    rRawP,iHeavisideStepFunction,rShortfallPenalty,rProbability);
-     }
-
-     free(ExpectedAmount1D);
-     free(VarianceInExpectedAmount1D);
-     free(TA);
-     fclose(fp);
-
-     #ifdef DEBUGTRACEFILE
-     sprintf(debugbuffer,"ComputeP_AllPUsSelected_1D SumP %f SumP * PW %f\n",rSumProbability,rSumProbability * rProbabilityWeighting);
-     appendTraceFile(debugbuffer);
-     #endif
-}
-
-void ComputeP_AllPUsSelected_2D(char savename[],int puno,int spno,struct spustuff pu[],struct spu SM[],struct sspecies spec[])
-{
-     FILE *fp;
-     int i,j,iHeavisideStepFunction,ism,isp;
-     double *ExpectedAmount2D, *VarianceInExpectedAmount2D, *TA,
-            rProbability, rRawP, rSumProbability = 0, rShortfallPenalty, rZScore;
-     char debugbuffer[200];
-
-     // create the output file
-     fp = fopen(savename,"w");
-     fprintf(fp,"SPID,amount held,ptarget1d,EA2D,VIEA2D,Z2D,rawP2D,heavisideSF2D,shortfallP2D,P2D\n");
-
-     // init arrays
-     ExpectedAmount2D = (double *) calloc(spno,sizeof(double));
-     VarianceInExpectedAmount2D = (double *) calloc(spno,sizeof(double));
-     TA = (double *) calloc(spno,sizeof(double));
-     for (i=0;i<spno;i++)
-     {
-         ExpectedAmount2D[i] = 0;
-         VarianceInExpectedAmount2D[i] = 0;
-         TA[i] = 0;
-     }
-
-     // compute EA, VIEA, TA
-     for (j=0;j<puno;j++)
-         if (pu[j].richness)
-            for (i=0;i<pu[j].richness;i++)
-            {
-                ism = pu[j].offset + i;
-                isp = SM[ism].spindex;
-
-                ExpectedAmount2D[isp] += SM[ism].amount * SM[ism].prob;
-                VarianceInExpectedAmount2D[isp] += SM[ism].amount * SM[ism].amount * SM[ism].prob * (1 - SM[ism].prob);
-                TA[isp] += SM[ism].amount;
-            }
-
-     // compute probability for each feature
-     for (i=0;i<spno;i++)
-     {
-         if (VarianceInExpectedAmount2D[i] > 0)
-            rZScore = (spec[i].target - ExpectedAmount2D[i]) / sqrt(VarianceInExpectedAmount2D[i]);
-         else
-             rZScore = 4;
-
-         if (rZScore >= 0)
-            rRawP = probZUT(rZScore);
-         else
-             rRawP = 1 - probZUT(-1 * rZScore);
-
-         if (spec[i].ptarget2d > rRawP)
-            iHeavisideStepFunction = 1;
-         else
-             iHeavisideStepFunction = 0;
-
-         if (spec[i].ptarget2d > 0)
-            rShortfallPenalty = (spec[i].ptarget2d - rRawP) / spec[i].ptarget2d;
-         else
-             rShortfallPenalty = 0;
-
-         rProbability = iHeavisideStepFunction * rShortfallPenalty;
-
-         rSumProbability += rProbability;
-
-         fprintf(fp,"%i,%f,%f,%f,%f,%f,%f,%i,%f,%f\n",
-                    spec[i].name,TA[i],spec[i].ptarget2d,
-                    ExpectedAmount2D[i],VarianceInExpectedAmount2D[i],rZScore,
-                    rRawP,iHeavisideStepFunction,rShortfallPenalty,rProbability);
-     }
-
-     free(ExpectedAmount2D);
-     free(VarianceInExpectedAmount2D);
-     free(TA);
-     fclose(fp);
-
-     #ifdef DEBUGTRACEFILE
-     sprintf(debugbuffer,"ComputeP_AllPUsSelected_2D SumP %f SumP * PW %f\n",rSumProbability,rSumProbability * rProbabilityWeighting);
-     appendTraceFile(debugbuffer);
-     #endif
-}
 
 /************** Value of a Reserve System ********/
 void ReserveCost(int puno,int spno,int *R,struct spustuff pu[],
@@ -2052,7 +1869,7 @@ double NewPenalty(int ipu,int isp,struct sspecies spec[],struct spustuff pu[],st
 {
        double newpen;
 
-       newpen = spec[isp].target - spec[isp].amount - rtnAmountSpecAtPu(pu,SM,ipu,isp)*imode;
+       newpen = spec[isp].target - spec[isp].amount - returnAmountSpecAtPu(pu,SM,ipu,isp)*imode;
 
        if (newpen < 0)
           newpen = 0;
@@ -2499,64 +2316,6 @@ void ComputeConnectivityIndices(double *rConnectivityTotal,double *rConnectivity
      }
 }
 
-/*************** Reporting Value of a Reserve *******/
-void PrintResVal (int puno, int spno,int *R,struct scost reserve,
-                  struct sspecies spec[],double misslevel)
-{
-     int i, isp = 0;
-     double connectiontemp = 0, shortfall, rMPM;//, rConnectivityTotal = 0,rConnectivityIn = 0,rConnectivityEdge = 0,rConnectivityOut = 0;
-
-     #ifdef DEBUG_PRINTRESVALPROB
-     appendTraceFile("PrintResVal start\n");
-     #endif
-
-     isp = CountMissing(spno,spec,misslevel,&shortfall,&rMPM);
-
-     //ComputeConnectivityIndices(rConnectivityTotal,rConnectivityIn,rConnectivityEdge,rConnectivityOut,
-     //                           puno,R,connections);
-
-     for (i=0;i<puno;i++)
-         if (R[i]==1 || R[i] == 2)
-         {
-            connectiontemp += ConnectionCost2(i,connections,R,1,0,1);
-         }
-
-     #ifdef DEBUG_PRINTRESVALPROB
-     appendTraceFile("PrintResVal missing %i connectiontemp %g\n",isp,connectiontemp);
-     #endif
-
-     displayProgress("Value %.1f Cost %.1f PUs %i Connection %.1f Missing %i Shortfall %.2f Penalty %.1f MPM %.1f\n",
-                     reserve.total,reserve.cost,reserve.pus,connectiontemp,isp,shortfall,reserve.penalty,rMPM);
-
-     if (fProb1D == 1)
-        displayProgress(" Probability1D %.1f",reserve.probability1D);
-     if (fProb2D == 1)
-        displayProgress(" Probability2D %.1f",reserve.probability2D);
-
-     displayProgress("\n");
-
-     #ifdef DEBUG_PRINTRESVALPROB
-     appendTraceFile("PrintResVal end\n");
-     #endif
-} /******* Print Reserve Value *********/
-
-/****** Change the Cost *****/
-/* This routine changes the values in the cost structure (such as making them negative ) */
-/* Useful for altering the 'change' variable  */
-void ChangeCost(struct scost *cost,double changemult)
-{
-     cost->total *= changemult;
-     cost->connection *= changemult;
-     cost->penalty *= changemult;
-     cost->cost *= changemult;
-     cost->probability1D *= changemult;
-     cost->probability2D *= changemult;
-}
-
-/***************************************************************************/
-/************** Annealing Specific Functions *******************************/
-/***************************************************************************/
-
 void ConnollyInit(int puno,int spno,struct spustuff pu[],typeconnection connections[],typesp spec[],
                   struct spu SM[],double cm, struct sanneal *anneal,int aggexist,
                   int R[],double prop,int clumptype,int irun)
@@ -2600,7 +2359,7 @@ void ConnollyInit(int puno,int spno,struct spustuff pu[],typeconnection connecti
      appendTraceFile("ConnollyInit B\n");
      #endif
 
-     AddReserve(puno,pu,R);
+     addReserve(puno,pu,R);
      if (aggexist)
         ClearClumps(spno,spec,pu,SM);
 
@@ -2660,7 +2419,7 @@ void AdaptiveInit(int puno,int spno,double prop,int *R,
     for (i=0;i<isamples;i++)
     {  /* Generate Random Reserve */
         InitReserve(puno,prop,R);
-        AddReserve(puno,pu,R);
+        addReserve(puno,pu,R);
         /* Score Random reserve */
         ReserveCost(puno,spno,R,pu,connections,SM,cm,spec,aggexist,&cost,clumptype);
         /* Add Score to Sum */
@@ -2910,13 +2669,13 @@ void ThermalAnnealing(int spno, int puno, struct sconnections connections[],int 
        displayProgress1("  ThermalAnnealing:");
 
        #ifdef DEBUG_PRINTRESVALPROB
-       appendTraceFile("before PrintResVal ThermalAnnealing:\n");
+       appendTraceFile("before displayValueForPUs ThermalAnnealing:\n");
        #endif
 
-       PrintResVal(puno,spno,R,*reserve,spec,misslevel);
+       displayValueForPUs(puno,spno,R,*reserve,spec,misslevel);
 
        #ifdef DEBUG_PRINTRESVALPROB
-       appendTraceFile("after PrintResVal ThermalAnnealing:\n");
+       appendTraceFile("after displayValueForPUs ThermalAnnealing:\n");
        #endif
      }
 
@@ -3170,13 +2929,13 @@ void QuantumAnnealing(int spno, int puno, struct sconnections connections[],int 
        displayProgress1("  QuantumAnnealing:");
 
        #ifdef DEBUG_PRINTRESVALPROB
-       appendTraceFile("before PrintResVal QuantumAnnealing:\n");
+       appendTraceFile("before displayValueForPUs QuantumAnnealing:\n");
        #endif
 
-       PrintResVal(puno,spno,R,*reserve,spec,misslevel);
+       displayValueForPUs(puno,spno,R,*reserve,spec,misslevel);
 
        #ifdef DEBUG_PRINTRESVALPROB
-       appendTraceFile("after PrintResVal QuantumAnnealing:\n");
+       appendTraceFile("after displayValueForPUs QuantumAnnealing:\n");
        #endif
      }
 
@@ -3378,1154 +3137,6 @@ int FastNameToSPID(int spno,int name, struct binsearch SPLookup[])
     }
     return(SPLookup[iCentre].index);
 }
-
-/*********************************************/
-/*********  Clump Utilities ******************/
-/********************************************/
-
-// Clear a single Clump
-void ClearClump(int isp,struct sclumps *target,struct spustuff pu[],
-                struct spu SM[])
-{
-    struct sclumppu *ppu;
-
-     /* Remove all links from this clump */
-    while (target->head) {
-        ppu = target->head;
-        if (rtnClumpSpecAtPu(pu,SM,ppu->puid,isp) == target->clumpid) /* in case pu is in new clump */
-            setClumpSpecAtPu(pu,SM,ppu->puid,isp,0);
-        target->head = ppu->next;
-        free(ppu);
-        DebugFree(sizeof(struct sclumppu));
-    } /* Remove all links from this clump */
-}
-
-// Function does this cut clump?
-// Returns the value of the fragmented clumps if the given PU were removed
-// If imode = 1 then it will also do a separation count
-int ClumpCut(int isp,struct spustuff pu[],
-        struct sspecies spec[],struct sclumps *clump,
-        struct sclumppu *clumppu,struct sconnections connections[],struct spu SM[],
-        double *totalamount,int *totalocc,
-        int *iseparation, int imode,int clumptype)
-{
-    int ineighbour = 0,iclumps = 0;
-    struct slink{int id; struct slink *next;} *head = NULL, *newhead,*thead, *clumplist, *clumpcurr;
-    struct sneighbour *pnbr;
-    struct sclumps *spclump = NULL, *newpclump;
-    struct sclumppu *pclumppu;
-    double clumpamount, rAmount;
-    int iocc;
-
-    *totalamount = 0;
-    *totalocc = 0;
-
-    /* Set up spclump for counting Separation */
-    if (imode)
-    {
-        newpclump = (struct sclumps *) malloc(sizeof(struct sclumps));
-        newpclump->clumpid = clumppu->puid;
-        newpclump->amount = 0;
-        newpclump->next = spclump;
-        spclump = newpclump;
-    }
-
-    /** Generate list of all neighbours and count them **/
-    /*First check if there are no neighbours then exit. **/
-      /* return null for no clump cut done and need to do separation count */
-    if (connections[clumppu->puid].nbrno == 0)
-    {
-        if (imode)
-        {
-            *iseparation = CountSeparation(isp,spclump,pu,SM,spec,0);
-            free(spclump);
-            DebugFree(sizeof(struct sclumps));
-        }
-        return(0);
-    }
-
-    for (pnbr = connections[clumppu->puid].first; pnbr;pnbr = pnbr->next)
-    {
-        if (rtnClumpSpecAtPu(pu,SM,pnbr->nbr,isp) == clump->clumpid)
-        {
-            ineighbour++;
-            newhead = (struct slink *) malloc(sizeof(struct slink));
-            newhead->id = pnbr->nbr;
-            newhead->next = head;
-            head = newhead;
-        } // If neighbour is part of the same clump
-    } // For cycling through all neighbours
-
-    if (ineighbour <= 1)
-    { // One or fewer neighbours
-        if (imode)
-        { // separation distance called
-            for(pclumppu=clump->head;pclumppu;pclumppu=pclumppu->next)
-             if (pclumppu != clumppu)
-             {
-                newpclump = (struct sclumps *) malloc(sizeof(struct sclumps));
-                newpclump->clumpid = pclumppu->puid;
-                newpclump->amount = clump->amount - rtnAmountSpecAtPu(pu,SM,clumppu->puid,isp);
-                newpclump->next = spclump;
-                spclump = newpclump;
-
-             } /* found someone in the clump who is not being removed */
-
-             *iseparation = CountSeparation(isp,spclump,pu,SM,spec,0);
-        }
-        else
-            (*iseparation = spec[isp].sepnum);
-            
-        if (head)
-        {
-            free(head);
-            DebugFree(sizeof(struct slink));
-        }
-        
-        while (spclump)
-        {
-            newpclump = spclump;
-            spclump = spclump->next;
-            free(newpclump);
-            DebugFree(sizeof(struct sclumps));
-        }  // clearing up spclump
-        
-        rAmount = rtnAmountSpecAtPu(pu,SM,clumppu->puid,isp);
-        *totalamount = PartialPen4(isp,clump->amount-rAmount,spec,clumptype);
-        *totalocc = (clump->occs - (rAmount > 0))*(*totalamount > 0); // count only if still valid size
-        
-        return(0);
-    }
-
-    // More than one neighbour. Can they form their own clump?
-    // Put first neighbour at head of new list
-    while (head)
-    {
-          clumpamount = 0;
-          iclumps++;
-          clumplist = (struct slink *) malloc(sizeof(struct slink));
-          clumplist->next = NULL;
-          clumplist->id = head->id;
-          clumpcurr = clumplist;
-          newhead = head;
-          head = head->next;
-          free(newhead);  /* move first site from head to clumplist */
-          DebugFree(sizeof(struct slink));
-          ineighbour--;
-          do
-          {
-            for (pnbr = connections[clumpcurr->id].first;pnbr;pnbr = pnbr->next)
-            {
-                if (rtnClumpSpecAtPu(pu,SM,pnbr->nbr,isp) == clump->clumpid && pnbr->nbr != clumppu->puid) // if neighbour in clump but not cut out one   
-                {
-                   for (newhead = clumplist;newhead && newhead->id != pnbr->nbr;newhead= newhead->next)
-                       ; // Cycle through clumplist looking to see if this fellow is already in it
-                       
-                   if (!newhead)
-                   {
-                      newhead = (struct slink *) malloc(sizeof(struct slink));
-                      newhead->id = pnbr->nbr;
-                      newhead->next = clumpcurr->next;
-                      clumpcurr->next = newhead;  /* put this item in my clumplist */
-                      
-                      // go through neighbour list and see if this one is there
-                      for (newhead=head;newhead && newhead->id != pnbr->nbr;newhead = newhead->next)
-                          ; // find this item on the neighbour list
-                          
-                      if (newhead && newhead->id == pnbr->nbr)
-                      {
-                         ineighbour--;
-                         if (newhead == head)
-                            head = newhead->next;
-                         else
-                         {
-                             for (thead=head;thead->next != newhead; thead = thead->next)
-                                 ; // find link before the one to be removed
-                                 
-                             thead->next = newhead->next;
-                         } // remove link that is not head
-                         
-                         free(newhead);
-                         DebugFree(sizeof(struct slink));
-                      } // A new neighbour is taken into account
-                   } // Adding a novel neighbour to list
-                } // found a neighbour in clump which isn't the one being cut
-            } // cycling through every neighbour on this clump
-
-            // point to next one on list but keep clump head where it is
-            clumpcurr = clumpcurr->next;
-
-          } while (clumpcurr); // if you've run out of new list then...
-
-          iocc = 0;
-          for (newhead=clumplist;newhead;newhead=newhead->next)
-          {
-              rAmount = rtnAmountSpecAtPu(pu,SM,newhead->id,isp);
-              clumpamount += rAmount; // find total amount
-              iocc += (rAmount > 0);
-          }
-          
-          *totalamount += PartialPen4(isp,clumpamount,spec,clumptype);
-          if (PartialPen4(isp,clumpamount,spec,clumptype))
-             *totalocc += iocc;
-
-          if (imode)
-             for (newhead=clumplist;newhead;newhead=newhead->next)
-             {
-                 newpclump = (struct sclumps *)malloc(sizeof(struct sclumps));
-                 newpclump->clumpid = newhead->id;
-                 newpclump->amount = clumpamount;
-                 newpclump->next = spclump;
-                 spclump = newpclump;
-             } // stick this clump into my clump list for separation purposes
-
-             // clean up all lists
-             while (clumplist)
-             {
-                   clumpcurr = clumplist;
-                   clumplist = clumplist->next;
-                   free(clumpcurr);
-                   DebugFree(sizeof(struct slink));
-             } // clean up clumplist
-    } // Continue clump formation whilst there are members in the list
-
-    if (imode)
-    {
-       *iseparation = CountSeparation(isp,spclump,pu,SM,spec,0);
-       while (spclump)
-       {
-             newpclump = spclump;
-             spclump = spclump ->next;
-             free(newpclump);
-             DebugFree(sizeof(struct sclumps));
-       } /* clean up separation clump list */
-    }
-    else
-        *iseparation = spec[isp].sepnum;
-
-    while (head)
-    {
-        newhead = head;
-        head = head->next;
-        free(newhead);
-        DebugFree(sizeof(struct slink));
-    } // clean up neighbour list
-    
-    return(iclumps);
-} // Function Clump Cut.. Do I cut ?
-
-// Clear Clumps
-// This is for clean up purposes
-void ClearClumps(int spno,struct sspecies spec[],struct spustuff pu[],
-                 struct spu SM[])
-{
-     int i;
-     struct sclumps *pclump;
-
-     for (i=0;i<spno;i++)
-     {
-        while (spec[i].head)
-        {
-              ClearClump(i,spec[i].head,pu,SM);
-              pclump = spec[i].head;
-              spec[i].head = spec[i].head->next;
-              free(pclump);
-        }  // Remove each clump
-        
-        spec[i].clumps = 0;
-     } // Clear clump for each species
-} // Clear Clumps
-
-// Add New Clump
-struct sclumps *AddNewClump(int isp,int ipu,struct sspecies spec[],struct spustuff pu[],struct spu SM[])
-{
-       int iclumpno = 0;
-       struct sclumps *pclump,*pnewclump;
-       struct sclumppu *pnewclumppu;
-       double rAmount;
-
-       // find good clump number
-       pclump = spec[isp].head;
-       if (!pclump)
-          iclumpno = 1;
-    
-       while (!iclumpno)
-       {
-             if (!pclump->next)
-             {
-                iclumpno = pclump->clumpid+1;
-                break;
-             } // I've found the end of the list
-             
-             if (pclump->next->clumpid - pclump->clumpid > 1)
-             {
-                iclumpno = pclump->clumpid+1;
-                continue;
-             } // Looking for good number
-             
-             pclump = pclump->next;
-       } // Find first available clump number
-
-       setClumpSpecAtPu(pu,SM,ipu,isp,iclumpno);
-       pnewclump = (struct sclumps *) malloc(sizeof(struct sclumps));
-       pnewclump->clumpid = iclumpno;
-       if (spec[isp].head)
-       {
-          pnewclump->next = pclump->next;
-          pclump->next = pnewclump;
-       } // Stick clump into correct location
-       else
-       {
-           spec[isp].head = pnewclump;
-           pnewclump->next = NULL;
-       } // First clump on the block
-    
-       // Add first clumppu to this new clump
-       pnewclumppu = (struct sclumppu *) malloc(sizeof(struct sclumppu));
-       pnewclumppu->puid = ipu;
-       pnewclumppu->next = NULL;
-       pnewclump->head = pnewclumppu;
-       rAmount = rtnAmountSpecAtPu(pu,SM,ipu,isp);
-       pnewclump->amount = rAmount;
-       pnewclump->occs = (rAmount > 0);
-
-       spec[isp].clumps++;
-
-       return(pnewclump);
-
-}  // Add New Clump
-
-// ADD NEW PU
-// Add New Planning Unit for a given Species
-void AddNewPU(int ipu,int isp,struct sconnections connections[],struct sspecies spec[],struct spustuff pu[],
-              struct spu SM[],int clumptype)
-{
-     int ineighbours = 0;
-     int iclumpno, iClump;
-     struct sneighbour *pnbr;
-     struct sclumps *pclump, *pnewclump, *ptempclump;
-     struct sclumppu *pnewclumppu;
-     double ftemp, rAmount;
-
-     pnbr = connections[ipu].first;
-     while (pnbr)
-     {
-           // Check all the neighbours to see if any are already in clumps */
-           iClump = rtnClumpSpecAtPu(pu,SM,pnbr->nbr,isp);
-           if (iClump > 0)
-           {
-              // Neighbour that is part of clump
-              ineighbours++;
-              if (ineighbours == 1)
-              {
-                 // Join to the first clump that is also a neighbour
-                 iclumpno = iClump;
-                 for (pclump = spec[isp].head; pclump->clumpid != iclumpno;pclump = pclump->next)
-                     ;
-                     
-                 pnewclumppu = (struct sclumppu *) malloc(sizeof(struct sclumppu));
-                 pnewclumppu->puid = ipu;
-                 pnewclumppu->next = pclump->head;
-                 setClumpSpecAtPu(pu,SM,pnewclumppu->puid,isp,iclumpno);
-                 pclump->head = pnewclumppu;
-
-                 // Remove old value for this clump
-                 ftemp = PartialPen4(isp,pclump->amount,spec,clumptype);
-                 spec[isp].amount -= ftemp;
-                 spec[isp].occurrence -= pclump->occs *(ftemp > 0);
-                 rAmount = rtnAmountSpecAtPu(pu,SM,ipu,isp);
-                 pclump->occs += (rAmount > 0);
-                 pclump->amount += rAmount;
-              } // Adding the pu to the clump
-              else
-              {
-                  // pclump points to the good clump
-                  if (pclump->clumpid != iClump)
-                  {
-                     // Check if this is a different clump
-                     // Join this new clump to the old one
-                     for (pnewclump= spec[isp].head; pnewclump->clumpid != iClump;pnewclump = pnewclump->next)
-                         ;  // point pnewclump to the joining clump
-                         
-                     // Run through joining clump and tell all pu's their new number
-                     for (pnewclumppu = pnewclump->head;pnewclumppu->next;pnewclumppu=pnewclumppu->next)
-                         setClumpSpecAtPu(pu,SM,pnewclumppu->puid,isp,pclump->clumpid);
-                         
-                     setClumpSpecAtPu(pu,SM,pnewclumppu->puid,isp,pclump->clumpid);
-                     
-                     // cut out this clump and join it to pclump
-                     pnewclumppu->next = pclump->head;
-                     pclump->head = pnewclump->head;
-                     pclump->amount += pnewclump->amount;
-                     pclump->occs += pnewclump->occs;
-                     ftemp = PartialPen4(isp,pnewclump->amount,spec,clumptype);
-                     spec[isp].amount -= ftemp;
-                     spec[isp].occurrence -= pnewclump->occs * (ftemp > 0);
-
-                     // Remove clump head and free memory
-                     if (pnewclump == spec[isp].head)
-                        spec[isp].head = pnewclump->next;
-                     else
-                     {
-                         for (ptempclump = spec[isp].head;ptempclump->next != pnewclump;ptempclump = ptempclump->next)
-                             ; // Find clump just before redundant clump
-                             
-                         ptempclump->next = pnewclump->next;
-                     }
-
-                     free(pnewclump);
-                     DebugFree(sizeof(struct sclumps));
-
-                  } // Join the two clumps together
-              } // Found another neighbour
-           }
-           pnbr = pnbr->next;
-     } // cycling through all the neighbours
-
-     // Adding a New clump
-     if (!ineighbours)
-     {
-        AddNewClump(isp,ipu,spec,pu,SM);
-        ftemp = PartialPen4(isp,rAmount,spec,clumptype);
-        spec[isp].amount += ftemp;
-        spec[isp].occurrence += (ftemp>0);
-     } // Adding a new clump
-
-     // Correcting Amount if new clump not added
-     if (ineighbours)
-     {
-        ftemp = PartialPen4(isp,pclump->amount,spec,clumptype);
-        spec[isp].amount += ftemp;
-        spec[isp].occurrence += pclump->occs * (ftemp > 0);
-     }
-} // Add New Pu
-
-/************** REM PU ****************************************/
-/*********** Remove a planning unit. Note it is similar to CutClump but actually does action **/
-/**************************************************************/
-void RemPu(int ipu, int isp,struct sconnections connections[], struct sspecies spec[],struct spustuff pu[],
-           struct spu SM[],int clumptype)
-{
-    int ineighbours = 0;
-    struct slink{int id;struct slink *next;} *head = NULL, *newhead, *thead;
-    struct sclumps *oldclump,*pclump;
-    struct sclumppu *cppu,*ppu, *clumpcurr, *tppu;
-    struct sneighbour *pnbr;
-    double oldamount,newamount = 0.0, rAmount;
-    int newoccs;
-
-    for (oldclump = spec[isp].head;oldclump && oldclump->clumpid != rtnClumpSpecAtPu(pu,SM,ipu,isp); oldclump= oldclump->next)
-    ; /* Find the correct clump to remove */
-    if (!oldclump)
-        displayErrorMessage("Serious error in Remove Type 4 species routine\n");
-
-    for(cppu = oldclump->head;cppu->puid != ipu; cppu = cppu->next)
-    ; /* Locate the correct clumppu */
-    setClumpSpecAtPu(pu,SM,cppu->puid,isp,0);
-
-    oldamount = PartialPen4(isp,oldclump->amount,spec,clumptype);
-    spec[isp].amount -= oldamount;
-    spec[isp].occurrence -= oldclump->occs * (oldamount > 0);
-
-    for (pnbr = connections[cppu->puid].first;pnbr;pnbr = pnbr->next)
-        if(rtnClumpSpecAtPu(pu,SM,pnbr->nbr,isp) == oldclump->clumpid) {
-            ineighbours++;
-            newhead = (struct slink *)malloc(sizeof(struct slink));
-            newhead->id = pnbr->nbr;
-            newhead->next = head;
-            head = newhead;
-        } /* Building the neighbour list */
-
-    if (ineighbours <= 1) {
-        rAmount = rtnAmountSpecAtPu(pu,SM,ipu,isp);
-        oldclump->amount -= rAmount;
-        oldclump->occs -= (rAmount > 0);
-        newamount = PartialPen4(isp,oldclump->amount,spec,clumptype);
-        newoccs = oldclump->occs * (newamount > 0);
-        /* remove clumppu */
-        if (cppu == oldclump->head) {
-            oldclump->head = cppu->next;
-        }
-        else {
-            for (ppu= oldclump->head;ppu->next != cppu; ppu = ppu->next)
-            ; /* find preceding clumppu;*/
-            ppu->next = cppu->next;
-        }
-        free(cppu);
-        DebugFree(sizeof(struct sclumppu));
-        if (ineighbours < 1)
-        {
-            if (oldclump == spec[isp].head)
-                spec[isp].head = oldclump->next;
-            else {
-                for (pclump = spec[isp].head;pclump->next != oldclump;pclump = pclump->next)
-                ;
-                pclump->next = oldclump->next;
-            } /* find preceeding clump */
-            free(oldclump);
-            DebugFree(sizeof(struct sclumps));
-            spec[isp].clumps--;
-        } /* Removing redundant clump */
-        spec[isp].amount += newamount;
-        spec[isp].occurrence += newoccs;
-        if (head) {
-            free(head);
-            DebugFree(sizeof(struct slink));
-        } /* Only need to free head if ineighbours ==1. Then only 1 item in list */
-        return;
-    } /* I'm not cutting a clump */
-
-    /* Else create new clumps */
-    while (head){
-        /* take first element as seed for new clump number */
-        pclump = AddNewClump(isp,head->id,spec,pu,SM);
-        clumpcurr = pclump->head;
-        do {
-            for(pnbr=connections[clumpcurr->puid].first;pnbr;pnbr=pnbr->next) {
-              if(rtnClumpSpecAtPu(pu,SM,pnbr->nbr,isp) == oldclump->clumpid)
-              {
-                  if (oldclump->head->puid == pnbr->nbr) {
-                      ppu = oldclump->head;
-                      oldclump->head = ppu->next;
-                    } /* cut out old clump of head */
-                    else{
-                        for (tppu= oldclump->head;tppu->next->puid != pnbr->nbr;tppu= tppu->next)
-                        ; /* find preceeding pu in clump */
-                        ppu = tppu->next;
-                        tppu->next = ppu->next;
-                    } /* cut from middle of old clump */
-                     ppu->next = clumpcurr->next;
-                     clumpcurr->next = ppu;
-                     setClumpSpecAtPu(pu,SM,ppu->puid,isp,pclump->clumpid);
-                     rAmount = rtnAmountSpecAtPu(pu,SM,ppu->puid,isp);
-                     pclump->amount += rAmount;
-                     pclump->occs += (rAmount>0);
-                     /* Check if it is on neighbours list and if so then remove it from that list*/
-                    if (head->id == ppu->puid) {
-                        newhead = head;
-                        head = newhead->next;
-                        free(newhead);
-                        DebugFree(sizeof(struct slink));
-                    }
-                    else {
-                        for (newhead= head;newhead->next && newhead->next->id != ppu->puid;newhead= newhead->next)
-                        ; /* check if next one on list is same person */
-                        if (newhead->next && newhead->next->id == ppu->puid) {
-                            thead = newhead->next;
-                            newhead->next = thead->next;
-                            free(thead);
-                            DebugFree(sizeof(struct slink));
-                        } /* cut out none head element */
-                    }
-                } /* This one is worth removing */
-            } /* Cycling through all neighbours */
-            clumpcurr = clumpcurr->next;
-        } while (clumpcurr); /* Continue until you've added every conceivable neighbour */
-        spec[isp].amount += PartialPen4(isp,pclump->amount,spec,clumptype);
-        spec[isp].occurrence += pclump->occs * (PartialPen4(isp,pclump->amount,spec,clumptype)>0);
-        newhead = head;
-        head = newhead->next;
-        free(newhead);
-        DebugFree(sizeof(struct slink));
-    } /** Account for every neighbour in my list **/
-
-    /* Every neighbour in local list has been used and every clump formed*/
-    /* Remove old clump */
-    /* Worry about change in amount and hence score */
-    if (oldclump == spec[isp].head) {
-        spec[isp].head = oldclump->next;
-    }
-    else {
-        for(pclump=spec[isp].head;pclump->next != oldclump;pclump=pclump->next)
-        ; /* find neighbouring clump */
-        pclump->next = oldclump->next;
-    } /* removing old clump */
-    ClearClump(isp,oldclump,pu,SM);
-    free(oldclump);
-    DebugFree(sizeof(struct sclumps));
-
-} /* Remove a Planning Unit ***/
-
-/*************** Setting Clumps for Species Aggregation Rule**********/
-void SetSpeciesClumps(int puno,int R[],struct sspecies spec[],struct spustuff pu[],
-                      struct spu SM[],struct sconnections connections[],int clumptype)
-{
-  int i, ipu, isp, ism;
-
-  for (ipu=0;ipu<puno;ipu++)
-      if (pu[ipu].richness)
-         for (i=0;i<pu[ipu].richness;i++)
-         {
-             ism = pu[ipu].offset + i;
-             isp = SM[ism].spindex;
-             if (spec[isp].target2)
-             {
-                spec[isp].clumps = 0;
-                if ((R[ipu]==1 || R[ipu]==2) && SM[ism].amount > 0 && SM[ism].clump  == 0)
-                {
-                   AddNewPU(ipu,isp,connections,spec,pu,SM,clumptype);
-                }// Add a New planning unit
-             }// For each type 4 species
-         }
-
-} /******** Set Species clumps *************/
-
-/************ Species Amounts Type 4 **************/
-/** Assumes Set Species Clumps has been called **/
-void SpeciesAmounts4(int isp,struct sspecies spec[],int clumptype)
-{
-     double ftemp;
-     struct sclumps *pclump;
-
-     for (pclump = spec[isp].head;pclump;pclump= pclump->next)
-     {
-         ftemp = PartialPen4(isp,pclump->amount,spec,clumptype);
-         spec[isp].amount += ftemp;
-         spec[isp].occurrence += pclump->occs*(ftemp>0);
-     }
-
-} /*** Species Amounts 4 **/
-
-/*** Remove Clump Check ***/
-/** returns 0 if any member of clump is non-removable, Ie status == 2 **/
-int RemClumpCheck(struct sclumps *pclump,struct spustuff pu[])
-{  struct sclumppu *pcpu;
-    for (pcpu = pclump->head;pcpu;pcpu = pcpu->next)
-        if (pu[pcpu->puid].status == 2)
-            return(0);
-    return(1);
-}
-
-/********* Set Penalties for a given Type 4 Species ***/
-/* Returns 1 if the species is a 'bad species' and -1 if it is a 'good species' */
-/* Also sticks the penalty into spec[isp].penalty */
-int CalcPenaltyType4(int isp,int puno, struct spu SM[],struct sconnections connections[],
-                     struct sspecies spec[],struct spustuff pu[],double cm,int clumptype)
-{   int i,j,ipu,iputotal = 0;
-    int ineighbours = 0,iclumpno,badspecies = 0;
-    int *R;
-    double totalamount,dummy = 0;
-    int idummy;
-    double cost = 0.0, connection = 0.0, rAmount;
-    struct slink {int id; struct slink *next;} *plist,*plisthead = NULL,*pdiscard;
-    struct sneighbour *pnbr;
-    struct sclumps *pclump, *pnewclump;
-    struct sclumppu *pnewclumppu, *pcpu;
-
-
-    R = (int *) calloc(puno,sizeof(int)); /* needed for separation */
-    for (i=0;i<puno;i++)
-        R[i] = pu[i].status;
-    /*memcpy(R,pustat,sizeof(struct spustuff)*puno);*/
-
-    /*** Step 1. Make a link list of all the possible PUs to be included ****/
-    /*** This might change if I change the species v site into link lists ****/
-    plisthead = NULL;
-    for (i=0;i<puno;i++)
-        if (rtnAmountSpecAtPu(pu,SM,i,isp) > 0)
-        {
-           if (pu[i].status==3) continue; /* not allowed to consider this one */
-           if (pu[i].status==2)
-           { /* add to clumps and remove from list */
-              AddNewPU(i,isp,connections,spec,pu,SM,clumptype);
-              continue;
-           } /* checking if PU forced into reserve */
-           iputotal++;
-           plist = (struct slink *) malloc(sizeof(struct slink));
-           plist->id = i;
-           plist->next = plisthead;  /* Insert on list */
-           plisthead = plist;  /* point head to new number */
-        } /** Made link list of all sites with this species **/
-
-    /* Check first to see if I've already satisfied targets for this species */
-    SpeciesAmounts4(isp,spec,clumptype);
-    if (spec[isp].sepnum>0)
-       spec[isp].separation = CountSeparation2(isp,0,0,puno,R,pu,SM,spec,0);
-    if ((spec[isp].amount >= spec[isp].target) && (spec[isp].occurrence >= spec[isp].targetocc) && (spec[isp].separation >= spec[isp].sepnum))
-    {
-       spec[isp].amount = 0;
-       spec[isp].occurrence = 0;
-       spec[isp].separation = 0;
-       /** Clean out all the clump numbers for this species.*/
-       while (spec[isp].head)
-       {
-             ClearClump(isp,spec[isp].head,pu,SM);
-             pclump = spec[isp].head;
-             spec[isp].head = spec[isp].head->next;
-             free(pclump);
-             DebugFree(sizeof(struct sclumps));
-             spec[isp].clumps = 0;
-       }  /** Remove each clump ***/
-       free(R); /* dummy array for separation */
-       DebugFree(puno * sizeof(int));
-       return(-1);
-    }  /* return when all targets already met. */
-
-    if (iputotal)
-    do
-    {  /*** take all pu's at random until satisfied or I've run out **/
-      /* Pluck a PU out at random */
-      ipu = RandNum(iputotal);
-      plist = plisthead;
-      for (;ipu>0;ipu--)
-      {
-          plist = plist->next;
-      }
-      iputotal--;
-
-      /** Add this PU to our system **/
-      R[plist->id] = 1;
-      AddNewPU(plist->id,isp,connections,spec,pu,SM,clumptype);
-
-      /** Remove the chosen site from my site list **/
-      if (plisthead == plist)
-      {
-         plisthead = plist->next;
-      } /* special case for head of list */
-      else
-      {
-          for (pdiscard = plisthead; pdiscard->next != plist; pdiscard = pdiscard->next)
-              ; /*** Find link before plist ***/
-          pdiscard->next = plist->next;
-      } /* remove plist from the list */
-      free(plist);
-      DebugFree(sizeof(struct slink));
-
-      /*** Check to see if I should continue by calculating current holdings **/
-      SpeciesAmounts4(isp,spec,clumptype);
-      if (spec[isp].sepnum>0)
-         spec[isp].separation = CountSeparation2(isp,0,0,puno,R,pu,SM,spec,0);
-    } while ((spec[isp].amount < spec[isp].target || spec[isp].separation < spec[isp].sepnum || spec[isp].occurrence < spec[isp].targetocc)
-             && iputotal >= 1  );
-
-    if (spec[isp].amount < spec[isp].target || spec[isp].occurrence < spec[isp].targetocc)
-    {
-       badspecies = 1;
-       displayProgress1("Species %i cannot be fully represented!\n",spec[isp].name);
-    } /*** Record the fact that the species is unrepresentable ***/
-    if (spec[isp].separation < spec[isp].sepnum && spec[isp].amount >= spec[isp].target && spec[isp].occurrence >= spec[isp].targetocc)
-    {
-       badspecies = 1;
-       displayProgress1("Species %i can only get %i separate valid clumps where %i are wanted!\n",
-                        spec[isp].name,spec[isp].separation,spec[isp].sepnum);
-    } /*** Record the fact that the species is unrepresentable ***/
-
-
-    /* Search through the clumps looking for any which can be removed */
-    /* But only do this if occurrence target met. Otherwise every single pu is neccessary*/
-    if (spec[isp].occurrence >= spec[isp].targetocc)
-    {
-       pclump = spec[isp].head;
-       while (pclump)
-       {
-             i = 0; /* if i becomes and stays 1 then this clump is removable */
-             if (RemClumpCheck(pclump,pu))
-                i = 1;
-             if (i)
-             {
-                if (spec[isp].occurrence - pclump->occs >= spec[isp].targetocc)
-                   i = 1;  /* if pclump-amount < target2 is caught in next step */
-                else
-                    i = 0;
-             } /* Check is occurrence decrease ok? */
-             if (i)
-             {
-                if ((spec[isp].amount - pclump->amount >= spec[isp].target) || (pclump->amount < spec[isp].target2))
-                   i = 1;
-                else
-                    i = 0;
-             } /* Check is amount decrease OK? */
-             if (i && spec[isp].sepnum)
-             {
-                j = CountSeparation2(isp,0,pclump,puno,R,pu,SM,spec,-1);
-                if ((j < spec[isp].separation) && (j < spec[isp].sepnum))
-                   i = 0;
-                else
-                    i = 1;
-                if (!spec[isp].target2)
-                   i = 0; /* cannot elegantly remove clumps if species is listed as non-clumping */
-             }
-             if (i)   /* This is a clump which can be safely removed */
-             {/* cut clump if uneccessary or it is too small */
-                if (spec[isp].head == pclump)
-                {
-                   spec[isp].head = pclump->next;
-                }
-                else
-                {
-                    for (pnewclump = spec[isp].head;pnewclump->next != pclump;pnewclump = pnewclump->next)
-                        ; /** find clump before pclump **/
-                    pnewclump->next = pclump->next;
-                }
-                while (pclump->head)
-                {
-                      pnewclumppu = pclump->head;
-                      pclump->head = pnewclumppu->next;
-                      setClumpSpecAtPu(pu,SM,pnewclumppu->puid,isp,0);
-                      free(pnewclumppu);
-                      DebugFree(sizeof(struct sclumppu));
-                }
-                totalamount -= pclump->amount;
-                /* cut out clump and progress pclump*/
-                pnewclump = pclump;
-                pclump = pclump->next;
-                free(pnewclump);
-                DebugFree(sizeof(struct sclumps));
-                spec[isp].clumps--;
-             } /** removing unneccessary pclump **/
-             else
-                 pclump = pclump->next;
-       }
-    } /*** Remove unneccesary clumps and links****/
-
-    /** Test all PU's to see if any one of them are superfluous **/
-    /* But only do this if occurrence target met. Otherwise every single pu is neccessary*/
-    if (spec[isp].occurrence >= spec[isp].targetocc)
-    {
-       pclump = spec[isp].head;
-       while (pclump)
-       {
-             pcpu = pclump->head;
-             while (pcpu)
-             {     /** Test to see if this pcpu is necessary **/
-                   i = 0;
-                   if (R[pcpu->puid] != 2)
-                      i = 1;
-                   if (i)
-                   {
-                      rAmount = rtnAmountSpecAtPu(pu,SM,pcpu->puid,isp);
-                      if ((pclump->amount - rAmount > spec[isp].target2) && (spec[isp].amount - rAmount > spec[isp].target))
-                         i = 1;
-                      else
-                          i = 0;
-                   }  /* doesn't drop amount below min clump size or target */
-                   if (i)
-                   {
-                      if (spec[isp].occurrence > spec[isp].targetocc)
-                         i = 1;
-                      else
-                          i = 0;
-                   } /* Does it drop occurrences too low? */
-                   if (i)
-                   {
-                      pnewclump = (struct sclumps *)malloc(sizeof(struct sclumps));
-                      pnewclump->clumpid = pcpu->puid;  /* sclump used to store clumpPU info */
-                      pnewclump->amount = 0;
-                      pnewclump->next = NULL;
-                      j = CountSeparation2(isp,pcpu->puid,pnewclump,puno,R,pu,SM,spec,-1);
-                      free(pnewclump);
-                      if ((j < spec[isp].separation) && (j < spec[isp].sepnum))
-                         i = 0;
-                      else
-                          i = 1;
-                   } /* How does count sep fare? */
-                   if (i)
-                   {
-                      if (ClumpCut(isp,pu,spec,pclump,pcpu,connections,SM,&dummy,&idummy,&j,0,clumptype))
-                         i = 0;
-                      else
-                          i = 1;
-                   } /* Does it cut the clump? these are not allowed to remove */
-                   /* Theoretically they could possible be removed */
-                   if (i)  /* Is this removable? */
-                   {        /* remove pcpu */
-                      setClumpSpecAtPu(pu,SM,pcpu->puid,isp,0);
-                      totalamount -= rAmount;
-                      pclump->amount -= rAmount;
-                      if (pcpu == pclump->head)
-                      {
-                         pclump->head = pcpu->next;
-                         free(pcpu);
-                         DebugFree(sizeof(struct sclumppu));
-                         pcpu = pclump->head;
-                      } /* removing first clump */
-                      else
-                      {
-                          for (pnewclumppu = pclump->head;pnewclumppu->next != pcpu;pnewclumppu = pnewclumppu->next)
-                              ; /* find previous pcpu */
-                          pnewclumppu->next = pcpu->next;
-                          free(pcpu);
-                          DebugFree(sizeof(struct sclumppu));
-                          pcpu = pnewclumppu->next;
-                      } /* removing pcpu when it is not the head */
-                   }  /** remove unneccessary clumppu **/
-                   else
-                       pcpu = pcpu->next; /* moving pointer when it is not removable */
-             } /* Checking each pcpu in clump */
-             pclump = pclump->next;
-       }
-    } /** Cycle over each pclump **/
-
-
-    while (plisthead)
-    {
-          plist = plisthead;
-          plisthead = plisthead->next;
-          free(plist);
-          DebugFree(sizeof(struct slink));
-    } /* Cleaing link list */
-
-
-    /*** Now count the cost of this particular reserve ****/
-    /*** For each clump figure out connection cost ***/
-    pclump = spec[isp].head;
-    while (pclump)
-    {
-          iclumpno = pclump->clumpid;
-          pcpu = pclump->head;
-          while (pcpu)
-          {
-                if (pu[pcpu->puid].status != 2)
-                {
-                   cost += pu[pcpu->puid].cost;
-                   connection += connections[pcpu->puid].fixedcost;
-                } /* only count fixed costs if PU not forced into reserve */
-                if (connections[pcpu->puid].nbrno)
-                {
-                   pnbr = connections[pcpu->puid].first;
-                   while (pnbr)
-                   {
-                         if (rtnClumpSpecAtPu(pu,SM,pnbr->nbr,isp) != iclumpno)
-                            connection += pnbr->cost;
-                         pnbr = pnbr->next;
-                   } /** Counting each individual connection **/
-                } /** Counting connection strength if neccessary **/
-                pcpu = pcpu->next;
-          } /** Checking each PU in clump **/
-          pclump = pclump->next;
-    } /*** Count cost for each clump ***/
-
-    /* Finally. Calculate penalty from all of this.*/
-    spec[isp].penalty = cost + connection *cm;
-
-    /* Consider case where targets cannot be met */
-    totalamount = 0;
-    if (spec[isp].amount < spec[isp].target)
-       totalamount = spec[isp].target / spec[isp].amount;
-    if (spec[isp].occurrence < spec[isp].targetocc)
-       totalamount += (float) spec[isp].targetocc/(float) spec[isp].occurrence;
-    if (totalamount)
-       spec[isp].penalty *= totalamount;  /* Scale it up */
-
-    if (spec[isp].sepdistance)
-       spec[isp].separation = 1;
-    spec[isp].amount = 0; /* because my routines add it in */
-    spec[isp].occurrence = 0;
-    /** Clean out all the clump numbers for this species.*/
-    while (spec[isp].head)
-    {
-          ClearClump(isp,spec[isp].head,pu,SM);
-          pclump = spec[isp].head;
-          spec[isp].head = spec[isp].head->next;
-          free(pclump);
-          DebugFree(sizeof(struct sclumps));
-          spec[isp].clumps = 0;
-    }  /** Remove each clump ***/
-
-    free(R); /* dummy array for separation */
-    DebugFree(puno * sizeof(int));
-    return(badspecies);
-
-} /*** Calculate Penalty for a Type 4 Species ***/
-
-/**** Partial Penalty for type 4 species ***/
-double PartialPen4(int isp, double amount,struct sspecies spec[],int clumptype)
-{
-    if (amount >= spec[isp].target2)
-        return (amount);    /* I'm not a partial penalty */
-    else
-        switch(clumptype)
-        {
-            case 0:
-                return(0.0); /* default step function */
-            case 1:
-                return(amount/ 2.0); /* nicer step function */
-            case 2:
-                if (spec[isp].target2)
-                   return (amount/spec[isp].target2 * amount);
-            default:
-                return(0.0);
-        }
-}  /* Partial Penalty for type 4 species */
-
-/*** Value for Adding a Planning Unit ****/
-double ValueAdd(int isp,int ipu,int puno, int R[],
-    struct sconnections connections[],struct spustuff pu[],struct spu SM[],struct sspecies spec[],int clumptype)
-{  int ineighbours = 0,iclumpid,iseparation;
-    struct sneighbour *pnbr;
-    struct slink {int clumpid;double amount;
-                int occs; struct slink *next;} *head = NULL,*plink;
-    struct sclumps *pclump,*sepclump=NULL,*psclump;
-    struct sclumppu *ppu;
-    double amount,oldamount = 0.0,shortfall;
-    int oldoccs = 0,occs, iClump;
-
-        /* Count neighbours */
-        if (connections[ipu].nbrno > 0) {
-            pnbr = connections[ipu].first;
-            while (pnbr) {
-                iClump = rtnClumpSpecAtPu(pu,SM,pnbr->nbr,isp);
-                if (iClump) {
-                    iclumpid = 1;
-                    /* Is nbr on my list ?*/
-                    for(plink = head;plink;plink=plink->next)
-                        if (plink->clumpid == iClump)
-                            iclumpid = 0;
-
-                    if (iclumpid){
-                        ineighbours++;
-                        plink = (struct slink *) malloc(sizeof(struct slink));
-                        plink->clumpid = iClump;
-                        /* find amount for this clump */
-                        for(pclump = spec[isp].head;plink->clumpid != pclump->clumpid;
-                                pclump = pclump->next)
-                        ; /* find the right clump */
-                        plink->amount = pclump->amount;
-                        plink->occs = pclump->occs;
-                        plink->next = head;
-                        head = plink;
-                        if (spec[isp].sepnum)
-                         for (ppu = pclump->head;ppu;ppu=ppu->next)
-                            { psclump = (struct sclumps *) malloc(sizeof(struct sclumps));
-                              psclump->clumpid = ppu->puid;
-                              psclump->next = sepclump;
-                              sepclump = psclump;  /* glue to sep list. Still need amount */
-                            } /* stick whole clump onto separation clump for later */
-                    } /* new neighbour found */
-                } /* neighbour of clump */
-                pnbr = pnbr->next;
-            } /** count all neighbours if they have a clump **/
-        }  /* If There are neighbours */
-
-        if (spec[isp].sepnum) {
-          psclump = (struct sclumps *) malloc(sizeof(struct sclumps));
-          psclump->clumpid = ipu;
-          psclump->next = sepclump;
-          sepclump = psclump;
-        } /* Add ipu to my sepclump list */
-
-        /* now I know number and names of neighbouring clumps */
-        amount = rtnAmountSpecAtPu(pu,SM,ipu,isp);
-        occs = (amount > 0);
-        for(plink = head;plink;plink = plink->next) {
-            amount += plink->amount;
-            occs += plink->occs;
-            oldamount += PartialPen4(isp,plink->amount,spec,clumptype);
-            oldoccs += plink->occs * (PartialPen4(isp,plink->amount,spec,clumptype)>0);
-        }
-
-        /* set the sepclump amounts to this new amount */
-        if (spec[isp].sepnum)
-          for (psclump = sepclump;psclump;psclump = psclump->next)
-            psclump->amount = amount;
-
-        amount = PartialPen4(isp,amount,spec,clumptype);
-        occs = occs * (amount > 0);
-
-        amount = amount - oldamount; /* amount is change in amount for this species */
-        occs = occs - oldoccs;
-
-        if (spec[isp].sepnum) {
-           iseparation = CountSeparation2(isp,0,sepclump,puno,R,pu,SM,spec,1);  /* imode = 1 doesn't do anything*/
-          while (sepclump) {
-            psclump = sepclump;
-            sepclump = sepclump->next;
-            free(psclump);
-            DebugFree(sizeof(struct sclumps));
-          }} /* clean up sepcount link list */
-
-        while(head) {
-            plink = head;
-            head = head->next;
-            free(plink);
-            DebugFree(sizeof(struct slink));
-        }  /* Clean up link list */
-
-        /* Return the effective amount for this species */
-        /* Old amount + change in amount + separation penalty for changed structure */
-
-        amount = spec[isp].amount + amount;
-        shortfall = 0;
-        if (spec[isp].target)
-            shortfall = amount >= spec[isp].target ? 0 : (spec[isp].target - amount)/spec[isp].target;
-       if (spec[isp].targetocc)  {
-            occs = occs + spec[isp].occurrence;
-             amount = occs >= spec[isp].targetocc ? 0:
-                    ((double)spec[isp].targetocc - (double) occs)/(double)spec[isp].targetocc;
-            shortfall += amount;
-                    }
-        if (spec[isp].target && spec[isp].targetocc)
-            shortfall /= 2;
-        return(shortfall + SepPenalty(iseparation,spec[isp].sepnum));
-} /*** Value for Adding a Planning Unit ****/
-
-
-/** Value Remove. The amount of species loss for removing a single pu */
-double ValueRem(int ipu,int isp,
-    struct sspecies spec[],struct sconnections connections[],struct spustuff pu[],struct spu SM[],int clumptype)
-{
-    double newamount = 0,amount,shortfall=0;
-    struct sclumps *pclump;
-    struct sclumppu *ppu;
-    int iseparation;
-    int newocc = 0;
-
-    /* locate the clump and clumppu of the target site ipu */
-    for (pclump = spec[isp].head; pclump && pclump->clumpid != rtnClumpSpecAtPu(pu,SM,ipu,isp); pclump = pclump->next)
-    ; /* locate correct clump list */
-
-    for (ppu = pclump->head;ppu->puid != ipu; ppu = ppu->next)
-    ; /* locate the correct pclump pu */
-
-    /* debugmem2 = debugmem; debugging line */
-    if (spec[isp].sepnum)
-        ClumpCut(isp,pu,spec,pclump,ppu,connections,SM,&newamount,&newocc,&iseparation,1,clumptype);
-    else
-        ClumpCut(isp,pu,spec,pclump,ppu,connections,SM,&newamount,&newocc,&iseparation,0,clumptype);
-
-  if (spec[isp].target)
-      {
-      amount = spec[isp].amount + newamount -PartialPen4(isp,pclump->amount,spec,clumptype) ;
-      shortfall = amount > spec[isp].target ? 0 : (spec[isp].target - amount)/spec[isp].target;
-      }  /* there is an abundance amount */
-
-  /*if (isp == 16) printf("pclump->occs %i targetocc %i shortfall %.2f\n",
-                                  pclump->occs,spec[isp].targetocc,shortfall);*/
-  if (spec[isp].targetocc) {  /* Handle the case where there is a targetocc */
-     amount = spec[isp].occurrence +newocc - pclump->occs * (PartialPen4(isp,pclump->amount,spec,clumptype)>0);
-     if (amount < spec[isp].targetocc)
-         shortfall += ((double) spec[isp].targetocc - amount)/(double) spec[isp].targetocc;
-     if (spec[isp].target)
-         shortfall /= 2;
-    }
-/*  if (isp ==16) printf("shortfall %.2f occ %i newocc %i pclump->amount %.2f\n",
-          shortfall, spec[isp].occurrence,newocc,pclump->amount);*/
-
-  return(shortfall + SepPenalty(iseparation,spec[isp].sepnum));
-} /** Value for removing a planning unit ****/
-
-
-/***************   NewPenalty4   *********************/
-/* Calculates the new penalty for adding or removing a PU for species which have
-    clumping requirements */
-
-
-double NewPenalty4(int ipu,int isp,int puno,struct sspecies spec[],struct spustuff pu[],struct spu SM[],
-                    int R[],struct sconnections connections[],int imode,int clumptype)
-{    double amount;
-
-        if (imode == 1) {
-            if (spec[isp].penalty == 0)
-                return (0);  /* Targets have all already been met */
-            amount = ValueAdd(isp,ipu,puno,R,connections,pu,SM,spec,clumptype);
-        }
-        else {
-              /* determine change in this amount */
-            amount = ValueRem(ipu,isp,spec,connections,pu,SM,clumptype);
-        } /** removing a planning unit **/
-        return(amount);
-
-}  /*** The new penalty for type 4 species ***/
 
 // SlaveExit does not deliver a message prior to exiting, but creates a file so C-Plan knows marxan has exited
 void SlaveExit(void)
@@ -5031,459 +3642,8 @@ void MapUserPenalties(typesp spec[],int spno)
          spec[i].penalty = spec[i].rUserPenalty;
 }
 
-/********************************************************/
-/************* Greedy Add On ****************************/
-/********************************************************/
-
-// Greedy Species Penalty
-double GreedyPen(int ipu,int puno, int spno, typesp spec[],int R[],struct spustuff pu[],struct spu SM[],
-                 int clumptype)
-{
-       int i;
-       double famount = 0.0, fold,newamount;
-       
-       for (i = 0;i<spno;i++)
-       {
-           fold = (spec[i].target - spec[i].amount);
-           if (fold > 0)
-           {
-              if (spec[i].target2)
-                 newamount = NewPenalty4(ipu,i,puno,spec,pu,SM,R,connections,1,clumptype);
-              else
-                  newamount = NewPenalty(ipu,i,spec,pu,SM,1);
-                  
-              famount += (newamount - fold)*spec[i].spf;
-           } // Add new penalty if species isn't already in the system
-       }
-       
-       return(famount);  // Negative means decrease in amount missing
-} // Greedy Species Penalty
-
-/********* Greedy Score an alternative to the normal objective function *****/
-double GreedyScore(int ipu,int puno, int spno, typesp *spec,struct spu SM[],
-                   struct sconnections connections[],int R[],struct spustuff pu[],double cm,int clumptype)
-{
-       double currpen,currcost,currscore;
-       
-       currpen = GreedyPen(ipu,puno,spno,spec,R,pu,SM,clumptype);
-       currcost = pu[ipu].cost + ConnectionCost2(ipu,connections,R,1,1,cm);
-       if (currcost <= 0)
-       {
-          currscore = -1.0/delta;
-       } // otherwise this 'free pu' will have +score
-       else
-       {
-           currscore = currpen/currcost;
-           // multiply by rand (1.000,1.001)
-       }
-       return(currscore);
-} // Score for a planning unit based upon greedy algorithm
-
-/*********** Rarity Settup. Sets up rare score for each species ******/
-/**** score is total abundance / smallest species abundance *********/
-void SetRareness(int puno, int spno, double Rare[],int R[],struct spustuff pu[],struct spu SM[])
-{
-     double smallest = 0;
-     double *fcount;
-     int i, ism, isp,ipu;
-
-     #ifdef DEBUG_HEURISTICS
-     appendTraceFile("SetRareness start\n");
-     #endif
-
-     fcount = (double *) calloc(spno,sizeof(double));
-
-     for (isp=0;isp<spno;isp++)
-         fcount[isp] = 0;
-
-     for (ipu=0;ipu<puno;ipu++)
-         if (pu[ipu].richness)
-            for (i=0;i<pu[ipu].richness;i++)
-            {
-                ism = pu[ipu].offset + i;
-                isp = SM[ism].spindex;
-                if (R[ipu] < 2)
-                   fcount[isp] += SM[ism].amount;
-            }
-
-     for (isp=0;isp<spno;isp++)
-     {
-         if (smallest == 0 || (fcount[isp] < smallest && fcount[isp] > 0))
-            smallest = fcount[isp];
-         Rare[isp] = fcount[isp];
-
-         #ifdef DEBUG_HEURISTICS
-         appendTraceFile("SetRareness isp %i Rare %g\n",isp,Rare[isp]);
-         #endif
-     }
-
-     if (smallest == 0)
-        displayErrorMessage("Serious Error in calculating Rarenesses. No species detected.\n");
-
-     for (isp=0;isp<spno;isp++)
-         Rare[isp] /= smallest;
-
-     free(fcount);
-
-     #ifdef DEBUG_HEURISTICS
-     appendTraceFile("SetRareness end\n");
-     #endif
-}  // SetRareness
-
-// RareScore The score for a particular conservation value on a particular PU
-double RareScore(int isp,int ipu,int puno,typesp spec[],struct spu SM[], int R[],
-                 struct sconnections connections[],struct spustuff pu[], double cm,int clumptype)
-{
-       double currpen,currcost,currscore;
-       double fold, newamount;
-       fold = (spec[isp].target - spec[isp].amount);
-       if (fold > 0)
-       {
-          if (spec[isp].target2)
-             newamount = NewPenalty4(ipu,isp,puno,spec,pu,SM,R,connections,1,clumptype);
-          else
-              newamount = NewPenalty(ipu,isp,spec,pu,SM,1);
-          currpen = newamount - fold;
-       } // Add new penalty if species isn't already in the system
-
-       currcost = pu[ipu].cost + ConnectionCost2(ipu,connections,R,1,1,cm);
-       if (currcost <= 0)
-       {
-          currscore = -1.0/delta;
-       } // otherwise this 'free pu' will have +score
-       else
-       {
-           currscore = currpen/currcost;
-           // multiply by rand (1.000,1.001)
-       }
-
-       return(currscore);
-} // RareScore
-
-// Max Rare Score Heuristic. PU scores based on rarest beast on PU
-double MaxRareScore(int ipu,int puno,struct sspecies spec[],struct spu SM[],
-                    int R[],struct sconnections connections[],struct spustuff pu[],double cm,double Rare[],int clumptype)
-{
-       int i, ism, isp,rareno = -1;
-       double rarest,rarescore;
-
-       if (pu[ipu].richness)
-          for (i=0;i<pu[ipu].richness;i++)
-          {
-              ism = pu[ipu].offset + i;
-              isp = SM[ism].spindex;
-              if (SM[ism].amount && (spec[isp].target > spec[isp].amount || (spec[isp].sepdistance && spec[isp].separation < 3)))
-                 if (1.0/Rare[isp]< rarest || rareno < 0)
-                 {
-                    rareno = isp;
-                    rarest = Rare[isp];
-                 }  // Determine which is the rarest species
-          }
-
-       if (rareno > -1)
-          rarescore = RareScore(rareno,ipu,puno,spec,SM,R,connections,pu,cm,clumptype)/rarest;
-       else
-           rarescore = 1.0 / delta;
-
-       return(rarescore);
-} // Max Rare Score
-
-// Best Rarity Score. Determines each species rare score
-double BestRareScore(int ipu,int puno,struct sspecies spec[],struct spu SM[],
-                     int R[],struct sconnections connections[],struct spustuff pu[],double cm,double Rare[],int clumptype)
-{
-       int i, ism, isp,rareno = -1;
-       double rarest = 0,rarescore;
-
-       if (pu[ipu].richness)
-          for (i=0;i<pu[ipu].richness;i++)
-          {
-              ism = pu[ipu].offset + i;
-              isp = SM[ism].spindex;
-              if (SM[ism].amount && (spec[isp].target > spec[isp].amount || (spec[isp].sepdistance && spec[isp].separation < 3)))
-              {
-                 rarescore = RareScore(isp,ipu,puno,spec,SM,R,connections,pu,cm,clumptype)/Rare[isp];
-                 if (rarescore > rarest || rareno < 0)
-                 {
-                    rarest = rarescore;
-                    rareno = isp;
-                 }
-              }
-          }
-
-       return(rarescore);
-
-} // Best Rare Score
-
-// Average Rare Score. Rare Score for each scoring species/number scoring species
-double AveRareScore(int ipu,int puno,struct sspecies spec[],struct spu SM[],
-                    int R[],struct sconnections connections[],struct spustuff pu[],double cm,double Rare[],int clumptype)
-{
-       int i, ism, isp, rareno = 0;
-       double rarescore = 0;
-
-       if (pu[ipu].richness)
-          for (i=0;i<pu[ipu].richness;i++)
-          {
-              ism = pu[ipu].offset + i;
-              isp = SM[ism].spindex;
-              if (SM[ism].amount &&
-                  (spec[isp].target > spec[isp].amount ||
-                  (spec[isp].sepdistance && spec[isp].separation < 3)))
-              {
-                 rarescore += RareScore(isp,ipu,puno,spec,SM,R,connections,pu,cm,clumptype)/Rare[isp];
-                 rareno++;
-              }
-          }
-
-       return(rarescore/rareno);
-} // Ave Rare Score
-
-// Sum of Rare Score for each scoring species
-double SumRareScore(int ipu,int puno,struct sspecies spec[],struct spu SM[],
-                    int R[],struct sconnections connections[],struct spustuff pu[],
-                    double cm,double Rare[],int clumptype)
-{
-       int i, ism, isp;
-       double rarescore = 0;
-
-       #ifdef DEBUG_HEURISTICS
-       appendTraceFile("SumRareScore start\n");
-       #endif
-
-       if (pu[ipu].richness)
-          for (i=0;i<pu[ipu].richness;i++)
-          {
-              #ifdef DEBUG_HEURISTICS
-              appendTraceFile("SumRareScore feature %i of %i\n",i,pu[ipu].richness);
-              #endif
-
-              ism = pu[ipu].offset + i;
-              isp = SM[ism].spindex;
-
-              #ifdef DEBUG_HEURISTICS
-              appendTraceFile("SumRareScore SMamount %g target %g specamount %g rare %g\n",SM[ism].amount,spec[isp].target,spec[isp].amount,Rare[isp]);
-              #endif
-
-              if (SM[ism].amount &&
-                  (spec[isp].target > spec[isp].amount ||
-                  (spec[isp].sepdistance && spec[isp].separation < 3)))
-                 rarescore += RareScore(isp,ipu,puno,spec,SM,R,connections,pu,cm,clumptype)/Rare[isp];
-          }
-
-       #ifdef DEBUG_HEURISTICS
-       appendTraceFile("SumRareScore end\n");
-       #endif
-
-       return(rarescore);
-} // Sum Rare Score
-
-// Set Abundances
-void SetAbundance(int puno,double Rare[],struct spustuff pu[],struct spu SM[])
-{  
-     int i,j, ism, isp;
-
-     for (i=0;i<puno;i++)
-         if (pu[i].richness)
-            for (j=0;j<pu[i].richness;j++)
-            {
-                ism = pu[i].offset + j;
-                isp = SM[ism].spindex;
-                Rare[isp] += SM[ism].amount;
-            }
-} // Set Abundance
-
-// Irreplaceability For site for species
-double Irreplaceability(int ipu,int isp, double Rare[],struct spustuff pu[],struct spu SM[],typesp *spec)
-{
-       double buffer,effamount;
-       
-       buffer = Rare[isp] < spec[isp].target ? 0 : Rare[isp] - spec[isp].target;
-       if (spec[isp].amount > spec[isp].target)
-          return(0);
-       effamount = rtnAmountSpecAtPu(pu,SM,ipu,isp);
-       
-       return(buffer<effamount ? 1 : effamount/buffer);
-}
-
-// Product Irreplaceability for a single site
-double ProdIrr(int ipu,double Rare[],struct spustuff pu[],struct spu SM[],typesp *spec)
-{
-       int i, ism, isp;
-       double product = 1;
-
-       if (pu[ipu].richness)
-          for (i=0;i<pu[ipu].richness;i++)
-          {
-              ism = pu[ipu].offset + i;
-              isp = SM[ism].spindex;
-              if (SM[ism].amount && (spec[isp].target - spec[isp].amount)> 0)
-                 product *= (1-Irreplaceability(ipu,isp,Rare,pu,SM,spec));
-          }
-
-       return(1-product);
-} // Product Irreplaceability
-
-// Sum Irreplaceability for a single site
-double SumIrr(int ipu,double Rare[],struct spustuff pu[],struct spu SM[],typesp *spec)
-{
-       int i, ism, isp;
-       double sum = 0;
-
-       if (pu[ipu].richness)
-          for (i=0;i<pu[ipu].richness;i++)
-          {
-              ism = pu[ipu].offset + i;
-              isp = SM[ism].spindex;
-              if (SM[ism].amount && (spec[isp].target - spec[isp].amount)> 0)
-                 sum += (Irreplaceability(ipu,isp,Rare,pu,SM,spec));
-          }
-
-       return(sum);
-} // Sum Irreplaceability
-
-// Main Heuristic Engine
-void Heuristics(int spno,int puno,struct spustuff pu[],struct sconnections connections[],
-                int R[], double cm,typesp *spec,struct spu SM[], struct scost *reserve,
-                double costthresh, double tpf1,double tpf2, int imode,int clumptype)
-// imode = 1: 2: 3: 4:
-// imode = 5: 6: Prod Irreplaceability, 7: Sum Irreplaceability
-{
-     int i,bestpu;
-     double bestscore,currscore;
-     struct scost change;
-     double *Rare;
-
-     #ifdef DEBUG_HEURISTICS
-     appendTraceFile("Heuristics start\n");
-     #endif
-
-     // Irreplacability
-
-     if (imode >= 6 && imode <= 7)
-     {
-        Rare = (double *) calloc(spno,sizeof(double));
-        SetAbundance(puno,Rare,pu,SM);
-
-        #ifdef DEBUG_HEURISTICS
-        appendTraceFile("Heuristics 6 or 7\n");
-        #endif
-     }
-
-     if (imode >= 2 && imode <= 5) // Rareness Setups
-     {
-        Rare = (double *) calloc(spno,sizeof(double));
-        SetRareness(puno,spno,Rare,R,pu,SM);
-
-        #ifdef DEBUG_HEURISTICS
-        appendTraceFile("Heuristics 2 to 5 after SetRareness\n");
-        #endif
-     }
-
-     do
-     {
-       bestpu = 0;
-       bestscore = 0;
-       for (i=0;i<puno;i++)
-           if (!R[i]) // Only look for new PUS
-           {
-              // Set the score for the given Planning Unit
-              currscore = 1; // null if no other mode set
-              if (imode == 0)
-                 currscore = GreedyScore(i,puno,spno,spec,SM,connections,R,pu,cm,clumptype);
-              if (imode == 1)
-              {
-                 CheckChange(-1,i,spno,puno,pu,connections,spec,SM,R,cm,1,&change,reserve,
-                             costthresh,tpf1,tpf2,1, clumptype);
-                 currscore = change.total;
-              }
-              if (imode == 2)
-              {
-                 currscore = MaxRareScore(i,puno,spec,SM,R,connections,pu,cm,Rare, clumptype);
-              }
-              if (imode == 3)
-              {
-                 currscore = BestRareScore(i,puno,spec,SM,R,connections,pu,cm,Rare,clumptype);
-              }
-              if (imode == 4)
-              {
-                 currscore = AveRareScore(i,puno,spec,SM,R,connections,pu,cm,Rare,clumptype);
-              }
-              if (imode == 5)
-              {
-
-                 #ifdef DEBUG_HEURISTICS
-                 appendTraceFile("Heuristics pu %i of %i\n",i,puno);
-                 #endif
-
-                 currscore = SumRareScore(i,puno,spec,SM,R,connections,pu,cm,Rare,clumptype);
-
-                 #ifdef DEBUG_HEURISTICS
-                 appendTraceFile("Heuristics after SumRareScore\n");
-                 #endif
-              }
-              if (imode == 6)
-              {
-                 currscore = -ProdIrr(i,Rare,pu,SM,spec);
-              }
-              if (imode == 7)
-              {
-                 currscore = -SumIrr(i,Rare,pu,SM,spec);
-              }
-
-              currscore *=(double) rand1()*0.001 + 1.0;
-              if (!costthresh || pu[i].cost + reserve->cost <= costthresh)
-                 if (currscore < bestscore)
-                 {
-                    bestpu = i;
-                    bestscore = currscore;
-                 } // is this better (ie negative) than bestscore?
-           } // I've looked through each pu to find best
-           if (bestscore)
-           {
-              CheckChange(-1,bestpu,spno,puno,pu,connections,spec,SM,R,cm,1,&change,reserve,
-                          costthresh,tpf1,tpf2,1,clumptype);
-              DoChange(bestpu,puno,R,reserve,change,pu,SM,spec,connections,1,clumptype);
-
-              // Different Heuristics might have different penalty effects
-              // Old fashioned penalty and missing counting
-              reserve->missing = 0;
-              for (i=0;i<spno;i++)
-              {
-                  if (spec[i].amount < spec[i].target)
-                  {
-                     reserve->missing++;
-                  }
-                  else
-                      if (spec[i].sepdistance && spec[i].separation < 3)
-                         reserve->missing++;
-                  // Species missing
-              } // checking to see who I am missing
-           } // Add Pu as long as I've found one
-           
-           if (bestscore)
-           {
-              displayProgress2("P.U. %i PUs %i score %.6f Cost %.1f Connection %.1f Missing %i",
-                              bestpu,reserve->pus,bestscore,reserve->cost,reserve->connection,reserve->missing);
-              if (fProb1D == 1)
-                 displayProgress2(" Probability1D %.1f\n",reserve->probability1D);
-              if (fProb2D == 1)
-                 displayProgress2(" Probability2D %.1f\n",reserve->probability2D);
-              displayProgress2(" Penalty %.1f\n",reserve->penalty);
-           }
-
-     } while (bestscore); // Repeat until all good PUs have been added
-     
-     reserve->total = reserve->cost + reserve->connection + reserve->penalty + reserve->probability1D + reserve->probability2D;
-
-     #ifdef DEBUG_HEURISTICS
-     appendTraceFile("Heuristics end\n");
-     #endif
-} // Heuristics
-
-/************ Iterative Improvement *************/
-
-void siftDown_ii(struct iimp numbers[], int root, int bottom, int array_size)
+// helps to do a heap sort
+void siftDownIterativeImprovement(struct iimp numbers[], int root, int bottom, int array_size)
 {
      int done, maxChild;
      typeiimp temp;
@@ -5515,39 +3675,29 @@ void siftDown_ii(struct iimp numbers[], int root, int bottom, int array_size)
      }
 }
 
-void heapSort_ii(struct iimp numbers[], int array_size)
+// sort a datastructure with heap sort
+void heapSortIterativeImprovement(struct iimp numbers[], int array_size)
 {
      int i;
      typeiimp temp;
-     #ifdef DEBUGTRACEFILE
-     //char debugbuffer[80];
-     #endif
 
      for (i = (array_size / 2)-1; i >= 0; i--)
      {
-         #ifdef DEBUGTRACEFILE
-         //sprintf(debugbuffer,"heapSort_ii i %i\n",i);
-         //appendTraceFile(debugbuffer);
-         #endif
-
-         siftDown_ii(numbers, i, array_size, array_size);
+         siftDownIterativeImprovement(numbers, i, array_size, array_size);
      }
 
      for (i = array_size-1; i >= 1; i--)
      {
-         #ifdef DEBUGTRACEFILE
-         //sprintf(debugbuffer,"heapSort_ii i %i\n",i);
-         //appendTraceFile(debugbuffer);
-         #endif
-
          temp = numbers[0];
          numbers[0] = numbers[i];
          numbers[i] = temp;
-         siftDown_ii(numbers, 0, i-1, array_size);
+         siftDownIterativeImprovement(numbers, 0, i-1, array_size);
      }
 }
 
-void IterativeImprovement(int puno,int spno,struct spustuff pu[], struct sconnections connections[],
+// iteratively improves a planning unit solutions
+// a descent algorithm un-reserves planning units that don't have a negative value when removed
+void iterativeImprovement(int puno,int spno,struct spustuff pu[], struct sconnections connections[],
                           struct sspecies spec[],struct spu SM[],int R[], double cm,
                           struct scost *reserve,struct scost *change,double costthresh,double tpf1, double tpf2,
                           int clumptype,int irun,char *savename)
@@ -5559,14 +3709,14 @@ void IterativeImprovement(int puno,int spno,struct spustuff pu[], struct sconnec
      FILE *ttfp,*Rfp;
      char *writename;
 
-     appendTraceFile("IterativeImprovement start\n");
+     appendTraceFile("iterativeImprovement start\n");
 
      // counting pu's we need to test
      for (i=0;i<puno;i++)
          if ((R[i] < 2) && (pu[i].status < 2))
             puvalid++;
 
-     appendTraceFile("IterativeImprovement puvalid %i\n",puvalid);
+     appendTraceFile("iterativeImprovement puvalid %i\n",puvalid);
 
      if (fnames.saveitimptrace)
      {
@@ -5612,12 +3762,12 @@ void IterativeImprovement(int puno,int spno,struct spustuff pu[], struct sconnec
                ipu++;
             }
 
-        appendTraceFile("IterativeImprovement after array init\n");
+        appendTraceFile("iterativeImprovement after array init\n");
 
         // sort the iimp array by the randomindex field
-        heapSort_ii(iimparray,puvalid);
+        heapSortIterativeImprovement(iimparray,puvalid);
 
-        appendTraceFile("IterativeImprovement after heapSort_ii\n");
+        appendTraceFile("iterativeImprovement after heapSortIterativeImprovement\n");
 
         /***** Doing the improvements ****/
         for (i=0;i<puvalid;i++)
@@ -5666,8 +3816,8 @@ void IterativeImprovement(int puno,int spno,struct spustuff pu[], struct sconnec
         fclose(Rfp);
      }
 
-     appendTraceFile("IterativeImprovement end\n");
-}  // Time Optimised Iterative Improvement
+     appendTraceFile("iterativeImprovement end\n");
+} // iterativeImprovement
 
 /*********************
  *  ran1() from numerical recipes
@@ -5755,287 +3905,6 @@ double SepPenalty(int ival,int itarget)
 
        return (1/(7*fval+0.2)-(1/7.2)); // Gives a nice hyperbole with fval = 1 return 0 and fval = 0 or 0.1 returning almost 1
 } // SepPenalty
-
-int ValidPU(int ipu,int isp,struct sclumps *newno,struct sspecies spec[],struct spustuff pu[],
-            struct spu SM[],int imode)
-{
-    // Returns true if ipu is acceptable as a planning unit
-    int i;
-    
-    i = rtnIdxSpecAtPu(pu,SM,ipu,isp);
-    struct sclumps *pclump, *ppu;
-    if (newno)
-    {
-       if (imode == -2)
-          if (SM[i].clump == newno->clumpid)
-             return(0); // This whole clump is to be removed
-             
-       for (ppu=newno;ppu;ppu=ppu->next)
-       {
-           if (ipu == ppu->clumpid)
-           {
-              if (ppu->amount < spec[isp].target2)
-                 return(0);
-              else
-                  return(1);
-           }
-       } // ipu is on list of changed pus
-    } // Above used only when newno is not NULL
-    
-    // Find clump
-    for (pclump = spec[isp].head;pclump && (SM[i].clump != pclump->clumpid);pclump= pclump->next)
-        ; // scan through to find clump
-        
-    if (pclump)
-    {
-       if (pclump->amount <spec[isp].target2)
-          return(0);
-       else
-           return(1);
-    }
-    else
-    {
-        if (SM[i].amount < spec[isp].target2)
-           return(0);
-        else
-            return(1);
-    }
-} // Valid PU
-
-int CheckDistance(int i, int j,struct spustuff pu[],double squaretarget)
-{
-    // compare x1*x2+y1*y2 with squaretarget
-    if ((pu[i].xloc-pu[j].xloc)*(pu[i].xloc-pu[j].xloc) + (pu[i].yloc-pu[j].yloc)* (pu[i].yloc-pu[j].yloc) >= squaretarget)
-        return(1);
-    else
-        return(0);
-} // Is Distant returns true if PU's are big enough distance apart
-
-int CountSeparation(int isp,struct sclumps *newno,
-                struct spustuff pu[],struct spu SM[],typesp spec[],int imode)
-{
-    // imode 0 = count separation on current
-    // imode 1 = count separation if ipu were included
-    // imode -1 = count separation if ipu were excluded
-    // The following assumes imode = 0 for starters
-
-    struct slink{int id; struct slink *next;} *first = NULL, *second = NULL,*ptemp,*ptest;
-    struct sclumps *pclump;
-    struct sclumppu *ppu;
-    int sepcount = 1,test;
-    double targetdist;
-  
-    targetdist = spec[isp].sepdistance * spec[isp].sepdistance;
-
-    if (targetdist == 0)
-       return(3); // Shortcut if sep not apply to this species. This assumes that 3 is highest sep count
-       
-    // Set up the first list
-    if (imode == 1)
-       if (ValidPU(newno->clumpid,isp,newno,spec,pu,SM,imode))
-       {
-          ptemp = (struct slink *) malloc(sizeof(struct slink));
-          ptemp->id = newno->clumpid;
-          ptemp->next = first;
-          first = ptemp;
-       }
-    for (pclump = spec[isp].head;pclump;pclump = pclump->next)
-        for (ppu = pclump->head;ppu;ppu= ppu->next)
-            if (ValidPU(ppu->puid,isp,newno,spec,pu,SM,imode))
-            {
-               ptemp = (struct slink *) malloc(sizeof(struct slink));
-               ptemp->id = ppu->puid;
-               ptemp->next = first;
-               first = ptemp;
-            } // Add all valid species bearing PU's to list
-    // need to worry about added pu which is not on spec[isp].head list
-
-    // cycle through this list
-    while (first)
-    {
-          test = first->id;
-          ptemp = first;
-          first = first->next;
-          free(ptemp);
-          DebugFree(sizeof(struct slink));
-
-          for (ptemp = first;ptemp;ptemp = ptemp->next)
-              if (CheckDistance(ptemp->id,test,pu,targetdist))
-              {
-                 for (ptest=second;ptest;ptest = ptest->next)
-                     if (CheckDistance(ptemp->id,ptest->id,pu,targetdist))
-                     {
-                        // Clear all lists
-                        while (first)
-                        {
-                              ptemp = first;
-                              first = ptemp->next;
-                              free(ptemp);
-                              DebugFree(sizeof(struct slink));
-                        }
-                        while (second)
-                        {
-                              ptemp = second;
-                              second = ptemp->next;
-                              free(ptemp);
-                              DebugFree(sizeof(struct slink));
-                        }
-                        return(3);
-                     } // I have succeeded in finding what I'm looking for
-
-                 ptest = (struct slink *) malloc(sizeof(struct slink));
-                 ptest->id = ptemp->id;
-                 ptest->next = second;
-                 second = ptest;
-                 sepcount = 2; // there is a separation of at least 2. This should be used to cut down calls to this function
-
-              } // I am sufficient distance from test location
-
-              while (second)
-              {
-                    ptemp = second;
-                    second = ptemp->next;
-                    free(ptemp);
-                    DebugFree(sizeof(struct slink));
-              } // clear second between tests
-    } // finished scanning through list. first is neccessarily empty now
-    
-    while (second)
-    {
-          ptemp = second;
-          second = ptemp->next;
-          free(ptemp);
-          DebugFree(sizeof(struct slink));
-    }
-
-    return(sepcount);
-} // CountSeparation
-
-// Make List
-// This makes a list of all the valid PUs which occur on the reserve and on which species
-// isp is present (or NULL), in the form of a slink link list
-
-struct slink *makelist(int isp,int ipu,int puno,int R[],
-                       struct sclumps *newno,struct sspecies spec[],
-                       struct spustuff pu[],struct spu SM[],int imode)
-       // imode: 0 : as is. -1 ipu being removed, +1 ipu being added
-{
-       struct sclumps *pclump;
-       struct sclumppu *ppu;
-       struct slink *ptemp,*head=NULL;
-       int i;
-       double rAmount = rtnAmountSpecAtPu(pu,SM,ipu,isp);
-
-       if (spec[isp].target2)
-       {
-          // deal with clumping species differently from non-clumping
-          if (imode == 1)
-             if (ValidPU(newno->clumpid,isp,newno,spec,pu,SM,imode))
-             {
-                ptemp = (struct slink *) malloc(sizeof(struct slink));
-                ptemp->id = newno->clumpid;
-                ptemp->next = head;
-                head = ptemp;
-             }
-             
-          for (pclump = spec[isp].head;pclump;pclump = pclump->next)
-              for (ppu = pclump->head;ppu;ppu= ppu->next)
-                  if (ValidPU(ppu->puid,isp,newno,spec,pu,SM,imode))
-                  {
-                     ptemp = (struct slink *) malloc(sizeof(struct slink));
-                     ptemp->id = ppu->puid;
-                     ptemp->next = head;
-                     head = ptemp;
-                  }  // Add all valid species bearing PU's to list
-       } // if target2
-       else
-       {
-           // non clumping species
-           if ((imode ==1) && rAmount)
-           {
-              ptemp = (struct slink *)malloc(sizeof(struct slink));
-              ptemp->id = ipu;
-              ptemp->next = head;
-              head = ptemp;
-           } // deal with imode == 1 case
-           
-           for (i=0;i<puno;i++)
-               if (((R[i] == 1 || R[i] == 2) && rAmount) && !(imode == -1 && ipu == i))
-               {
-                  ptemp = (struct slink *)malloc(sizeof(struct slink));
-                  ptemp->id = i;
-                  ptemp->next = head;
-                  head = ptemp;
-               }
-       } // non clumping species
-
-       return(head);
-} // Makelist
-
-// Sep Deal List
-// This funciton is called by count separation2. It takes a link list of sites and 'deals' them
-//  out on to the seplist
-int SepDealList(struct slink *head, typeseplist *Dist,struct spustuff *pu,
-                struct sspecies spec[],int first,int sepnum,double targetdist,
-                int isp)
-// Currsep is the current separation maximum it is 0 up to sepnum
-// first is only needed if maximum is at 0, sepnum is the target separation
-{  
-    int placefound,currtarget,bestsep=0;
-    int currsep;
-    struct slink *temp;
-
-    while (head)
-    {
-          placefound = 0;
-          currtarget = first;
-          currsep = sepnum;
-          do
-          {
-            if (CheckDistance(head->id,currtarget,pu,targetdist))
-            {
-               currsep++;
-               if (currsep == spec[isp].sepnum-1)
-               {
-                  while (head)
-                  {
-                        temp = head->next;
-                        head->next = Dist[currsep].head;
-                        Dist[currsep].head = head;
-                        head = temp;
-                  } // glue remaining list on to bottom of Dist. ignoring size and tail as useless
-                
-                  return(currsep);
-               } // Just found valid separation
-               
-               if (Dist[currsep].head)
-                  currtarget = Dist[currsep].head->id;
-               else
-               {
-                   placefound = 1;
-                   Dist[currsep].head = head;
-                   Dist[currsep].tail = head;
-                   Dist[currsep].size++;
-                   head = head->next;
-                   Dist[currsep].tail->next = NULL;
-               } // I'm at the end of the line
-            } // Good distance
-            else
-            {
-                placefound = 1;
-                Dist[currsep].tail->next = head;
-                Dist[currsep].tail = head;
-                Dist[currsep].size++;
-                head = head->next;
-                Dist[currsep].tail->next = NULL;
-            } // bad distance
-          } while (!placefound); // Doing each individual
-          if (currsep > bestsep)
-             bestsep = currsep;
-    }
-    
-    return(bestsep);
-}
 
 /* This is a modified form of count separation where the user can specify any
     maximum separation distance rather than just assuming a sep distance of three */
@@ -6175,26 +4044,14 @@ int CountSeparation2(int isp,int ipu,struct sclumps *newno,int puno,int R[],
     return(bestsep+1);
 } // CountSeparation 2
 
-/* This function produces a usage statement for when the command line is
-not correct. Usually when there is the wrong number (ie > 1) arguments
-passed to the program */
-
-void Usage(char *programName)
-{
-    fprintf(stderr,"%s usage: %s -[o] -[c] [input file name]\n",programName,programName);
-}  // Usage
-
-
-/* returns the index of the first argument that is not an option; i.e.
-does not start with a dash or a slash
-*/
-void HandleOptions(int argc,char *argv[],char sInputFileName[])
+// handle command line parameters for the marxan executable
+void handleOptions(int argc,char *argv[],char sInputFileName[])
 {
      int i;
 
      if (argc>4)
      {  // if more than one commandline argument then exit
-        Usage(argv[0]);
+        displayUsage(argv[0]);
         exit(1);
      }
 
@@ -6220,6 +4077,7 @@ void HandleOptions(int argc,char *argv[],char sInputFileName[])
      }
 }
 
+// c main function for marxan: gets called when the marxan executable is run
 int main(int argc,char *argv[])
 {
     char sInputFileName[100];
@@ -6235,9 +4093,9 @@ int main(int argc,char *argv[])
        strcpy(sInputFileName,"input.dat");
     }
     else     // handle the program options
-        HandleOptions(argc,argv,sInputFileName);
+        handleOptions(argc,argv,sInputFileName);
 
-    if (Marxan(sInputFileName))        // Calls the main annealing unit
+    if (executeMarxan(sInputFileName))        // Calls the main annealing unit
     {
         if (marxanisslave == 1)
         {
@@ -6254,388 +4112,3 @@ int main(int argc,char *argv[])
     return 0;
 }
 
-// use the prop value from the conservation feature file to set a proportion target for species
-void ApplySpecProp(int spno,typesp spec[],int puno,struct spustuff pu[],struct spu SM[])
-{
-     // compute and set target for species with a prop value
-     double totalamount;
-     int isp, ipu;
-
-     for (isp=0;isp<spno;isp++)
-         if (spec[isp].prop > 0)
-         {
-            for (ipu = 0,totalamount = 0;ipu<puno;ipu++)
-                totalamount += rtnAmountSpecAtPu(pu,SM,ipu,isp);
-            spec[isp].target = totalamount * spec[isp].prop;
-         }
-}
-
-// Change in probability 1D for adding or deleting one PU
-double ChangeProbability1D(int iIteration, int ipu, int spno,int puno,struct sspecies spec[],struct spustuff pu[],struct spu SM[],int imode)
-{
-       int i, ism, isp, iNewHeavisideStepFunction, iOrigHeavisideStepFunction;
-       double rSumAmount, rOrigExpected, rOrigVariance, rNewExpected, rNewVariance, rOriginalZScore;
-       double rNewZScore, rProbOriginal, rProbNew, rSumProbability = 0;
-       double rDeltaExpected, rDeltaVariance, rNewShortfallPenalty, rOrigShortfallPenalty;
-       char debugbuffer[200];
-
-       #ifdef DEBUG_PROB1D
-       char sDebugFileName[300], sIteration[20];
-       if (iIteration < 10)
-       {
-          sprintf(sIteration,"%i",iIteration);
-          strcpy(sDebugFileName,fnames.outputdir);
-          strcat(sDebugFileName,"output_ChangeProbability1DDebug_");
-          strcat(sDebugFileName,sIteration);
-          strcat(sDebugFileName,".csv");
-          writeChangeProbability1DDebugTable(sDebugFileName,iIteration,ipu,spno,spec,pu,SM,imode);
-       }
-       #endif
-
-       if (pu[ipu].richness)
-          for (i=0;i<pu[ipu].richness;i++)
-          {
-              ism = pu[ipu].offset + i;
-              isp = SM[ism].spindex;
-              if (SM[ism].amount)
-              {
-                 // compute new probability
-                 rDeltaExpected = imode * SM[ism].amount * (1 - pu[ipu].prob);
-                 rNewExpected = spec[isp].expected1D + rDeltaExpected;
-
-                 rDeltaVariance = imode * SM[ism].amount * SM[ism].amount * pu[ipu].prob * (1 - pu[ipu].prob);
-                 rNewVariance = spec[isp].variance1D + rDeltaVariance;
-
-                 if (rNewVariance > 0)
-                    rNewZScore = (spec[isp].target - rNewExpected) / sqrt(rNewVariance);
-                 else
-                     rNewZScore = 4;
-
-                 spec[isp].Zscore1D = rNewZScore;
-
-                 if (rNewZScore >= 0)
-                    rProbNew = probZUT(rNewZScore);
-                 else
-                     rProbNew = 1 - probZUT(-1 * rNewZScore);
-
-                 spec[isp].probability1D = rProbNew;
-
-                 // compute original probability
-                 rSumAmount = spec[isp].amount;
-
-                 if (spec[isp].variance1D > 0)
-                    rOriginalZScore = (spec[isp].target - spec[isp].expected1D) / sqrt(spec[isp].variance1D);
-                 else
-                     rOriginalZScore = 4;
-
-                 if (rOriginalZScore >= 0)
-                    rProbOriginal = probZUT(rOriginalZScore);
-                 else
-                     rProbOriginal = 1 - probZUT(-1 * rOriginalZScore);
-
-                 if (spec[i].ptarget1d > rProbNew)
-                    iNewHeavisideStepFunction = 1;
-                 else
-                     iNewHeavisideStepFunction = 0;
-
-                 if (spec[i].ptarget1d > rProbOriginal)
-                    iOrigHeavisideStepFunction = 1;
-                 else
-                     iOrigHeavisideStepFunction = 0;
-
-                 if (spec[i].ptarget1d > 0)
-                 {
-                    rNewShortfallPenalty = (spec[i].ptarget1d - rProbNew) / spec[i].ptarget1d;
-                    rOrigShortfallPenalty = (spec[i].ptarget1d - rProbOriginal) / spec[i].ptarget1d;
-                 }
-                 else
-                 {
-                     rNewShortfallPenalty = 0;
-                     rOrigShortfallPenalty = 0;
-                 }
-
-                 // change in probability
-                 rSumProbability += (iNewHeavisideStepFunction * rNewShortfallPenalty) - (iOrigHeavisideStepFunction * rOrigShortfallPenalty);
-              }
-          }
-
-       return (rSumProbability * rProbabilityWeighting);
-}  // Change in probability for adding or deleting one PU
-
-// Change in probability 2D for adding or deleting one PU
-double ChangeProbability2D(int iIteration, int ipu, int spno,int puno,struct sspecies spec[],struct spustuff pu[],struct spu SM[],int imode)
-{
-    int i, ism, isp, iNewHeavisideStepFunction, iOrigHeavisideStepFunction;
-    double rSumAmount, rOrigExpected, rOrigVariance, rNewExpected, rNewVariance, rOriginalZScore;
-    double rProb, rNewZScore, rProbOriginal, rProbNew, rSumProbability = 0;
-    double rDeltaExpected, rDeltaVariance, rNewShortfallPenalty, rOrigShortfallPenalty;
-
-    #ifdef DEBUG_PROB2D
-    char sDebugFileName[300], sIteration[20];
-    if (iIteration < 10)
-    {
-       sprintf(sIteration,"%i",iIteration);
-       strcpy(sDebugFileName,fnames.outputdir);
-       strcat(sDebugFileName,"output_ChangeProbability2DDebug_");
-       strcat(sDebugFileName,sIteration);
-       strcat(sDebugFileName,"_.csv");
-       writeChangeProbability2DDebugTable(sDebugFileName,iIteration,ipu,spno,spec,pu,SM,imode);
-    }
-    #endif
-
-    if (pu[ipu].richness)
-       for (i=0;i<pu[ipu].richness;i++)
-       {
-           ism = pu[ipu].offset + i;
-           isp = SM[ism].spindex;
-           if (SM[ism].amount)
-           {
-              rProb = SM[ism].prob;
-
-              // compute new probability
-              rDeltaExpected = imode * SM[ism].amount * rProb;
-              rNewExpected = spec[isp].expected2D + rDeltaExpected;
-
-              rDeltaVariance = imode * SM[ism].amount * SM[ism].amount * rProb * (1 - rProb);
-              rNewVariance = spec[isp].variance2D + rDeltaVariance;
-
-              if (rNewVariance > 0)
-                 rNewZScore = (spec[isp].target - rNewExpected) / sqrt(rNewVariance);
-              else
-                  rNewZScore = 4;
-
-              spec[isp].Zscore2D = rNewZScore;
-
-              if (rNewZScore >= 0)
-                 rProbNew = probZUT(rNewZScore);
-              else
-                  rProbNew = 1 - probZUT(-1 * rNewZScore);
-
-              spec[isp].probability2D = rProbNew;
-
-              // compute original probability
-              rSumAmount = spec[isp].amount;
-
-              if (spec[isp].variance2D > 0)
-                 rOriginalZScore = (spec[isp].target - spec[isp].expected2D) / sqrt(spec[isp].variance2D);
-              else
-                  rOriginalZScore = 4;
-
-              if (rOriginalZScore >= 0)
-                 rProbOriginal = probZUT(rOriginalZScore);
-              else
-                  rProbOriginal = 1 - probZUT(-1 * rOriginalZScore);
-
-              if (spec[i].ptarget2d > rProbNew)
-                 iNewHeavisideStepFunction = 1;
-              else
-                  iNewHeavisideStepFunction = 0;
-
-              if (spec[i].ptarget2d > rProbOriginal)
-                 iOrigHeavisideStepFunction = 1;
-              else
-                  iOrigHeavisideStepFunction = 0;
-
-              if (spec[i].ptarget2d > 0)
-              {
-                 rNewShortfallPenalty = (spec[i].ptarget2d - rProbNew) / spec[i].ptarget2d;
-                 rOrigShortfallPenalty = (spec[i].ptarget2d - rProbOriginal) / spec[i].ptarget2d;
-              }
-              else
-              {
-                  rNewShortfallPenalty = 0;
-                  rOrigShortfallPenalty = 0;
-              }
-
-              // change in probability
-              rSumProbability += (iNewHeavisideStepFunction * rNewShortfallPenalty) - (iOrigHeavisideStepFunction * rOrigShortfallPenalty);
-           }
-        }
-
-    return (rSumProbability * rProbabilityWeighting);
-}  // Change in probability for adding or deleting one PU
-
-// accumulate ExpectedAmount and VarianceInExpectedAmount for each species at this planning unit
-void ReturnProbabilityAmounts1D(double ExpectedAmount1D[],double VarianceInExpectedAmount1D[],int ipu,
-                                int puno,struct spustuff pu[],struct spu SM[])
-{
-     int i, ism, isp;
-
-     if (pu[ipu].richness)
-        for (i=0;i<pu[ipu].richness;i++)
-        {
-            ism = pu[ipu].offset + i;
-            isp = SM[ism].spindex;
-            if (SM[ism].amount)
-            {
-               ExpectedAmount1D[isp] += SM[ism].amount * (1 - pu[ipu].prob);
-
-               VarianceInExpectedAmount1D[isp] += SM[ism].amount * SM[ism].amount * pu[ipu].prob * (1 - pu[ipu].prob);
-            }
-        }
-}
-void ReturnProbabilityAmounts2D(double ExpectedAmount2D[],double VarianceInExpectedAmount2D[],int ipu,
-                                int puno,struct spustuff pu[],struct spu SM[])
-{
-     int i, ism, isp;
-
-     if (pu[ipu].richness)
-        for (i=0;i<pu[ipu].richness;i++)
-        {
-            ism = pu[ipu].offset + i;
-            isp = SM[ism].spindex;
-            if (SM[ism].amount)
-            {
-               ExpectedAmount2D[isp] += SM[ism].amount * SM[ism].prob;
-
-               VarianceInExpectedAmount2D[isp] += SM[ism].amount * SM[ism].amount * SM[ism].prob * (1 - SM[ism].prob);
-            }
-        }
-}
-
-double ComputeProbability1D(double ExpectedAmount1D[],double VarianceInExpectedAmount1D[],
-                            int spno,struct sspecies spec[])
-{
-       // compute Probability for all reserved planning units
-       int i, iHeavisideStepFunction;
-       double rProbability, rSumProbability = 0, rShortfallPenalty;
-
-       appendTraceFile("ComputeProbability1D start\n");
-
-       for (i=0;i<spno;i++)
-       {
-           if (VarianceInExpectedAmount1D[i] > 0)
-              spec[i].Zscore1D = (spec[i].target - ExpectedAmount1D[i]) / sqrt(VarianceInExpectedAmount1D[i]);
-           else
-               spec[i].Zscore1D = 4;
-
-           if (spec[i].Zscore1D >= 0)
-              rProbability = probZUT(spec[i].Zscore1D);
-           else
-               rProbability = 1 - probZUT(-1 * spec[i].Zscore1D);
-
-           if (spec[i].ptarget1d > rProbability)
-              iHeavisideStepFunction = 1;
-           else
-               iHeavisideStepFunction = 0;
-
-           if (spec[i].ptarget1d > 0)
-              rShortfallPenalty = (spec[i].ptarget1d - rProbability) / spec[i].ptarget1d;
-           else
-               rShortfallPenalty = 0;
-
-           spec[i].probability1D = iHeavisideStepFunction * rShortfallPenalty;
-
-           rSumProbability += spec[i].probability1D;
-
-           #ifdef DEBUG_PROB1D
-           appendTraceFile("ComputeProbability1D i %i p %lf one minus p %lf pst %lf pst2 %lf\n",
-                                i,rProbability,(1-rProbability),spec[i].probability1D,(1-spec[i].probability1D));
-           #endif
-       }
-
-       appendTraceFile("ComputeProbability1D sump %lf\n",rSumProbability);
-
-       return rSumProbability * rProbabilityWeighting;
-}
-
-double ComputeProbability2D(double ExpectedAmount2D[],double VarianceInExpectedAmount2D[],
-                            int spno,struct sspecies spec[])
-{
-       // compute Probability for all reserved planning units
-       int i, iHeavisideStepFunction;
-       double rProbability, rSumProbability = 0, rShortfallPenalty;
-
-       appendTraceFile("ComputeProbability2D start\n");
-
-       for (i=0;i<spno;i++)
-       {
-           if (VarianceInExpectedAmount2D[i] > 0)
-              spec[i].Zscore2D = (spec[i].target - ExpectedAmount2D[i]) / sqrt(VarianceInExpectedAmount2D[i]);
-           else
-               spec[i].Zscore2D = 4;
-
-           if (spec[i].Zscore2D >= 0)
-              rProbability = probZUT(spec[i].Zscore2D);
-           else
-               rProbability = 1 - probZUT(-1 * spec[i].Zscore2D);
-
-           if (spec[i].ptarget2d > rProbability)
-              iHeavisideStepFunction = 1;
-           else
-               iHeavisideStepFunction = 0;
-
-           if (spec[i].ptarget2d > 0)
-              rShortfallPenalty = (spec[i].ptarget2d - rProbability) / spec[i].ptarget2d;
-           else
-               rShortfallPenalty = 0;
-
-           spec[i].probability2D = iHeavisideStepFunction * rShortfallPenalty;
-
-           rSumProbability += spec[i].probability2D;
-
-           #ifdef DEBUG_PROB2D
-           appendTraceFile("ComputeProbability2D i %i p %lf one minus p %lf psf %lf psf2 %lf\n",
-                                i,rProbability,(1-rProbability),spec[i].probability2D,(1-spec[i].probability2D));
-           #endif
-       }
-
-       appendTraceFile("ComputeProbability2D sump %lf\n",rSumProbability);
-
-       return rSumProbability * rProbabilityWeighting;
-}
-
-double probZUT(double z)
-/*
-Probability that a standard normal random variable has value >= z
-(i.e. the area under the standard normal curve for Z in [z,+inf]
-
-Originally adapted by Gary Perlman from a polynomial approximation in:
-Ibbetson D, Algorithm 209
-Collected Algorithms of the CACM 1963 p. 616
-Adapted (returns upper tail instead of lower tail)
-
-This function is not copyrighted
-*/
-{
-       double Z_MAX = 5;
-       double y, x, w;
-       
-       if (z == 0.0)
-          x = 0.0;
-       else
-       {
-           y = 0.5 * fabs (z);
-           if (y >= (Z_MAX * 0.5))
-              x = 1.0;
-           else
-               if (y < 1.0)
-               {
-                  w = y*y;
-                  x = ((((((((0.000124818987 * w
-                      -0.001075204047) * w +0.005198775019) * w
-                      -0.019198292004) * w +0.059054035642) * w
-                      -0.151968751364) * w +0.319152932694) * w
-                      -0.531923007300) * w +0.797884560593) * y * 2.0;
-               }
-               else
-               {
-                   y -= 2.0;
-                   x = (((((((((((((-0.000045255659 * y
-                       +0.000152529290) * y -0.000019538132) * y
-                       -0.000676904986) * y +0.001390604284) * y
-                       -0.000794620820) * y -0.002034254874) * y
-                       +0.006549791214) * y -0.010557625006) * y
-                       +0.011630447319) * y -0.009279453341) * y
-                       +0.005353579108) * y -0.002141268741) * y
-                       +0.000535310849) * y +0.999936657524;
-               }
-       }
-       
-       return (z < 0.0 ? ((x + 1.0) * 0.5) : ((1.0 - x) * 0.5));
-}
-
-double probZLT(double z)
-{
-       return 1.0 - probZUT(z);
-}

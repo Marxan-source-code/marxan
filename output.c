@@ -1,3 +1,5 @@
+// functions that write to output files or display console output
+
 // debug output for probability 1D
 void writeProb1DDebugTable(int spno,char savename[],double ExpectedAmount1D[],double VarianceInExpectedAmount1D[], struct sspecies spec[])
 {
@@ -1538,9 +1540,9 @@ void writeProbData(int puno,struct spustuff pu[],struct sfname fnames)
     char *sVarVal;
     FILE *fp;
 
-    writename = (char *) calloc(strlen("DumpProbData.csv") + strlen(fnames.inputdir)+2, sizeof(char));
+    writename = (char *) calloc(strlen("writeProbData.csv") + strlen(fnames.inputdir)+2, sizeof(char));
     strcpy(writename,fnames.inputdir);
-    strcat(writename,"DumpProbData.csv");
+    strcat(writename,"writeProbData.csv");
     if((fp = fopen(writename,"w"))==NULL)
         displayErrorMessage("probability file %s has not been found.\nAborting Program.",writename);
     free(writename);
@@ -1577,3 +1579,52 @@ void copyFile(char sInputFile[],char sOutputFile[])
         fclose(fpOutputFile);
      }
 }
+
+// display statistics for a configuration of planning unit
+void displayValueForPUs(int puno, int spno,int *R,struct scost reserve,
+                        struct sspecies spec[],double misslevel)
+{
+     int i, isp = 0;
+     double connectiontemp = 0, shortfall, rMPM;//, rConnectivityTotal = 0,rConnectivityIn = 0,rConnectivityEdge = 0,rConnectivityOut = 0;
+
+     #ifdef DEBUG_PRINTRESVALPROB
+     appendTraceFile("PrintResVal start\n");
+     #endif
+
+     isp = CountMissing(spno,spec,misslevel,&shortfall,&rMPM);
+
+     //ComputeConnectivityIndices(rConnectivityTotal,rConnectivityIn,rConnectivityEdge,rConnectivityOut,
+     //                           puno,R,connections);
+
+     for (i=0;i<puno;i++)
+         if (R[i]==1 || R[i] == 2)
+         {
+            connectiontemp += ConnectionCost2(i,connections,R,1,0,1);
+         }
+
+     #ifdef DEBUG_PRINTRESVALPROB
+     appendTraceFile("PrintResVal missing %i connectiontemp %g\n",isp,connectiontemp);
+     #endif
+
+     displayProgress("Value %.1f Cost %.1f PUs %i Connection %.1f Missing %i Shortfall %.2f Penalty %.1f MPM %.1f\n",
+                     reserve.total,reserve.cost,reserve.pus,connectiontemp,isp,shortfall,reserve.penalty,rMPM);
+
+     if (fProb1D == 1)
+        displayProgress(" Probability1D %.1f",reserve.probability1D);
+     if (fProb2D == 1)
+        displayProgress(" Probability2D %.1f",reserve.probability2D);
+
+     displayProgress("\n");
+
+     #ifdef DEBUG_PRINTRESVALPROB
+     appendTraceFile("PrintResVal end\n");
+     #endif
+}
+
+// display usage information for the marxan executable
+// displayed when the command line options are not understood
+void displayUsage(char *programName)
+{
+    fprintf(stderr,"%s usage: %s -[o] -[c] [input file name]\n",programName,programName);
+}
+

@@ -1,3 +1,5 @@
+// functions that read from input files
+
 // read the planning units file pu.dat
 int readPlanningUnits(int *puno,struct spustuff *pu[],struct sfname fnames)
 {

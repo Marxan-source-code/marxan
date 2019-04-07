@@ -1,16 +1,4 @@
-// combined headers for Marxan
-
-/*    Marxan and this unit was coded by Ian Ball
-    and written by Ian Ball and Hugh Possingham
-
-    ian_bal@antdiv.gov.au
-    hpossing@zen.uq.edu.au
-
-      Modified by Matthew Watts  4 Nov 2005
-
-        m.watts@uq.edu.au
-    */
-
+// declare types and predefine functions
 
 #define DebugFree(x)
 #ifndef mainheaderfile
@@ -19,7 +7,7 @@
     int *bestyet;
     double delta;
 
-    // type definitions for Marxan sparse matrix optimisations data structures
+    // type definitions for sparse matrix optimisations data structures
     typedef struct binsearch
     {
         int name;
@@ -47,7 +35,7 @@
 
     typepusporder *SMsporder;
 
-    // type definitions for original Ian Ball Marxan data structures
+    // type definitions for original Ian Ball data structures
 
     typedef struct spustuff
     {
@@ -238,16 +226,16 @@
         int puindex;
     } typeiimp;
 
-int Marxan(char sInputFileName[]);
-void AddReserve(int puno,struct spustuff pu[],int R[]);
-void SetBlockDefs(int gspno,int spno,int puno,struct sgenspec gspec[], struct sspecies spec[],struct spustuff PU[], struct spu SM[]);
-void SetDefs(int spno, struct sspecies spec[]);
-void SetRunOptions(int runopts, struct srunoptions *runoptions);
-int CalcPenalties(int puno,int spno,struct spustuff pu[],struct sspecies spec[],
-                  struct sconnections connections[],struct spu SM[],int PUtemp[],int aggexist,double cm,int clumptype);
-int CalcPenaltiesOptimise(int puno,int spno,struct spustuff pu[],struct sspecies spec[],
-                          struct sconnections connections[],struct spu SM[],struct spusporder SMsp[],
-                          int PUtemp[],int aggexist,double cm,int clumptype);
+void addReserve(int puno,struct spustuff pu[],int R[]);
+void computeSpecProp(int spno,typesp spec[],int puno,struct spustuff pu[],struct spu SM[]);
+void setBlockDefinitions(int gspno,int spno,int puno,struct sgenspec gspec[], struct sspecies spec[],struct spustuff PU[], struct spu SM[]);
+void setDefaultTargets(int spno, struct sspecies spec[]);
+void setDefaultRunOptions(int runopts, struct srunoptions *runoptions);
+int computePenalties(int puno,int spno,struct spustuff pu[],struct sspecies spec[],
+                     struct sconnections connections[],struct spu SM[],int PUtemp[],int aggexist,double cm,int clumptype);
+int computePenaltiesOptimise(int puno,int spno,struct spustuff pu[],struct sspecies spec[],
+                             struct sconnections connections[],struct spu SM[],struct spusporder SMsp[],
+                             int PUtemp[],int aggexist,double cm,int clumptype);
 
 
 double ConnectionCost1(int ipu,struct spustuff pu[],struct sconnections connections[],double cm);
@@ -285,10 +273,8 @@ void DoQuantumChange(int puno,int R[],struct scost *reserve,struct scost change,
                      int clumptype,int iFluctuationCount,int *PUChosen);
 
 int CountMissing(int spno,struct sspecies spec[],double misslevel,double *shortfall,double *rMinimumProportionMet);
-void PrintResVal (int puno, int spno,int R[],struct scost reserve,
-     struct sspecies spec[],double misslevel);
-void ChangeCost(struct scost *cost,double changemult);
-
+void displayValueForPUs(int puno, int spno,int R[],struct scost reserve,
+                        struct sspecies spec[],double misslevel);
 void TimePassed(void);
 void PauseProg(void);
 void PauseExit(void);
@@ -391,7 +377,7 @@ void ReadPUVSPFileTable(FILE *infile, int puno,int spno,struct spu SM[],struct s
 void readPenalties(typesp spec[],int spno,struct sfname fnames,struct binsearch SPLookup[]);
 void MapUserPenalties(typesp spec[],int spno);
 
-/* new functions added by Matt for Marxan optimisation */
+// functions for Matt's Big O notation optimisation
 void readSparseMatrix(int *iSMSize, struct spu *SM[], int puno, int spno, struct spustuff PU[],
                       struct binsearch PULookup[],struct binsearch SPLookup[],
                       struct sfname fnames);
@@ -408,8 +394,8 @@ void TestFastNameToPUID(int puno, struct binsearch PULookup[], struct spustuff P
 int FastNameToPUID(int puno,int name, struct binsearch PULookup[]);
 void TestFastNameToSPID(int spno, struct binsearch SPLookup[], typesp spec[], struct sfname fnames);
 int FastNameToSPID(int spno,int name, struct binsearch SPLookup[]);
-int rtnIdxSpecAtPu(struct spustuff PU[], struct spu SM[], int iPUIndex, int iSpecIndex);
-double rtnAmountSpecAtPu(struct spustuff PU[], struct spu SM[], int iPUIndex, int iSpecIndex);
+int returnIndexSpecAtPu(struct spustuff PU[], struct spu SM[], int iPUIndex, int iSpecIndex);
+double returnAmountSpecAtPu(struct spustuff PU[], struct spu SM[], int iPUIndex, int iSpecIndex);
 int rtnClumpSpecAtPu(struct spustuff PU[], struct spu SM[], int iPUIndex, int iSpecIndex);
 void setClumpSpecAtPu(struct spustuff PU[], struct spu SM[], int iPUIndex, int iSpecIndex, int iSetClump);
 void appendTraceFile(char sMess[],...);
@@ -461,7 +447,7 @@ int FindSwap( struct slink **list,double targetval,int itestchoice,int puuntried
              struct sspecies spec[],struct spu SM[],
              int R[], double cm, struct scost *reserve, struct scost *change,
              double costthresh, double tpf1, double tpf2, int clumptype);
-void IterativeImprovement(int puno,int spno,struct spustuff pu[], struct sconnections connections[],
+void iterativeImprovement(int puno,int spno,struct spustuff pu[], struct sconnections connections[],
                           struct sspecies spec[],struct spu SM[],int R[], double cm,
                           struct scost *reserve,struct scost *change,double costthresh,double tpf1, double tpf2,
                           int clumptype,int irun,char *savename);
@@ -528,8 +514,6 @@ void CheckDist(struct sseplist *Dist,int sepnum);
 
 #endif
 
-void ApplySpecProp(int spno,typesp spec[],int puno,struct spustuff pu[],struct spu SM[]);
-
 double probZUT(double z);
 double probZLT(double z);
 
@@ -559,11 +543,3 @@ void ExecuteRScript(struct sfname fnames);
 void writeSlaveSyncFileRun(int iSyncRun);
 void SlaveExit(void);
 
-int CalcPenaltiesOptimise_OpenMP(int puno,int spno,struct spustuff pu[],struct sspecies spec[],
-                                 struct sconnections connections[],struct spu SM[],struct spusporder SMsp[],
-                                 int PUtemp[],int aggexist,double cm,int clumptype);
-
-void ExecuteRunLoop(long int repeats,int puno,int spno,double cm,int aggexist,double prop,int clumptype,double misslevel,
-                    char savename[],double costthresh,double tpf1,double tpf2,int heurotype,int runopts,
-                    int itimptype,int *iBestRun,int sumsoln[],int marxanisslave);
-void DumpAsymmetricConnectionFile(int puno,struct sconnections connections[],struct spustuff pu[],struct sfname fnames);
