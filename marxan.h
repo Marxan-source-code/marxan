@@ -391,15 +391,14 @@ void ReadPUVSPFileTable(FILE *infile, int puno,int spno,struct spu SM[],struct s
 void readPenalties(typesp spec[],int spno,struct sfname fnames,struct binsearch SPLookup[]);
 void MapUserPenalties(typesp spec[],int spno);
 
-/* new functions added by Matt for Marxan optimization */
+/* new functions added by Matt for Marxan optimisation */
 void readSparseMatrix(int *iSMSize, struct spu *SM[], int puno, int spno, struct spustuff PU[],
                       struct binsearch PULookup[],struct binsearch SPLookup[],
                       struct sfname fnames);
-void DumpSparseMatrix(int iSMno,int puno, struct spustuff PU[], struct sspecies spec[], struct spu SM[],struct sfname fnames);
+void writeSparseMatrix(int iSMno,int puno, struct spustuff PU[], struct sspecies spec[], struct spu SM[],struct sfname fnames);
 void readSparseMatrixSpOrder(int *iSMSize, struct spusporder *SM[], int puno, int spno,
                              struct binsearch PULookup[],struct binsearch SPLookup[],// typesp spec[],
                              struct sfname fnames);
-void DumpPU_richness_offset(int puno, struct spustuff PU[],struct sfname fnames);
 void writeBinarySearchArrays(char *sName,struct sfname fnames, int puno, int spno, struct binsearch PULookup[],
                              struct binsearch SPLookup[]);
 
@@ -413,26 +412,13 @@ int rtnIdxSpecAtPu(struct spustuff PU[], struct spu SM[], int iPUIndex, int iSpe
 double rtnAmountSpecAtPu(struct spustuff PU[], struct spu SM[], int iPUIndex, int iSpecIndex);
 int rtnClumpSpecAtPu(struct spustuff PU[], struct spu SM[], int iPUIndex, int iSpecIndex);
 void setClumpSpecAtPu(struct spustuff PU[], struct spu SM[], int iPUIndex, int iSpecIndex, int iSetClump);
-void TestrtnAmountSpecAtPu(int puno, int spno, struct spustuff pu[], struct sspecies spec[], struct spu SM[],
-                           struct sfname fnames);
-void StartDebugTraceFile(void);
-void vAppendDebugTraceFile(char sMess[],...);
-void AppendDebugTraceFile(char sMess[],...);
+void appendTraceFile(char sMess[],...);
 
 #endif
 
 #ifndef spexioheader
 #define spexioheader
 void SaveSeed(int iseed);
-void OutputSummary(int puno,int spno,int R[],struct sspecies spec[],struct scost reserve,
-                   int itn,char savename[],double misslevel,int imode);
-void OutputScenario(int puno,int spno,double prop,double cm,
-    struct sanneal anneal, int seedinit,long int repeats,int clumptype,
-    int runopts,int heurotype,double costthresh, double tpf1, double tpf2,
-    char savename[]);
-void OutputSolution(int puno,int R[],struct spustuff pu[],char savename[],int imode,struct sfname fnames);
-void OutputSpecies(int spno,struct sspecies spec[],char savename[],int imode,double misslevel);
-void OutputSumSoln(int puno,int sumsoln[],struct spustuff pu[],char savename[],int imode);
 
 #endif
 
@@ -508,7 +494,7 @@ void displayProgress1(char sMess[],...);
 void displayProgress2(char sMess[],...);
 void displayProgress3(char sMess[],...);
 
-void ShowTimePassed(void);
+void displayTimePassed(void);
 
 void SetLogFile(int my_savelog, char* my_savelogname);
 
@@ -542,15 +528,7 @@ void CheckDist(struct sseplist *Dist,int sepnum);
 
 #endif
 
-void CalcTotalAreas(int puno,int spno,struct spustuff pu[],struct sspecies spec[],struct spu SM[]);
-
-void DumpR(int iMessage,char sMessage[],int puno,int R[],struct spustuff pu[],struct sfname fnames);
-
-void Dump_specrichoff(int spno,struct sspecies spec[],struct sfname fnames);
-void Dump_SparseMatrix_sporder(int iSMSize, struct spusporder SM[],struct spustuff pu[],struct sfname fnames);
 void ApplySpecProp(int spno,typesp spec[],int puno,struct spustuff pu[],struct spu SM[]);
-
-void DumpProbData(int puno,struct spustuff pu[],struct sfname fnames);
 
 double probZUT(double z);
 double probZLT(double z);
@@ -568,23 +546,18 @@ double ComputeProbability1D(double ExpectedAmount1D[],double VarianceInExpectedA
                             int spno,struct sspecies spec[]);
 double ComputeProbability2D(double ExpectedAmount2D[],double VarianceInExpectedAmount2D[],
                             int spno,struct sspecies spec[]);
-void StartDebugFile(char sFileName[],char sHeader[],struct sfname fnames);
-void AppendDebugFile(char sFileName[],char sLine[],struct sfname fnames);
-void OutputPenalty(int spno,struct sspecies spec[],char savename[],int iOutputType);
-void OutputPenaltyPlanningUnits(int puno,struct spustuff pu[],int Rtemp[],char savename[],int iOutputType);
-void OutputRichness(int puno,struct spustuff pu[],char savename[],int iOutputType);
-void OutputSpec(int spno,struct sspecies spec[],char savename[]);
-void OutputPu(int puno,struct spustuff pu[],char savename[]);
+void createDebugFile(char sFileName[],char sHeader[],struct sfname fnames);
+void appendDebugFile(char sFileName[],char sLine[],struct sfname fnames);
+void writePenalty(int spno,struct sspecies spec[],char savename[],int iOutputType);
+void writePenaltyPlanningUnits(int puno,struct spustuff pu[],int Rtemp[],char savename[],int iOutputType);
+void writeSpec(int spno,struct sspecies spec[],char savename[]);
 
 // functions for cluster analysis in R
-void InitSolutionsMatrix(int puno,struct spustuff pu[],char savename_ism[],int iOutputType,int iIncludeHeaders);
-void AppendSolutionsMatrix(int iRun,int puno,int R[],char savename[],int iOutputType,int iIncludeHeaders);
+void createSolutionsMatrix(int puno,struct spustuff pu[],char savename_ism[],int iOutputType,int iIncludeHeaders);
 void ExecuteRScript(struct sfname fnames);
 
 void writeSlaveSyncFileRun(int iSyncRun);
 void SlaveExit(void);
-void OutputTotalAreas(int puno,int spno,struct spustuff pu[],struct sspecies spec[],struct spu SM[],char savename[],int iOutputType);
-void CopyFile(char sInputFile[],char sOutputFile[]);
 
 int CalcPenaltiesOptimise_OpenMP(int puno,int spno,struct spustuff pu[],struct sspecies spec[],
                                  struct sconnections connections[],struct spu SM[],struct spusporder SMsp[],

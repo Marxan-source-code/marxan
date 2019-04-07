@@ -248,7 +248,7 @@ void displayShutdownMessage(void)
      if (verbosity > 0)
      {
         printf("\n");
-        ShowTimePassed();
+        displayTimePassed();
         printf("\n              The End \n");
         if (savelog)
         {
@@ -381,7 +381,8 @@ void displayProgress3(char sMess[],...)
     }
 }
 
-void StartDebugTraceFile(void)
+// create a trace file
+void createTraceFile(void)
 {
      FILE* fdebugtrace;
 
@@ -389,14 +390,15 @@ void StartDebugTraceFile(void)
      {
         if (fnames.savedebugtracefile)
         {
-           fdebugtrace = fopen(sDebugTraceFileName,"w");
+           fdebugtrace = fopen(sTraceFileName,"w");
            fflush(fdebugtrace);
            fclose(fdebugtrace);
         }
      }
 }
 
-void AppendDebugTraceFile(char sMess[],...)
+// append message to a trace file when verbosity > 2
+void appendTraceFile(char sMess[],...)
 {
      FILE* fdebugtrace;
      va_list args;
@@ -408,7 +410,7 @@ void AppendDebugTraceFile(char sMess[],...)
            va_start(args,sMess);
         
            {
-                   fdebugtrace = fopen(sDebugTraceFileName,"a");
+                   fdebugtrace = fopen(sTraceFileName,"a");
                    vfprintf(fdebugtrace,sMess,args);
                    fclose(fdebugtrace);
            }
@@ -417,7 +419,8 @@ void AppendDebugTraceFile(char sMess[],...)
      }
 }
 
-void StartDebugFile(char sFileName[],char sHeader[],struct sfname fnames)
+// create a debug file
+void createDebugFile(char sFileName[],char sHeader[],struct sfname fnames)
 {
      FILE* fdebugtrace;
      char *writename;
@@ -433,7 +436,8 @@ void StartDebugFile(char sFileName[],char sHeader[],struct sfname fnames)
      fclose(fdebugtrace);
 }
 
-void AppendDebugFile(char sFileName[],char sLine[],struct sfname fnames)
+// append message to a debug file
+void appendDebugFile(char sFileName[],char sLine[],struct sfname fnames)
 {
      FILE* fdebugtrace;
      char *writename;
@@ -448,8 +452,8 @@ void AppendDebugFile(char sFileName[],char sLine[],struct sfname fnames)
      fclose(fdebugtrace);
 }
 
-//  ******** ShowTimePassed displays the time passed so far *********
-void ShowTimePassed(void)
+// display how many seconds since program started
+void displayTimePassed(void)
 {
      int itemp;
      itemp = (int) clock()/CLOCKS_PER_SEC;
@@ -483,10 +487,10 @@ void ShowTimePassed(void)
                 }
         }
      }
-} // Show Time Passed
+}
 
-// ******** Set logged file. Also resets log file ****
-void SetLogFile(int my_savelog, char* my_savelogname)
+// create a log file, or reset a log file
+void createLogFile(int my_savelog, char* my_savelogname)
 {
      if (savelog)
      {
@@ -517,9 +521,10 @@ void SetLogFile(int my_savelog, char* my_savelogname)
         fprintf(fsavelog,"   Marxan website\n\n");
         fprintf(fsavelog,"%s\n\n",sMarxanWebSite);
      } // save log has just been turned on
-}  // Set Log File
+}
 
-void DumpAsymmetricConnectionFile(int puno,struct sconnections connections[],struct spustuff pu[],struct sfname fnames)
+// write an asymmetric connection file
+void writeAsymmetricConnectionFile(int puno,struct sconnections connections[],struct spustuff pu[],struct sfname fnames)
 {
     int i;
     FILE *fp;
@@ -546,8 +551,8 @@ void DumpAsymmetricConnectionFile(int puno,struct sconnections connections[],str
     fclose(fp);
 }
 
-// creates an output file from the loaded Sparse Matrix
-void DumpSparseMatrix(int iSMno,int puno, struct spustuff PU[], struct sspecies spec[], struct spu SM[],struct sfname fnames)
+// write an output file from the loaded sparse matrix
+void writeSparseMatrix(int iSMno,int puno, struct spustuff PU[], struct sspecies spec[], struct spu SM[],struct sfname fnames)
 {
      FILE *fp;
      int i,j;
@@ -577,33 +582,10 @@ void DumpSparseMatrix(int iSMno,int puno, struct spustuff PU[], struct sspecies 
      fclose(fp);
 }
 
-// creates an output file showing the planning unit richness and offset
-void DumpPU_richness_offset(int puno, struct spustuff PU[],struct sfname fnames)
-{
-     FILE *fp;
-     int i;
-     char *writename;
-
-     writename = (char *) calloc(strlen(fnames.inputdir) + strlen("pu_richness_offset.csv") + 2, sizeof(char));
-     strcpy(writename,fnames.inputdir);
-     strcat(writename,"pu_richness_offset.csv");
-     if ((fp = fopen(writename,"w"))==NULL)
-        displayErrorMessage("cannot create PU_richness_offset file %s\n",writename);
-     free(writename);
-
-     fputs("puindex,richness,offset\n",fp);
-     for (i=0;i<puno;i++)
-     {
-         fprintf(fp,"%i,%i,%i\n",i,PU[i].richness,PU[i].offset);
-     }
-
-     fclose(fp);
-}
-
-// Output Solutions
+// write a summary file
 //  imode = 1   Output Summary Stats only
 //  imode = 2   Output Everything
-void OutputSummary(int puno,int spno,int R[],struct sspecies spec[],struct scost reserve,
+void writeSummary(int puno,int spno,int R[],struct sspecies spec[],struct scost reserve,
                    int itn,char savename[],double misslevel,int imode)
 {
      FILE *fp;  // Imode = 1, REST output, Imode = 2, Arcview output
@@ -633,7 +615,7 @@ void OutputSummary(int puno,int spno,int R[],struct sspecies spec[],struct scost
              isp = CountMissing(spno,spec,misslevel,&shortfall,&rMPM);
 
              #ifdef DEBUG_COUNTMISSING
-             AppendDebugTraceFile("OutputSummary shortfall %g\n",shortfall);
+             appendTraceFile("OutputSummary shortfall %g\n",shortfall);
              #endif
 
              ComputeConnectivityIndices(&rConnectivityTotal,&rConnectivityIn,&rConnectivityEdge,&rConnectivityOut,
@@ -674,9 +656,9 @@ void OutputSummary(int puno,int spno,int R[],struct sspecies spec[],struct scost
 
 } /** Output Summary ***/
 
-// We output the contents of the spec data structure so the user can cross check against input file
-// This is a method to validate if the input spec file has been read as intended.
-void OutputSpec(int spno,struct sspecies spec[],char savename[])
+// write the contents of the spec data structure.
+// used to validate if the input spec file has been read as intended.
+void writeSpec(int spno,struct sspecies spec[],char savename[])
 {
      FILE *fp;
      int i;
@@ -700,9 +682,10 @@ void OutputSpec(int spno,struct sspecies spec[],char savename[])
                     spec[i].ptarget2d);
 
      fclose(fp);
-} // Output Species Data
+}
 
-void OutputPu(int puno,struct spustuff pu[],char savename[])
+// write the contents of the pu data structure. used to validate if the input pu file has been read as intended
+void writePu(int puno,struct spustuff pu[],char savename[])
 {
      FILE *fp;
      int i;
@@ -718,9 +701,10 @@ void OutputPu(int puno,struct spustuff pu[],char savename[])
                     pu[i].id,pu[i].status,pu[i].cost,pu[i].prob,pu[i].xloc,pu[i].yloc);
 
      fclose(fp);
-} // Output Pu Data
+}
 
-void OutputPenalty(int spno,struct sspecies spec[],char savename[],int iOutputType)
+// write the penalty calculated for each species
+void writePenalty(int spno,struct sspecies spec[],char savename[],int iOutputType)
 {
      FILE *fp;  // Imode = 1, REST output, Imode = 2, Arcview output
      int i;
@@ -744,7 +728,8 @@ void OutputPenalty(int spno,struct sspecies spec[],char savename[],int iOutputTy
      fclose(fp);
 } // Output Penalty
 
-void OutputPenaltyPlanningUnits(int puno,struct spustuff pu[],int Rtemp[],char savename[],int iOutputType)
+// write the set of planning units used to calculate penalty
+void writePenaltyPlanningUnits(int puno,struct spustuff pu[],int Rtemp[],char savename[],int iOutputType)
 {
      FILE *fp;  // Imode = 1, REST output, Imode = 2, Arcview output
      int i;
@@ -766,9 +751,10 @@ void OutputPenaltyPlanningUnits(int puno,struct spustuff pu[],int Rtemp[],char s
          fprintf(fp,"%i%s%i\n",pu[i].id,sDelimiter,Rtemp[i]);
 
      fclose(fp);
-} // Output Penalty Planning Units
+}
 
-void InitSolutionsMatrix(int puno,struct spustuff pu[],char savename_ism[],int iOutputType,int iIncludeHeaders)
+// create a solutions matrix file
+void createSolutionsMatrix(int puno,struct spustuff pu[],char savename_ism[],int iOutputType,int iIncludeHeaders)
 {
      FILE *fp;
      int i;
@@ -796,7 +782,8 @@ void InitSolutionsMatrix(int puno,struct spustuff pu[],char savename_ism[],int i
      fclose(fp);
 }
 
-void AppendSolutionsMatrix(int iRun,int puno,int R[],char savename[],int iOutputType,int iIncludeHeaders)
+// append an entry to a solutions matrix file
+void appendSolutionsMatrix(int iRun,int puno,int R[],char savename[],int iOutputType,int iIncludeHeaders)
 {
      FILE *fp;
      int i, iStatus;
@@ -836,8 +823,8 @@ void AppendSolutionsMatrix(int iRun,int puno,int R[],char savename[],int iOutput
      }
 }
 
-// Output A Solution
-void OutputSolution(int puno,int R[],struct spustuff pu[],char savename[],int imode,struct sfname fnames)
+// create a solution file: output_r0001.csv, output_best.csv
+void writeSolution(int puno,int R[],struct spustuff pu[],char savename[],int imode,struct sfname fnames)
 {
      FILE *fp;  /* Imode = 1, REST output, Imode = 2, Arcview output */
      int i;
@@ -863,11 +850,10 @@ void OutputSolution(int puno,int R[],struct spustuff pu[],char savename[],int im
          else
              fprintf(fp,"%i,0\n",pu[i].id);
      fclose(fp);
-} // Output Solution
+}
 
-// Scenario Output File
-// OutputScenario
-void OutputScenario(int puno,int spno,double prop,double cm,
+// write scenario file: a text file with input parameters
+void writeScenario(int puno,int spno,double prop,double cm,
                     struct sanneal anneal,int seedinit,long int repeats,int clumptype,
                     int runopts,int heurotype,double costthresh, double tpf1, double tpf2,
                     char savename[])
@@ -959,9 +945,8 @@ void OutputScenario(int puno,int spno,double prop,double cm,
      fclose(fp);
 }  // Output Scenario
 
-// Output Targets Met (species)
-// Includes updated target information
-void OutputSpecies(int spno,struct sspecies spec[],char savename[],int imode,double misslevel)
+// write a species file - the missing values file: output_mv1.csv output_mvbest.csv
+void writeSpecies(int spno,struct sspecies spec[],char savename[],int imode,double misslevel)
 {
      FILE *fp; // Imode = 1, Tab Delimitted Text output, Imode = 2, Arcview output
      int isp, iHeavisideStepFunction;
@@ -1100,8 +1085,8 @@ void OutputSpecies(int spno,struct sspecies spec[],char savename[],int imode,dou
      fclose(fp);
 }  // Output missing species information with new information
 
-// Output A Solution
-void OutputSumSoln(int puno,int sumsoln[],struct spustuff pu[],char savename[],int imode)
+// write summed solution file output_ssoln.csv
+void writeSumSoln(int puno,int sumsoln[],struct spustuff pu[],char savename[],int imode)
 {
      FILE *fp;  // Imode = 1, REST output, Imode = 2, Arcview output
      int i;
@@ -1123,34 +1108,10 @@ void OutputSumSoln(int puno,int sumsoln[],struct spustuff pu[],char savename[],i
          fprintf(fp,"%i%s%i\n",pu[i].id,sDelimiter,sumsoln[i]);
 
      fclose(fp);
-} // Output Solution
-
-void Dump_iimparray(struct iimp iimparray[],int iArraySize)
-{
-    FILE *fp;
-    char *writename;
-    int i;
-
-    writename = (char *) calloc(strlen(fnames.inputdir) + strlen("debug_iimparray.csv") + 2, sizeof(char));
-    strcpy(writename,fnames.inputdir);
-    strcat(writename,"debug_iimparray.csv");
-    fp = fopen(writename,"w");
-    if (fp==NULL)
-         displayErrorMessage("cannot create Dump_iimparray file %s\n",writename);
-    free(writename);
-
-    // write header row
-    fprintf(fp,"puindex,randomindex\n");
-
-    for (i=0;i<iArraySize;i++)
-    {
-        fprintf(fp,"%i,%lf\n",iimparray[i].puindex,iimparray[i].randomfloat);
-    }
-
-    fclose(fp);
 }
 
-void OutputRichness(int puno,struct spustuff pu[],char savename[],int iOutputType)
+// write planning unit richness to a file output_richness.csv
+void writeRichness(int puno,struct spustuff pu[],char savename[],int iOutputType)
 {
      FILE *fp;
      int i;
@@ -1174,7 +1135,8 @@ void OutputRichness(int puno,struct spustuff pu[],char savename[],int iOutputTyp
      fclose(fp);
 }
 
-void CalcTotalAreas(int puno,int spno,struct spustuff pu[],struct sspecies spec[],struct spu SM[])
+// compute total area available, reserved, excluded. write it to a file if verbosity > 3.
+void computeTotalAreas(int puno,int spno,struct spustuff pu[],struct sspecies spec[],struct spu SM[])
 {
      int ipu, i, ism, isp, *TotalOccurrences, *TO_2, *TO_3;
      double *TotalAreas, *TA_2, *TA_3;
@@ -1236,7 +1198,75 @@ void CalcTotalAreas(int puno,int spno,struct spustuff pu[],struct sspecies spec[
      }
 }
 
-void DumpR(int iMessage,char sMessage[],int puno,int R[],struct spustuff pu[],struct sfname fnames)
+// compute total area available, reserved, excluded. write it to a file output_totalareas.csv
+void writeTotalAreas(int puno,int spno,struct spustuff pu[],struct sspecies spec[],struct spu SM[],char savename[],int iOutputType)
+{
+     int ipu, i, ism, isp, *TotalOccurrences, *TO_2, *TO_3;
+     double *TotalAreas, *TA_2, *TA_3;
+     FILE* TotalAreasFile;
+     char sDelimiter[20];
+
+     TotalOccurrences = (int *) calloc(spno,sizeof(int));
+     TO_2 = (int *) calloc(spno,sizeof(int));
+     TO_3 = (int *) calloc(spno,sizeof(int));
+     TotalAreas = (double *) calloc(spno,sizeof(double));
+     TA_2 = (double *) calloc(spno,sizeof(double));
+     TA_3 = (double *) calloc(spno,sizeof(double));
+
+     for (i=0;i<spno;i++)
+     {
+         TotalAreas[i] = 0;
+         TA_2[i] = 0;
+         TA_3[i] = 0;
+     }
+
+     for (ipu=0;ipu<puno;ipu++)
+         if (pu[ipu].richness)
+            for (i=0;i<pu[ipu].richness;i++)
+            {
+                ism = pu[ipu].offset + i;
+                isp = SM[ism].spindex;
+
+                TotalOccurrences[isp]++;
+                TotalAreas[isp] += SM[ism].amount;
+
+                if (pu[ipu].status == 2)
+                {
+                   TO_2[isp]++;
+                   TA_2[isp] += SM[ism].amount;
+                }
+
+                if (pu[ipu].status == 3)
+                {
+                   TO_3[isp]++;
+                   TA_3[isp] += SM[ism].amount;
+                }
+            }
+
+     if (iOutputType > 1)
+        strcpy(sDelimiter,",");
+     else
+         strcpy(sDelimiter,"\t");
+
+     TotalAreasFile = fopen(savename,"w");
+     fprintf(TotalAreasFile,"spname%stotalarea%sreservedarea%sexcludedarea%stargetarea%stotalocc%sreservedocc%sexcludedocc%stargetocc\n"
+                           ,sDelimiter,sDelimiter,sDelimiter,sDelimiter,sDelimiter,sDelimiter,sDelimiter,sDelimiter);
+     for (i=0;i<spno;i++)
+         fprintf(TotalAreasFile,"%i%s%g%s%g%s%g%s%g%s%i%s%i%s%i%s%i\n"
+                               ,spec[i].name,sDelimiter,TotalAreas[i],sDelimiter,TA_2[i],sDelimiter,TA_3[i],sDelimiter
+                               ,spec[i].target,sDelimiter,TotalOccurrences[i],sDelimiter,TO_2[i],sDelimiter,TO_3[i],sDelimiter,spec[i].targetocc);
+     fclose(TotalAreasFile);
+
+     free(TotalOccurrences);
+     free(TO_2);
+     free(TO_3);
+     free(TotalAreas);
+     free(TA_2);
+     free(TA_3);
+}
+
+// write vector R (status of each planning unit) to file. debug aid for annealing algorithms
+void writeR(int iMessage,char sMessage[],int puno,int R[],struct spustuff pu[],struct sfname fnames)
 {
      FILE *fp;
      char *writename;
@@ -1245,7 +1275,7 @@ void DumpR(int iMessage,char sMessage[],int puno,int R[],struct spustuff pu[],st
 
      sprintf(messagebuffer,"%s%i",sMessage,iMessage);
 
-     AppendDebugTraceFile("DumpR %i start\n",iMessage);
+     appendTraceFile("writeR %i start\n",iMessage);
 
      writename = (char *) calloc(strlen(fnames.inputdir) + strlen("debugR_.csv") + strlen(messagebuffer) + 2, sizeof(char));
      strcpy(writename,fnames.inputdir);
@@ -1253,7 +1283,7 @@ void DumpR(int iMessage,char sMessage[],int puno,int R[],struct spustuff pu[],st
      strcat(writename,messagebuffer);
      strcat(writename,".csv");
      if ((fp = fopen(writename,"w"))==NULL)
-        displayErrorMessage("cannot create DumpR file %s\n",writename);
+        displayErrorMessage("cannot create writeR file %s\n",writename);
      free(writename);
 
      // write header row
@@ -1266,56 +1296,11 @@ void DumpR(int iMessage,char sMessage[],int puno,int R[],struct spustuff pu[],st
 
      fclose(fp);
 
-     AppendDebugTraceFile("DumpR %i end\n",iMessage);
+     appendTraceFile("writeR %i end\n",iMessage);
 }
 
-void Dump_specrichoff(int spno,struct sspecies spec[],struct sfname fnames)
-{
-     FILE *fp;
-     char *writename;
-     int i;
-
-     writename = (char *) calloc(strlen(fnames.inputdir) + strlen("debug_specrichoff.csv") + 2, sizeof(char));
-     strcpy(writename,fnames.inputdir);
-     strcat(writename,"debug_specrichoff.csv");
-     if ((fp = fopen(writename,"w"))==NULL)
-        displayErrorMessage("cannot create Dump_specrichoff file %s\n",writename);
-     free(writename);
-
-     // write header row
-     fprintf(fp,"spid,rich,offset\n");
-
-     for (i=0;i<spno;i++)
-     {
-         fprintf(fp,"%i,%i,%i\n",spec[i].name,spec[i].richness,spec[i].offset);
-     }
-
-     fclose(fp);
-}
-
-void Dump_SparseMatrix_sporder(int iSMSize, struct spusporder SM[],struct spustuff pu[],struct sfname fnames)
-{
-     FILE *fp;
-     int i;
-     char *writename;
-
-     writename = (char *) calloc(strlen(fnames.inputdir) + strlen("debug_SparseMatrix_sporder.csv") + 2, sizeof(char));
-     strcpy(writename,fnames.inputdir);
-     strcat(writename,"debug_SparseMatrix_sporder.csv");
-     if ((fp = fopen(writename,"w"))==NULL)
-        displayErrorMessage("cannot create Dump_SparseMatrix_sporder file %s\n",writename);
-     free(writename);
-
-     fputs("amount,puid\n",fp);
-     for (i=0;i<iSMSize;i++)
-     {
-        fprintf(fp,"%f,%i\n",SM[i].amount,pu[SM[i].puindex].id);
-     }
-
-     fclose(fp);
-}
-
-void OutputChangeProbability1DDebugTable(char savename[],int iIteration,int ipu,int spno,struct sspecies spec[],struct spustuff pu[],struct spu SM[],int imode)
+// debug output for probability 1D
+void writeChangeProbability1DDebugTable(char savename[],int iIteration,int ipu,int spno,struct sspecies spec[],struct spustuff pu[],struct spu SM[],int imode)
 {
      FILE *fp;
      int i,ism,isp;
@@ -1427,7 +1412,8 @@ void OutputChangeProbability1DDebugTable(char savename[],int iIteration,int ipu,
      free(ORP);
 }
 
-void OutputChangeProbability2DDebugTable(char savename[],int iIteration,int ipu,int spno,struct sspecies spec[],struct spustuff pu[],struct spu SM[],int imode)
+// debug output for probability 2D
+void writeChangeProbability2DDebugTable(char savename[],int iIteration,int ipu,int spno,struct sspecies spec[],struct spustuff pu[],struct spu SM[],int imode)
 {
      FILE *fp;
      int i,ism,isp;
@@ -1543,7 +1529,8 @@ void OutputChangeProbability2DDebugTable(char savename[],int iIteration,int ipu,
      free(NSFP);
 }
 
-void DumpProbData(int puno,struct spustuff pu[],struct sfname fnames)
+// debug output for probability 1D
+void writeProbData(int puno,struct spustuff pu[],struct sfname fnames)
 {
     int i;
     char *writename;
@@ -1568,73 +1555,8 @@ void DumpProbData(int puno,struct spustuff pu[],struct sfname fnames)
     fclose(fp);
 }
 
-void OutputTotalAreas(int puno,int spno,struct spustuff pu[],struct sspecies spec[],struct spu SM[],char savename[],int iOutputType)
-{
-     int ipu, i, ism, isp, *TotalOccurrences, *TO_2, *TO_3;
-     double *TotalAreas, *TA_2, *TA_3;
-     FILE* TotalAreasFile;
-     char sDelimiter[20];
-
-     TotalOccurrences = (int *) calloc(spno,sizeof(int));
-     TO_2 = (int *) calloc(spno,sizeof(int));
-     TO_3 = (int *) calloc(spno,sizeof(int));
-     TotalAreas = (double *) calloc(spno,sizeof(double));
-     TA_2 = (double *) calloc(spno,sizeof(double));
-     TA_3 = (double *) calloc(spno,sizeof(double));
-
-     for (i=0;i<spno;i++)
-     {
-         TotalAreas[i] = 0;
-         TA_2[i] = 0;
-         TA_3[i] = 0;
-     }
-
-     for (ipu=0;ipu<puno;ipu++)
-         if (pu[ipu].richness)
-            for (i=0;i<pu[ipu].richness;i++)
-            {
-                ism = pu[ipu].offset + i;
-                isp = SM[ism].spindex;
-
-                TotalOccurrences[isp]++;
-                TotalAreas[isp] += SM[ism].amount;
-
-                if (pu[ipu].status == 2)
-                {
-                   TO_2[isp]++;
-                   TA_2[isp] += SM[ism].amount;
-                }
-
-                if (pu[ipu].status == 3)
-                {
-                   TO_3[isp]++;
-                   TA_3[isp] += SM[ism].amount;
-                }
-            }
-
-     if (iOutputType > 1)
-        strcpy(sDelimiter,",");
-     else
-         strcpy(sDelimiter,"\t");
-
-     TotalAreasFile = fopen(savename,"w");
-     fprintf(TotalAreasFile,"spname%stotalarea%sreservedarea%sexcludedarea%stargetarea%stotalocc%sreservedocc%sexcludedocc%stargetocc\n"
-                           ,sDelimiter,sDelimiter,sDelimiter,sDelimiter,sDelimiter,sDelimiter,sDelimiter,sDelimiter);
-     for (i=0;i<spno;i++)
-         fprintf(TotalAreasFile,"%i%s%g%s%g%s%g%s%g%s%i%s%i%s%i%s%i\n"
-                               ,spec[i].name,sDelimiter,TotalAreas[i],sDelimiter,TA_2[i],sDelimiter,TA_3[i],sDelimiter
-                               ,spec[i].target,sDelimiter,TotalOccurrences[i],sDelimiter,TO_2[i],sDelimiter,TO_3[i],sDelimiter,spec[i].targetocc);
-     fclose(TotalAreasFile);
-
-     free(TotalOccurrences);
-     free(TO_2);
-     free(TO_3);
-     free(TotalAreas);
-     free(TA_2);
-     free(TA_3);
-}
-
-void CopyFile(char sInputFile[],char sOutputFile[])
+// make a backup copy of a connection file
+void copyFile(char sInputFile[],char sOutputFile[])
 {
      FILE *fpInputFile, *fpOutputFile;
      char ch;

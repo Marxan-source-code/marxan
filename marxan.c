@@ -72,8 +72,8 @@ char sIanBallEmail[100] = "ian.ball@aad.gov.au";
 char sHughPossinghamEmail[100] = "h.possingham@uq.edu.au";
 char sMattWattsEmail[100] = "m.watts@uq.edu.au";
 char sMarxanWebSite[100] = "http://www.uq.edu.au/marxan";
-//char sDebugTraceFileName[80] = "DebugTraceFile_MarOpt.txt";
-char sDebugTraceFileName[1000];
+//char sTraceFileName[80] = "TraceFile_MarOpt.txt";
+char sTraceFileName[1000];
 char sApplicationPathName[1000];
 char* savelogname;
 FILE* fsavelog;
@@ -110,7 +110,7 @@ void ExecuteRunLoop(long int repeats,int puno,int spno,double cm,int aggexist,do
     // *******  The larger repetition loop ********
     for (irun = 1;irun <= repeats;irun++)
     {
-        AppendDebugTraceFile("start run loop run %ld\n",irun);
+        appendTraceFile("start run loop run %ld\n",irun);
 
         displayProgress1("\n");
         displayProgress("Run %ld ",irun);
@@ -121,19 +121,19 @@ void ExecuteRunLoop(long int repeats,int puno,int spno,double cm,int aggexist,do
            {
               if (anneal.type == 2 )
               {
-                 AppendDebugTraceFile("before ConnollyInit run %i\n",irun);
+                 appendTraceFile("before ConnollyInit run %i\n",irun);
 
                  ConnollyInit(puno,spno,pu,connections,spec,SM,cm,&anneal,aggexist,R2D[irun-1],prop,clumptype,irun);
 
-                 AppendDebugTraceFile("after ConnollyInit run %i\n",irun);
+                 appendTraceFile("after ConnollyInit run %i\n",irun);
               }
               if (anneal.type == 3)
               {
-                 AppendDebugTraceFile("before AdaptiveInit run %i\n",irun);
+                 appendTraceFile("before AdaptiveInit run %i\n",irun);
 
                  AdaptiveInit(puno,spno,prop,R2D[irun-1],pu,connections,SM,cm,spec,aggexist,&anneal,clumptype);
 
-                 AppendDebugTraceFile("after AdaptiveInit run %i\n",irun);
+                 appendTraceFile("after AdaptiveInit run %i\n",irun);
               }
 
               displayProgress1("  Using Calculated Tinit = %.4f Tcool = %.8f \n",
@@ -147,7 +147,7 @@ void ExecuteRunLoop(long int repeats,int puno,int spno,double cm,int aggexist,do
            anneal.temp = anneal.Tinit;
         }  // Annealing Setup
 
-        AppendDebugTraceFile("before ReserveCost run %i\n",irun);
+        appendTraceFile("before ReserveCost run %i\n",irun);
 
         displayProgress1("  Creating the initial reserve \n");
         
@@ -160,7 +160,7 @@ void ExecuteRunLoop(long int repeats,int puno,int spno,double cm,int aggexist,do
 
         ReserveCost(puno,spno,R2D[irun-1],pu,connections,SM,cm,spec,aggexist,&reserve,clumptype);
 
-        AppendDebugTraceFile("after ReserveCost run %i\n",irun);
+        appendTraceFile("after ReserveCost run %i\n",irun);
 
         if (verbosity > 1)
         {
@@ -169,34 +169,34 @@ void ExecuteRunLoop(long int repeats,int puno,int spno,double cm,int aggexist,do
         }
         if (verbosity > 5)
         {
-           ShowTimePassed();
+           displayTimePassed();
         }
 
         if (runoptions.ThermalAnnealingOn)
         {
-           AppendDebugTraceFile("before ThermalAnnealing run %i\n",irun);
+           appendTraceFile("before ThermalAnnealing run %i\n",irun);
 
            ThermalAnnealing(spno,puno,connections,R2D[irun-1],cm,spec,pu,SM,&change,&reserve,
                             repeats,irun,savename,misslevel,
                             aggexist,costthresh,tpf1,tpf2,clumptype);
 
-           AppendDebugTraceFile("after ThermalAnnealing run %i\n",irun);
+           appendTraceFile("after ThermalAnnealing run %i\n",irun);
         }  // End of Thermal Annealing On
 
         if (runoptions.QuantumAnnealingOn)
         {
-           AppendDebugTraceFile("before QuantumAnnealing run %i\n",irun);
+           appendTraceFile("before QuantumAnnealing run %i\n",irun);
 
            QuantumAnnealing(spno,puno,connections,R2D[irun-1],cm,spec,pu,SM,&change,&reserve,
                             repeats,irun,savename,misslevel,
                             aggexist,costthresh,tpf1,tpf2,clumptype);
 
-           AppendDebugTraceFile("after QuantumAnnealing run %i\n",irun);
+           appendTraceFile("after QuantumAnnealing run %i\n",irun);
         }  // End of Quantum Annealing On
 
         if (runoptions.HeuristicOn)
         {
-           AppendDebugTraceFile("before Heuristics run %i\n",irun);
+           appendTraceFile("before Heuristics run %i\n",irun);
 
            Heuristics(spno,puno,pu,connections,R2D[irun-1],cm,spec,SM,&reserve,
                       costthresh,tpf1,tpf2,heurotype,clumptype);
@@ -207,12 +207,12 @@ void ExecuteRunLoop(long int repeats,int puno,int spno,double cm,int aggexist,do
               PrintResVal(puno,spno,R2D[irun-1],reserve,spec,misslevel);
            }
 
-           AppendDebugTraceFile("after Heuristics run %i\n",irun);
+           appendTraceFile("after Heuristics run %i\n",irun);
         }    // Activate Greedy
 
         if (runoptions.ItImpOn)
         {
-           AppendDebugTraceFile("before IterativeImprovement run %i\n",irun);
+           appendTraceFile("before IterativeImprovement run %i\n",irun);
 
            IterativeImprovement(puno,spno,pu,connections,spec,SM,R2D[irun-1],cm,
                                 &reserve,&change,costthresh,tpf1,tpf2,clumptype,irun,savename);
@@ -221,7 +221,7 @@ void ExecuteRunLoop(long int repeats,int puno,int spno,double cm,int aggexist,do
               IterativeImprovement(puno,spno,pu,connections,spec,SM,R2D[irun-1],cm,
                                    &reserve,&change,costthresh,tpf1,tpf2,clumptype,irun,savename);
 
-           AppendDebugTraceFile("after IterativeImprovement run %i\n",irun);
+           appendTraceFile("after IterativeImprovement run %i\n",irun);
 
            if (aggexist)
               ClearClumps(spno,spec,pu,SM);
@@ -235,7 +235,7 @@ void ExecuteRunLoop(long int repeats,int puno,int spno,double cm,int aggexist,do
 
         } // Activate Iterative Improvement
 
-        AppendDebugTraceFile("before file output run %i\n",irun);
+        appendTraceFile("before file output run %i\n",irun);
 
         if (fnames.saverun)
         {
@@ -246,7 +246,7 @@ void ExecuteRunLoop(long int repeats,int puno,int spno,double cm,int aggexist,do
               sprintf(tempname2,"%s_r%05li.txt",savename,irun%10000);
            else
                sprintf(tempname2,"%s_r%05li.dat",savename,irun%10000);
-           OutputSolution(puno,R2D[irun-1],pu,tempname2,fnames.saverun,fnames);
+           writeSolution(puno,R2D[irun-1],pu,tempname2,fnames.saverun,fnames);
         }
 
         if (fnames.savespecies && fnames.saverun)
@@ -259,7 +259,7 @@ void ExecuteRunLoop(long int repeats,int puno,int spno,double cm,int aggexist,do
            else
                sprintf(tempname2,"%s_mv%05li.dat",savename,irun%10000);
 
-           OutputSpecies(spno,spec,tempname2,fnames.savespecies,misslevel);
+           writeSpecies(spno,spec,tempname2,fnames.savespecies,misslevel);
         }
 
         if (fnames.savesum)
@@ -271,10 +271,7 @@ void ExecuteRunLoop(long int repeats,int puno,int spno,double cm,int aggexist,do
               sprintf(tempname2,"%s_sum.txt",savename);
            else
                sprintf(tempname2,"%s_sum.dat",savename);
-           if (irun == 1)
-              OutputSummary(puno,spno,R2D[irun-1],spec,reserve,irun,tempname2,misslevel,fnames.savesum);
-           else
-               OutputSummary(puno,spno,R2D[irun-1],spec,reserve,irun,tempname2,misslevel,fnames.savesum);
+           writeSummary(puno,spno,R2D[irun-1],spec,reserve,irun,tempname2,misslevel,fnames.savesum);
         }
         
         // compute and store objective function score for this reserve system
@@ -283,7 +280,7 @@ void ExecuteRunLoop(long int repeats,int puno,int spno,double cm,int aggexist,do
 
         if (fnames.savesolutionsmatrix)
         {
-           AppendDebugTraceFile("before AppendSolutionsMatrix savename %s\n",savename);
+           appendTraceFile("before appendSolutionsMatrix savename %s\n",savename);
 
            if (fnames.savesolutionsmatrix==3)
               sprintf(tempname2,"%s_solutionsmatrix.csv",savename);
@@ -293,22 +290,22 @@ void ExecuteRunLoop(long int repeats,int puno,int spno,double cm,int aggexist,do
            else
                sprintf(tempname2,"%s_solutionsmatrix.dat",savename);
 
-           AppendSolutionsMatrix(irun,puno,R2D[irun-1],tempname2,fnames.savesolutionsmatrix,fnames.solutionsmatrixheaders);
+           appendSolutionsMatrix(irun,puno,R2D[irun-1],tempname2,fnames.savesolutionsmatrix,fnames.solutionsmatrixheaders);
 
-           AppendDebugTraceFile("after AppendSolutionsMatrix savename %s\n",savename);
+           appendTraceFile("after appendSolutionsMatrix savename %s\n",savename);
         }
         
         if (aggexist)
            ClearClumps(spno,spec,pu,SM);
 
-        AppendDebugTraceFile("after file output run %i\n",irun);
-        AppendDebugTraceFile("end run %i\n",irun);
+        appendTraceFile("after file output run %i\n",irun);
+        appendTraceFile("end run %i\n",irun);
 
         if (marxanisslave == 1)
            writeSlaveSyncFileRun(irun);
 
         if (verbosity > 1)
-           ShowTimePassed();
+           displayTimePassed();
 
     } // *** the repeats  ****
     // *******  The larger repetition loop ********
@@ -348,27 +345,27 @@ int Marxan(char sInputFileName[])
 
     SetRunOptions(runopts,&runoptions);
 
-    sprintf(sDebugTraceFileName,"%s_DebugTraceFile.txt",savename);
-    StartDebugTraceFile();
-    AppendDebugTraceFile("%s begin execution\n\n",sVersionString);
-    AppendDebugTraceFile("LoadOptions\n");
+    sprintf(sTraceFileName,"%s_TraceFile.txt",savename);
+    createTraceFile();
+    appendTraceFile("%s begin execution\n\n",sVersionString);
+    appendTraceFile("LoadOptions\n");
 
     #ifdef DEBUGCHECKCHANGE
-    StartDebugFile("debug_MarOpt_CheckChange.csv","ipu,puid,R,total,cost,connection,penalty,threshpen,probability\n",fnames);
+    createDebugFile("debug_MarOpt_CheckChange.csv","ipu,puid,R,total,cost,connection,penalty,threshpen,probability\n",fnames);
     #endif
 
     #ifdef DEBUGCHANGEPEN
-    StartDebugFile("debug_MarOpt_ChangePen.csv","ipu,puid,isp,spid,cost,newamount,famount\n",fnames);
+    createDebugFile("debug_MarOpt_ChangePen.csv","ipu,puid,isp,spid,cost,newamount,famount\n",fnames);
     #endif
 
     #ifdef DEBUGCALCPENALTIES
-    StartDebugFile("debug_MarZone_CalcPenalties.csv","\n",fnames);
+    createDebugFile("debug_MarZone_CalcPenalties.csv","\n",fnames);
     #endif
 
     if (fnames.savelog)
     {
        sprintf(tempname2,"%s_log.dat",savename);
-       SetLogFile(fnames.savelog,tempname2);
+       createLogFile(fnames.savelog,tempname2);
     }
 
     delta = 1e-14;  // This would more elegantly be done as a constant
@@ -376,40 +373,40 @@ int Marxan(char sInputFileName[])
     InitRandSeed(iseed);
     seedinit = iseed;
 
-    AppendDebugTraceFile("RandSeed iseed %i RandSeed1 %li\n",iseed,RandSeed1);
+    appendTraceFile("RandSeed iseed %i RandSeed1 %li\n",iseed,RandSeed1);
 
     // read the data files
     displayProgress1("\nEntering in the data files \n");
     displayProgress3("    Reading in the Planning Unit names \n");
-    AppendDebugTraceFile("before readPlanningUnits\n");
+    appendTraceFile("before readPlanningUnits\n");
 
     itemp = readPlanningUnits(&puno,&pu,fnames);
 
-    AppendDebugTraceFile("after readPlanningUnits\n");
+    appendTraceFile("after readPlanningUnits\n");
     if (iProbFieldPresent == 1)
-       AppendDebugTraceFile("prob field present\n");
+       appendTraceFile("prob field present\n");
     else
-        AppendDebugTraceFile("prob field not present\n");
+        appendTraceFile("prob field not present\n");
 
     #ifdef DEBUG_PROB1D
     if (iProbFieldPresent == 1)
-       DumpProbData(puno,pu,fnames);
+       writeProbData(puno,pu,fnames);
     #endif
 
     displayProgress1("   There are %i Planning units.\n  %i Planning Unit names read in \n",puno,itemp);
     displayProgress3("    Reading in the species file \n");
-    AppendDebugTraceFile("before readSpecies\n");
+    appendTraceFile("before readSpecies\n");
 
     itemp = readSpecies(&spno,&spec,fnames);
 
-    AppendDebugTraceFile("after readSpecies\n");
+    appendTraceFile("after readSpecies\n");
     displayProgress1("  %i species read in \n",itemp);
-    AppendDebugTraceFile("before build search arrays\n");
+    appendTraceFile("before build search arrays\n");
 
     // create the fast lookup tables for planning units and species names
     PrepareBinarySearchArrays(puno,spno,pu,spec,&PULookup,&SPLookup);
 
-    AppendDebugTraceFile("after build search arrays\n");
+    appendTraceFile("after build search arrays\n");
 
     bestyet = (int *) calloc(puno,sizeof(int));
 
@@ -422,21 +419,21 @@ int Marxan(char sInputFileName[])
     itemp = 0;
     if (strcmp("NULL",fnames.connectionname) != 0)
     {
-       AppendDebugTraceFile("before readConnections\n");
+       appendTraceFile("before readConnections\n");
 
        if (strcmp("NULL",fnames.connectionfilesname) != 0)
           PrepareWeightedConnectivityFile(fnames);
 
        itemp = readConnections(puno,connections,pu,PULookup,fnames);
 
-       AppendDebugTraceFile("after readConnections\n");
+       appendTraceFile("after readConnections\n");
        if (asymmetricconnectivity)
        {
-          AppendDebugTraceFile("Asymmetric connectivity is on.\n");
-          DumpAsymmetricConnectionFile(puno,connections,pu,fnames);
+          appendTraceFile("Asymmetric connectivity is on.\n");
+          writeAsymmetricConnectionFile(puno,connections,pu,fnames);
        }
        if (fOptimiseConnectivityIn)
-          AppendDebugTraceFile("Optimising 'Connectivity In'.\n");
+          appendTraceFile("Optimising 'Connectivity In'.\n");
     }
     displayProgress1("  %i connections entered \n",itemp);
     if (asymmetricconnectivity)
@@ -446,18 +443,18 @@ int Marxan(char sInputFileName[])
 
     displayProgress3("    Reading in the Planning Unit versus Species File \n");
 
-    AppendDebugTraceFile("before readSparseMatrix\n");
+    appendTraceFile("before readSparseMatrix\n");
 
     readSparseMatrix(&iSparseMatrixFileLength,&SM,puno,spno,pu,PULookup,SPLookup,fnames);
 
-    AppendDebugTraceFile("after readSparseMatrix\n");
+    appendTraceFile("after readSparseMatrix\n");
     if (fProb2D == 1)
-       AppendDebugTraceFile("Prob2D is on\n");
+       appendTraceFile("Prob2D is on\n");
     else
-       AppendDebugTraceFile("Prob2D is off\n");
+       appendTraceFile("Prob2D is off\n");
 
     #ifdef DEBUG_PROB2D
-    DumpSparseMatrix(iSparseMatrixFileLength,puno,pu,spec,SM,fnames);
+    writeSparseMatrix(iSparseMatrixFileLength,puno,pu,spec,SM,fnames);
     #endif
 
     if (fnames.saverichness)
@@ -470,23 +467,23 @@ int Marxan(char sInputFileName[])
        else
            sprintf(tempname2,"%s_richness.dat",savename);
 
-       OutputRichness(puno,pu,tempname2,fnames.saverichness);
+       writeRichness(puno,pu,tempname2,fnames.saverichness);
     }
 
     if (strcmp("NULL",fnames.matrixspordername) != 0)
     {
-       AppendDebugTraceFile("before readSparseMatrixSpOrder\n");
+       appendTraceFile("before readSparseMatrixSpOrder\n");
 
        readSparseMatrixSpOrder(&iSparseMatrixFileLength_sporder,&SMsporder,puno,spno,PULookup,SPLookup,fnames);
 
-       AppendDebugTraceFile("after readSparseMatrixSpOrder\n");
+       appendTraceFile("after readSparseMatrixSpOrder\n");
 
        #ifdef MEMDEBUG
        displayProgress1("after LoadSparseMatrix_sporder\n");
        #endif
     }
 
-    AppendDebugTraceFile("before process block definitions\n");
+    appendTraceFile("before process block definitions\n");
 
     if  (strcmp("NULL",fnames.blockdefname))
     {
@@ -497,11 +494,11 @@ int Marxan(char sInputFileName[])
 
     SetDefs(spno,spec);
 
-    AppendDebugTraceFile("after process block definitions\n");
+    appendTraceFile("after process block definitions\n");
 
-    AppendDebugTraceFile("before CalcTotalAreas\n");
-    CalcTotalAreas(puno,spno,pu,spec,SM);
-    AppendDebugTraceFile("after CalcTotalAreas\n");
+    appendTraceFile("before computeTotalAreas\n");
+    computeTotalAreas(puno,spno,pu,spec,SM);
+    appendTraceFile("after computeTotalAreas\n");
 
     if (fnames.savetotalareas)
     {
@@ -513,17 +510,17 @@ int Marxan(char sInputFileName[])
        else
            sprintf(tempname2,"%s_totalareas.dat",savename);
 
-       OutputTotalAreas(puno,spno,pu,spec,SM,tempname2,fnames.savepenalty);
+       writeTotalAreas(puno,spno,pu,spec,SM,tempname2,fnames.savepenalty);
     }
 
     if (fSpecPROPLoaded > 0)
     {
-       AppendDebugTraceFile("before ApplySpecProp\n");
+       appendTraceFile("before ApplySpecProp\n");
 
        // species have prop value specified
        ApplySpecProp(spno,spec,puno,pu,SM);
 
-       AppendDebugTraceFile("after ApplySpecProp\n");
+       appendTraceFile("after ApplySpecProp\n");
     }
 
     displayProgress2("Checking to see if there are aggregating or separating species.\n");
@@ -537,17 +534,17 @@ int Marxan(char sInputFileName[])
 
     if (fnames.savesen)
     {
-       AppendDebugTraceFile("before OutputScenario\n");
+       appendTraceFile("before writeScenario\n");
 
        sprintf(tempname2,"%s_sen.dat",savename);
-       OutputScenario(puno,spno,prop,cm,anneal,seedinit,repeats,clumptype,
-                      runopts,heurotype,costthresh,tpf1,tpf2,tempname2);
+       writeScenario(puno,spno,prop,cm,anneal,seedinit,repeats,clumptype,
+                     runopts,heurotype,costthresh,tpf1,tpf2,tempname2);
 
-       AppendDebugTraceFile("after OutputScenario\n");
+       appendTraceFile("after writeScenario\n");
     }
 
     if (verbosity > 1)
-       ShowTimePassed();
+       displayTimePassed();
 
     // *******  Pre-processing    ************
     displayProgress1("\nPre-processing Section. \n");
@@ -560,11 +557,11 @@ int Marxan(char sInputFileName[])
     {
 	   fUserPenalties = 1;
 
-       AppendDebugTraceFile("before readPenalties\n");
+       appendTraceFile("before readPenalties\n");
 
 	   readPenalties(spec,spno,fnames,SPLookup);
 
-       AppendDebugTraceFile("after readPenalties\n");
+       appendTraceFile("after readPenalties\n");
 	}
 
     if (runoptions.CalcPenaltiesOn == 0)
@@ -572,7 +569,7 @@ int Marxan(char sInputFileName[])
        // if penalties have not been loaded, then stop error message
        if (fUserPenalties == 0)
        {
-          AppendDebugTraceFile("Data error: CalcPenalties off but no PENALTYNAME specified, exiting.\n");
+          appendTraceFile("Data error: CalcPenalties off but no PENALTYNAME specified, exiting.\n");
           displayProgress1("Data error: CalcPenalties off but no PENALTYNAME specified, exiting.\n");
           exit(1);
        }
@@ -585,32 +582,32 @@ int Marxan(char sInputFileName[])
         // we are computing penalties
         if (strcmp("NULL",fnames.matrixspordername) == 0)
         {
-           AppendDebugTraceFile("before CalcPenalties\n");
+           appendTraceFile("before CalcPenalties\n");
 
            // we don't have sporder matrix available, so use slow CalcPenalties method
            itemp = CalcPenalties(puno,spno,pu,spec,connections,SM,R_CalcPenalties,aggexist,cm,clumptype);
 
-           AppendDebugTraceFile("after CalcPenalties\n");
+           appendTraceFile("after CalcPenalties\n");
         }
         else
         {
             // we have sporder matrix available, so use optimised CalcPenalties method
             if (iOptimisationCalcPenalties == 1)
             {
-               AppendDebugTraceFile("before CalcPenaltiesOptimise\n");
+               appendTraceFile("before CalcPenaltiesOptimise\n");
 
                itemp = CalcPenaltiesOptimise(puno,spno,pu,spec,connections,SM,SMsporder,R_CalcPenalties,aggexist,cm,clumptype);
 
-               AppendDebugTraceFile("after CalcPenaltiesOptimise\n");
+               appendTraceFile("after CalcPenaltiesOptimise\n");
             }
             else
             {
-                AppendDebugTraceFile("before CalcPenalties\n");
+                appendTraceFile("before CalcPenalties\n");
 
                 // we have optimise calc penalties switched off, so use slow CalcPenalties method
                 itemp = CalcPenalties(puno,spno,pu,spec,connections,SM,R_CalcPenalties,aggexist,cm,clumptype);
 
-                AppendDebugTraceFile("after CalcPenalties\n");
+                appendTraceFile("after CalcPenalties\n");
             }
         }
     }
@@ -639,7 +636,7 @@ int Marxan(char sInputFileName[])
        else
            sprintf(tempname2,"%s_penalty.dat",savename);
 
-       OutputPenalty(spno,spec,tempname2,fnames.savepenalty);
+       writePenalty(spno,spec,tempname2,fnames.savepenalty);
 
        if (fnames.savepenalty==3)
           sprintf(tempname2,"%s_penalty_planning_units.csv",savename);
@@ -649,7 +646,7 @@ int Marxan(char sInputFileName[])
        else
            sprintf(tempname2,"%s_penalty_planning_units.dat",savename);
 
-       OutputPenaltyPlanningUnits(puno,pu,R_CalcPenalties,tempname2,fnames.savepenalty);
+       writePenaltyPlanningUnits(puno,pu,R_CalcPenalties,tempname2,fnames.savepenalty);
     }
 
     free(R_CalcPenalties);
@@ -657,13 +654,13 @@ int Marxan(char sInputFileName[])
     if (fnames.savespec)
     {
        sprintf(tempname2,"%s_spec.csv",savename);
-       OutputSpec(spno,spec,tempname2);
+       writeSpec(spno,spec,tempname2);
     }
 
     if (fnames.savepu)
     {
        sprintf(tempname2,"%s_pu.csv",savename);
-       OutputPu(puno,pu,tempname2);
+       writePu(puno,pu,tempname2);
     }
 
     // If we are in a runmode with only CalcPenalties, we stop/exit here gracefully because we are finished.
@@ -672,8 +669,8 @@ int Marxan(char sInputFileName[])
           if (runoptions.QuantumAnnealingOn == 0)
              if (runoptions.ItImpOn == 0)
              {
-                AppendDebugTraceFile("end final file output\n");
-                AppendDebugTraceFile("\nMarxan end execution\n");
+                appendTraceFile("end final file output\n");
+                appendTraceFile("\nMarxan end execution\n");
                 displayShutdownMessage();
 
                 if (marxanisslave == 1)
@@ -683,7 +680,7 @@ int Marxan(char sInputFileName[])
                    ClearClumps(spno,spec,pu,SM);  // Remove these pointers for cleanliness sake
 
                 if (fnames.savelog)
-                   SetLogFile(0,NULL);  /* tidy up files */
+                   createLogFile(0,NULL);  /* tidy up files */
 
                 exit(1);
 			 }
@@ -691,7 +688,7 @@ int Marxan(char sInputFileName[])
     if (fnames.savesolutionsmatrix)
     {
        #ifdef DEBUG_CLUSTERANALYSIS
-       AppendDebugTraceFile("before sprintf savename %s\n",savename);
+       appendTraceFile("before sprintf savename %s\n",savename);
        #endif
 
        if (fnames.savesolutionsmatrix==3)
@@ -703,13 +700,13 @@ int Marxan(char sInputFileName[])
            sprintf(tempname2,"%s_solutionsmatrix.dat",savename);
 
        #ifdef DEBUG_CLUSTERANALYSIS
-       AppendDebugTraceFile("before InitSolutionsMatrix savename %s\n",savename);
+       appendTraceFile("before createSolutionsMatrix savename %s\n",savename);
        #endif
 
-       InitSolutionsMatrix(puno,pu,tempname2,fnames.savesolutionsmatrix,fnames.solutionsmatrixheaders);
+       createSolutionsMatrix(puno,pu,tempname2,fnames.savesolutionsmatrix,fnames.solutionsmatrixheaders);
 
        #ifdef DEBUG_CLUSTERANALYSIS
-       AppendDebugTraceFile("after InitSolutionsMatrix savename %s\n",savename);
+       appendTraceFile("after createSolutionsMatrix savename %s\n",savename);
        #endif
     }
 
@@ -729,7 +726,7 @@ int Marxan(char sInputFileName[])
                    savename,costthresh,tpf1,tpf2,heurotype,runopts,
                    itimptype,&iBestRun,sumsoln,marxanisslave);
 
-    AppendDebugTraceFile("before final file output\n");
+    appendTraceFile("before final file output\n");
 
     if (fnames.savebest)
     {
@@ -741,9 +738,9 @@ int Marxan(char sInputFileName[])
        else
            sprintf(tempname2,"%s_best.dat",savename);
 
-       OutputSolution(puno,bestyet,pu,tempname2,fnames.savebest,fnames);
+       writeSolution(puno,bestyet,pu,tempname2,fnames.savebest,fnames);
 
-       AppendDebugTraceFile("Best solution is run %i\n",iBestRun);
+       appendTraceFile("Best solution is run %i\n",iBestRun);
        displayProgress1("\nBest solution is run %i\n",iBestRun);
     }
 
@@ -757,7 +754,7 @@ int Marxan(char sInputFileName[])
        else
            sprintf(tempname2,"%s_mvbest.dat",savename);
 
-       OutputSpecies(spno,spec,tempname2,fnames.savespecies,misslevel);
+       writeSpecies(spno,spec,tempname2,fnames.savespecies,misslevel);
     }
 
     if (fnames.savesumsoln)
@@ -770,7 +767,7 @@ int Marxan(char sInputFileName[])
        else
            sprintf(tempname2,"%s_ssoln.dat",savename);
 
-       OutputSumSoln(puno,sumsoln,pu,tempname2,fnames.savesumsoln);
+       writeSumSoln(puno,sumsoln,pu,tempname2,fnames.savesumsoln);
     }
 
     if (fnames.savesolutionsmatrix)
@@ -794,43 +791,13 @@ int Marxan(char sInputFileName[])
     displayShutdownMessage();
 
     if (fnames.savelog)
-       SetLogFile(0,NULL);  /* tidy up files */
+       createLogFile(0,NULL);  /* tidy up files */
 
-    AppendDebugTraceFile("end final file output\n");
-    AppendDebugTraceFile("\nMarxan end execution\n");
+    appendTraceFile("end final file output\n");
+    appendTraceFile("\nMarxan end execution\n");
 
     return 0;
 }   // Marxan
-
-// *********************************************
-// ********* PreProcessing Section *************
-// *********************************************
-
-// ******** Block Definitions ******************
-// *** Sets the block definitions for various types
-
-// test the function rtnAmountSpecAtPu
-void TestrtnAmountSpecAtPu(int puno, int spno, struct spustuff pu[], struct sspecies spec[], struct spu SM[],
-                           struct sfname fnames)
-{
-    FILE *fp;
-    int i,j;
-    char *writename;
-
-    writename = (char *) calloc(strlen(fnames.inputdir) + strlen("TestrtnAmountSpecAtPu.csv") + 2, sizeof(char));
-    strcpy(writename,fnames.inputdir);
-    strcat(writename,"TestrtnAmountSpecAtPu.csv");
-    fp = fopen(writename,"w");
-    if (fp==NULL)
-       displayErrorMessage("cannot create TestrtnAmountSpecAtPu file %s\n",writename);
-    free(writename);
-    fputs("puindex,specindex,puname,specname,amount\n",fp);
-    for (i=0;i<puno;i++)
-        for (j=0;j<spno;j++)
-            fprintf(fp,"%d,%d,%d,%d,%g\n",i,j,pu[i].id,spec[j].name,rtnAmountSpecAtPu(pu,SM,i,j));
-
-    fclose(fp);
-}
 
 // returns the 0-base index of a species at a planning unit, if the species doesn't occur here, returns -1
 int rtnIdxSpecAtPu(struct spustuff PU[], struct spu SM[], int iPUIndex, int iSpecIndex)
@@ -1102,7 +1069,7 @@ int CalcPenalties(int puno,int spno,struct spustuff pu[],struct sspecies spec[],
            badspecies += (j>0);
            goodspecies += (j<0);
 
-           AppendDebugTraceFile("CalcPenalties spname %i penalty %g\n",spec[i].name,spec[i].penalty);
+           appendTraceFile("CalcPenalties spname %i penalty %g\n",spec[i].name,spec[i].penalty);
 
            continue;
         } // Species has aggregation requirements
@@ -1130,7 +1097,7 @@ int CalcPenalties(int puno,int spno,struct spustuff pu[],struct sspecies spec[],
            displayProgress2("Species %i (%s) has already met target %.2f\n",
                             spec[i].name,spec[i].sname,spec[i].target);
 
-           AppendDebugTraceFile("CalcPenalties spname %i penalty %g\n",spec[i].name,spec[i].penalty);
+           appendTraceFile("CalcPenalties spname %i penalty %g\n",spec[i].name,spec[i].penalty);
 
            continue;
         } // Target met in unremovable reserve
@@ -1161,7 +1128,7 @@ int CalcPenalties(int puno,int spno,struct spustuff pu[],struct sspecies spec[],
                  }  // finding the cheapest planning unit
 
                  #ifdef DEBUGCALCPENALTIES
-                 AppendDebugTraceFile("CalcPenalties species %i puid %i cost %g\n",spec[i].name,pu[j].id,fcost);
+                 appendTraceFile("CalcPenalties species %i puid %i cost %g\n",spec[i].name,pu[j].id,fcost);
                  #endif
               }  // Making sure only checking planning units not already used
           }  // trying to find best pu
@@ -1174,7 +1141,7 @@ int CalcPenalties(int puno,int spno,struct spustuff pu[],struct sspecies spec[],
              spec[i].penalty += fbest;
 
              #ifdef DEBUGCALCPENALTIES
-             AppendDebugTraceFile("CalcPenalties species %i puid %i ftarget %g fbest %g\n",spec[i].name,pu[ibest].id,ftarget,fbest);
+             appendTraceFile("CalcPenalties species %i puid %i ftarget %g fbest %g\n",spec[i].name,pu[ibest].id,ftarget,fbest);
              #endif
           } // Add pu to target
         } while ((ftarget <spec[i].target|| itargetocc < spec[i].targetocc) && fbest > 0); // or no more pu left
@@ -1196,7 +1163,7 @@ int CalcPenalties(int puno,int spno,struct spustuff pu[],struct sspecies spec[],
         }  // If not met target with all available PUs
 
         #ifdef DEBUGTRACEFILE
-        AppendDebugTraceFile("CalcPenalties spname %i penalty %g target %g\n",spec[i].name,spec[i].penalty,spec[i].target);
+        appendTraceFile("CalcPenalties spname %i penalty %g target %g\n",spec[i].name,spec[i].penalty,spec[i].target);
         #endif
 
     }  // Penalty for each individual Species
@@ -1224,13 +1191,13 @@ int CalcPenaltiesOptimise(int puno,int spno,struct spustuff pu[],struct sspecies
 
     //PUtemp = (int *) calloc(puno,sizeof(int));
 
-    AppendDebugTraceFile("CalcPenaltiesOptimise start\n");
+    appendTraceFile("CalcPenaltiesOptimise start\n");
 
     AddReserve(puno,pu,PUtemp); // Adds existing reserve to PUtemp
 
     for (i=0;i<spno;i++)
     {
-        AppendDebugTraceFile("CalcPenaltiesOptimise spname %i\n",spec[i].name);
+        appendTraceFile("CalcPenaltiesOptimise spname %i\n",spec[i].name);
 
         if (spec[i].target2 || spec[i].sepnum)
         {
@@ -1332,7 +1299,7 @@ int CalcPenaltiesOptimise(int puno,int spno,struct spustuff pu[],struct sspecies
            badspecies++;
         }  /* If not met target with all available PUs */
 
-        AppendDebugTraceFile("CalcPenaltiesOptimise spname %i penalty %g\n",spec[i].name,spec[i].penalty);
+        appendTraceFile("CalcPenaltiesOptimise spname %i penalty %g\n",spec[i].name,spec[i].penalty);
     }  // Penalty for each individual Species
     
     // Clear clumps in case I needed them for target4 species
@@ -1342,7 +1309,7 @@ int CalcPenaltiesOptimise(int puno,int spno,struct spustuff pu[],struct sspecies
     if (goodspecies)
          displayProgress1("%i species are already adequately represented.\n",goodspecies);
 
-    AppendDebugTraceFile("CalcPenaltiesOptimise end\n");
+    appendTraceFile("CalcPenaltiesOptimise end\n");
 
     return(badspecies);
 }// *** Calculate Initial Penalties ***
@@ -1369,7 +1336,7 @@ double ConnectionCost1(int ipu,struct spustuff pu[],struct sconnections connecti
 
        #ifdef DEBUG_CONNECTIONCOST
        sprintf(debugbuffer,"ConnectionCost1 ipu %i connection %g\n",ipu,fcost);
-       AppendDebugTraceFile(debugbuffer);
+       appendTraceFile(debugbuffer);
        #endif
 
        return(fcost*cm);
@@ -1400,7 +1367,7 @@ double ChangePen(int ipu,int puno,struct sspecies spec[],struct spustuff pu[],st
 
        #ifdef ANNEALING_TEST
        if (ipu == (puno-1))
-          AppendDebugTraceFile("ChangePen start\n");
+          appendTraceFile("ChangePen start\n");
        #endif
 
        *rShortfall = 0;
@@ -1463,7 +1430,7 @@ double ChangePen(int ipu,int puno,struct sspecies spec[],struct spustuff pu[],st
                     #ifdef ANNEALING_TEST
                     if (ipu == (puno-1))
                     {
-                       AppendDebugTraceFile("penalty %g spf %g newamount %g famount %g target %g amount %g\n",
+                       appendTraceFile("penalty %g spf %g newamount %g famount %g target %g amount %g\n",
                                             spec[isp].penalty,spec[isp].spf,newamount,famount,spec[isp].target,spec[isp].amount);
                     }
                     #endif
@@ -1474,7 +1441,7 @@ double ChangePen(int ipu,int puno,struct sspecies spec[],struct spustuff pu[],st
 
               #ifdef DEBUGCHANGEPEN
               sprintf(debugline,"%i,%i,%i,%i,%g,%g,%g\n",ipu,pu[ipu].id,isp,spec[isp].name,fcost,newamount,famount);
-              AppendDebugFile("debug_MarOpt_ChangePen.csv",debugline,fnames);
+              appendDebugFile("debug_MarOpt_ChangePen.csv",debugline,fnames);
               #endif
            }
 
@@ -1482,7 +1449,7 @@ double ChangePen(int ipu,int puno,struct sspecies spec[],struct spustuff pu[],st
        if (ipu == (puno-1))
        {
           sprintf(debugbuffer,"ChangePen end fcost %g\n",fcost);
-          AppendDebugTraceFile(debugbuffer);
+          appendTraceFile(debugbuffer);
        }
        #endif
        return (fcost);
@@ -1565,7 +1532,7 @@ void ComputeP_AllPUsSelected_1D(char savename[],int puno,int spno,struct spustuf
 
      #ifdef DEBUGTRACEFILE
      sprintf(debugbuffer,"ComputeP_AllPUsSelected_1D SumP %f SumP * PW %f\n",rSumProbability,rSumProbability * rProbabilityWeighting);
-     AppendDebugTraceFile(debugbuffer);
+     appendTraceFile(debugbuffer);
      #endif
 }
 
@@ -1645,7 +1612,7 @@ void ComputeP_AllPUsSelected_2D(char savename[],int puno,int spno,struct spustuf
 
      #ifdef DEBUGTRACEFILE
      sprintf(debugbuffer,"ComputeP_AllPUsSelected_2D SumP %f SumP * PW %f\n",rSumProbability,rSumProbability * rProbabilityWeighting);
-     AppendDebugTraceFile(debugbuffer);
+     appendTraceFile(debugbuffer);
      #endif
 }
 
@@ -1737,7 +1704,7 @@ void ReserveCost(int puno,int spno,int *R,struct spustuff pu[],
 
             #ifdef DEBUG_RESERVECOST
             sprintf(debugline,"puid %i connectivity %lf\n",pu[j].id,rConnectivityValue);
-            AppendDebugTraceFile(debugline);
+            appendTraceFile(debugline);
             #endif
 
             if (fProb1D == 1)
@@ -1759,16 +1726,16 @@ void ReserveCost(int puno,int spno,int *R,struct spustuff pu[],
 
      #ifdef DEBUG_RESERVECOST
      //rConnectivityValue = reserve->connection;
-     //AppendDebugTraceFile("total connectivity %lf\n",rConnectivityValue);
+     //appendTraceFile("total connectivity %lf\n",rConnectivityValue);
      #endif
 
      reserve->total = reserve->cost + reserve->connection + reserve->penalty + reserve->probability1D + reserve->probability2D;
 
      #ifdef DEBUG_PROB1D
      sprintf(sProbDebugCost,"probability1D %f\n",reserve->probability1D);
-     AppendDebugTraceFile(sProbDebugCost);
+     appendTraceFile(sProbDebugCost);
 
-     AppendDebugTraceFile("ReserveCost E\n");
+     appendTraceFile("ReserveCost E\n");
 
      sprintf(sProbDebugCost,"%f",reserve->cost);
      strcpy(sProbDebugFileName,fnames.outputdir);
@@ -1779,7 +1746,7 @@ void ReserveCost(int puno,int spno,int *R,struct spustuff pu[],
                            ExpectedAmount1D,VarianceInExpectedAmount1D,spec);
 
 
-     AppendDebugTraceFile("ReserveCost F\n");
+     appendTraceFile("ReserveCost F\n");
 
      sprintf(sProbDebugCost,"%f",reserve->cost);
      strcpy(sProbDebugFileName,fnames.outputdir);
@@ -1788,12 +1755,12 @@ void ReserveCost(int puno,int spno,int *R,struct spustuff pu[],
      strcat(sProbDebugFileName,".csv");
      writeProb1DDetailDebugTable(sProbDebugFileName,puno,spno,pu,SM,R);
 
-     AppendDebugTraceFile("ReserveCost G\n");
+     appendTraceFile("ReserveCost G\n");
      #endif
 
      #ifdef DEBUG_PROB2D
      sprintf(sProbDebugCost,"probability2D %f\n",reserve->probability2D);
-     AppendDebugTraceFile(sProbDebugCost);
+     appendTraceFile(sProbDebugCost);
 
      sprintf(sProbDebugCost,"%f",reserve->cost);
      strcpy(sProbDebugFileName,fnames.outputdir);
@@ -1882,7 +1849,7 @@ void SpeciesAmounts(int spno,int puno,struct sspecies spec[],struct spustuff pu[
      #ifdef ANNEALING_TEST
      for (isp=0;isp<spno;isp++)
      {
-         AppendDebugTraceFile("SpeciesAmounts isp %i spec.amount %g\n",
+         appendTraceFile("SpeciesAmounts isp %i spec.amount %g\n",
                               isp,spec[isp].amount);
      }
      #endif
@@ -1970,7 +1937,7 @@ void CheckChange(int iIteration,int ipu,int spno,int puno,struct spustuff pu[],s
      #ifdef DEBUGCHECKCHANGE
      sprintf(debugline,"%i,%i,%i,%g,%g,%g,%g,%g,%g,%g\n",
             ipu,pu[ipu].id,R[ipu],change->total,change->cost,change->connection,change->penalty,change->threshpen,change->probability1D,change->probability2D);
-     AppendDebugFile("debug_MarOpt_CheckChange.csv",debugline,fnames);
+     appendDebugFile("debug_MarOpt_CheckChange.csv",debugline,fnames);
      #endif
 
 }  /*** Check Change ***/
@@ -1990,7 +1957,7 @@ void CheckQuantumChange(int spno,int puno,struct spustuff pu[],struct sconnectio
      #endif
 
      #ifdef DEBUG_QA
-     AppendDebugTraceFile("CheckQuantumChange start iFluctuationCount %i\n",iFluctuationCount);
+     appendTraceFile("CheckQuantumChange start iFluctuationCount %i\n",iFluctuationCount);
      #endif
 
      change->cost = 0;
@@ -2011,7 +1978,7 @@ void CheckQuantumChange(int spno,int puno,struct spustuff pu[],struct sconnectio
          imode = R[j] == 1 ? -1 : 1;
 
          #ifdef DEBUG_QA
-         AppendDebugTraceFile("CheckQuantumChange ipu %i chosen %i imode %i\n",j,PUChosen[j],imode);
+         appendTraceFile("CheckQuantumChange ipu %i chosen %i imode %i\n",j,PUChosen[j],imode);
          #endif
 
          change->cost += pu[j].cost*imode;    /* Cost of this PU on it's own */
@@ -2072,11 +2039,11 @@ void CheckQuantumChange(int spno,int puno,struct spustuff pu[],struct sconnectio
 
      #ifdef DEBUGCHECKCHANGE
      sprintf(debugline,"%i,%i,%i,%g,%g,%g,%g,%g,%g\n",j,pu[j].id,R[j],change->total,change->cost,change->connection,change->penalty,change->threshpen,change->probability);
-     AppendDebugFile("debug_MarOpt_CheckChange.csv",debugline,fnames);
+     appendDebugFile("debug_MarOpt_CheckChange.csv",debugline,fnames);
      #endif
 
      #ifdef DEBUG_QA
-     AppendDebugTraceFile("CheckQuantumChange end\n");
+     appendTraceFile("CheckQuantumChange end\n");
      #endif
 }  // Check Quantum Change
 
@@ -2165,7 +2132,7 @@ void DoChange(int ipu,int puno,int *R,struct scost *reserve,struct scost change,
                 }
 
                 #ifdef ANNEALING_TEST
-                AppendDebugTraceFile("DoChange ipu %i isp %i spec.amount %g imode %i\n",
+                appendTraceFile("DoChange ipu %i isp %i spec.amount %g imode %i\n",
                                      ipu,isp,spec[isp].amount,imode);
                 #endif
             }  /* None clumping species */
@@ -2187,7 +2154,7 @@ void DoQuantumChange(int puno,int *R,struct scost *reserve,struct scost change,
      double rAmount;
 
      #ifdef DEBUG_QA
-     AppendDebugTraceFile("DoQuantumChange start\n");
+     appendTraceFile("DoQuantumChange start\n");
      #endif
 
      reserve->cost += change.cost;
@@ -2241,7 +2208,7 @@ void DoQuantumChange(int puno,int *R,struct scost *reserve,struct scost change,
                           spec[isp].amount = 0;
 
                     #ifdef ANNEALING_TEST
-                    AppendDebugTraceFile("DoChange ipu %i isp %i spec.amount %g imode %i\n",
+                    appendTraceFile("DoChange ipu %i isp %i spec.amount %g imode %i\n",
                                          ipu,isp,spec[isp].amount,imode);
                     #endif
                 }  // No clumping species
@@ -2255,7 +2222,7 @@ void DoQuantumChange(int puno,int *R,struct scost *reserve,struct scost change,
      reserve->total = reserve->cost + reserve->connection + reserve->penalty + reserve->probability1D + reserve->probability2D;
 
      #ifdef DEBUG_QA
-     AppendDebugTraceFile("DoQuantumChange end\n");
+     appendTraceFile("DoQuantumChange end\n");
      #endif
 } // Do Quantum Change
 
@@ -2285,7 +2252,7 @@ int CountMissing(int spno,struct sspecies spec[],double misslevel,double *shortf
                  *rMinimumProportionMet = rProportionMet;
 
               #ifdef DEBUG_COUNTMISSING
-              AppendDebugTraceFile("CountMissing i %i target %g amount %g shortfall %g\n",i,spec[i].target,spec[i].amount,*shortfall);
+              appendTraceFile("CountMissing i %i target %g amount %g shortfall %g\n",i,spec[i].target,spec[i].amount,*shortfall);
               #endif
            }
         if (spec[i].targetocc > 0)
@@ -2317,7 +2284,7 @@ int CountMissing(int spno,struct sspecies spec[],double misslevel,double *shortf
     }
 
     #ifdef DEBUG_COUNTMISSING
-    AppendDebugTraceFile("CountMissing shortfall %g\n",*shortfall);
+    appendTraceFile("CountMissing shortfall %g\n",*shortfall);
     #endif
 
     return(isp);
@@ -2338,7 +2305,7 @@ double ConnectionCost2(int ipu,struct sconnections connections[],int *R,int imod
        if (asymmetricconnectivity)
           if (imode2)
           {
-             AppendDebugTraceFile("ConnectionCost2 start puid %i imode %i imode2 %i\n",pu[ipu].id,imode,imode2);
+             appendTraceFile("ConnectionCost2 start puid %i imode %i imode2 %i\n",pu[ipu].id,imode,imode2);
           }
        #endif
 
@@ -2394,7 +2361,7 @@ double ConnectionCost2(int ipu,struct sconnections connections[],int *R,int imod
                    }
 
                    #ifdef DEBUG_CONNECTIONCOST2
-                   AppendDebugTraceFile("ConnectionCost2 puidnbr %i Rnbr %i connectionorigon %i delta %g\n",
+                   appendTraceFile("ConnectionCost2 puidnbr %i Rnbr %i connectionorigon %i delta %g\n",
                                         pu[p->nbr].id,R[p->nbr],p->connectionorigon,rDelta);
                    #endif
                 }
@@ -2452,10 +2419,10 @@ double ConnectionCost2(int ipu,struct sconnections connections[],int *R,int imod
           {
              for (i=puno-1;i>-1;i--)
              {
-                 AppendDebugTraceFile("puid%i R%i\n",pu[i].id,R[i]);
+                 appendTraceFile("puid%i R%i\n",pu[i].id,R[i]);
              }
 
-             AppendDebugTraceFile("ConnectionCost2 end puid %i connection %g\n",pu[ipu].id,fcost);
+             appendTraceFile("ConnectionCost2 end puid %i connection %g\n",pu[ipu].id,fcost);
           }
        #endif
 
@@ -2540,7 +2507,7 @@ void PrintResVal (int puno, int spno,int *R,struct scost reserve,
      double connectiontemp = 0, shortfall, rMPM;//, rConnectivityTotal = 0,rConnectivityIn = 0,rConnectivityEdge = 0,rConnectivityOut = 0;
 
      #ifdef DEBUG_PRINTRESVALPROB
-     AppendDebugTraceFile("PrintResVal start\n");
+     appendTraceFile("PrintResVal start\n");
      #endif
 
      isp = CountMissing(spno,spec,misslevel,&shortfall,&rMPM);
@@ -2555,7 +2522,7 @@ void PrintResVal (int puno, int spno,int *R,struct scost reserve,
          }
 
      #ifdef DEBUG_PRINTRESVALPROB
-     AppendDebugTraceFile("PrintResVal missing %i connectiontemp %g\n",isp,connectiontemp);
+     appendTraceFile("PrintResVal missing %i connectiontemp %g\n",isp,connectiontemp);
      #endif
 
      displayProgress("Value %.1f Cost %.1f PUs %i Connection %.1f Missing %i Shortfall %.2f Penalty %.1f MPM %.1f\n",
@@ -2569,7 +2536,7 @@ void PrintResVal (int puno, int spno,int *R,struct scost reserve,
      displayProgress("\n");
 
      #ifdef DEBUG_PRINTRESVALPROB
-     AppendDebugTraceFile("PrintResVal end\n");
+     appendTraceFile("PrintResVal end\n");
      #endif
 } /******* Print Reserve Value *********/
 
@@ -2604,7 +2571,7 @@ void ConnollyInit(int puno,int spno,struct spustuff pu[],typeconnection connecti
      #endif
 
      #ifdef DEBUGTRACEFILE
-     AppendDebugTraceFile("ConnollyInit start\n");
+     appendTraceFile("ConnollyInit start\n");
      if (verbosity > 4)
      {
         sprintf(sRun,"%i",irun);
@@ -2622,7 +2589,7 @@ void ConnollyInit(int puno,int spno,struct spustuff pu[],typeconnection connecti
      #endif
 
      #ifdef DEBUG_PROB1D
-     AppendDebugTraceFile("ConnollyInit A\n");
+     appendTraceFile("ConnollyInit A\n");
      #endif
 
      localdelta = 1E-10;
@@ -2630,7 +2597,7 @@ void ConnollyInit(int puno,int spno,struct spustuff pu[],typeconnection connecti
      InitReserve(puno,prop,R);
 
      #ifdef DEBUG_PROB1D
-     AppendDebugTraceFile("ConnollyInit B\n");
+     appendTraceFile("ConnollyInit B\n");
      #endif
 
      AddReserve(puno,pu,R);
@@ -2638,13 +2605,13 @@ void ConnollyInit(int puno,int spno,struct spustuff pu[],typeconnection connecti
         ClearClumps(spno,spec,pu,SM);
 
      #ifdef DEBUG_PROB1D
-     AppendDebugTraceFile("ConnollyInit C\n");
+     appendTraceFile("ConnollyInit C\n");
      #endif
 
      ReserveCost(puno,spno,R,pu,connections,SM,cm,spec,aggexist,&reserve,clumptype);
 
      #ifdef DEBUG_PROB1D
-     AppendDebugTraceFile("ConnollyInit D\n");
+     appendTraceFile("ConnollyInit D\n");
      #endif
 
      for (i=1;i<= (*anneal).iterations/100; i++)
@@ -2671,7 +2638,7 @@ void ConnollyInit(int puno,int spno,struct spustuff pu[],typeconnection connecti
 
      (*anneal).Tcool = exp(log(deltamin/ (*anneal).Tinit)/(double)(*anneal).Titns);
 
-     AppendDebugTraceFile("ConnollyInit end\n");
+     appendTraceFile("ConnollyInit end\n");
      if (verbosity > 4)
         fclose(fp);
 } // Init Annealing Schedule According to Connolly Scheme
@@ -2710,7 +2677,7 @@ void AdaptiveInit(int puno,int spno,double prop,int *R,
      (*anneal).sum = 0;
      (*anneal).sum2 = 0;
 
-     AppendDebugTraceFile("Tinit %g Titns %li Tcool %g\n",(*anneal).Tinit,(*anneal).Titns,(*anneal).Tcool);
+     appendTraceFile("Tinit %g Titns %li Tcool %g\n",(*anneal).Tinit,(*anneal).Titns,(*anneal).Tcool);
 
 } /**** Adaptive Annealing Initialisation *****/
 
@@ -2746,11 +2713,11 @@ void ThermalAnnealing(int spno, int puno, struct sconnections connections[],int 
      FILE *fp,*ttfp,*Rfp;
      char *writename;
 
-     AppendDebugTraceFile("ThermalAnnealing start iterations %ld\n",anneal.iterations);
+     appendTraceFile("ThermalAnnealing start iterations %ld\n",anneal.iterations);
      if (verbosity > 4)
      {
         sprintf(sRun,"%i",irun);
-        DumpR(0,"after_Annealing_entered",puno,R,pu,fnames);
+        writeR(0,"after_Annealing_entered",puno,R,pu,fnames);
         writename = (char *) calloc(strlen(fnames.outputdir) + strlen("debug_maropt_annealing_.csv") + strlen(sRun) + 2, sizeof(char));
         strcpy(writename,fnames.outputdir);
         strcat(writename,"debug_maropt_annealing_");
@@ -2869,7 +2836,7 @@ void ThermalAnnealing(int spno, int puno, struct sconnections connections[],int 
                sprintf(tempname2,"%s_snap%st%05li.txt",savename,tempname1,++snapcount%10000);
             else
                 sprintf(tempname2,"%s_snap%st%05li.dat",savename,tempname1,++snapcount%10000);
-            OutputSolution(puno,R,pu,tempname2,fnames.savesnapsteps,fnames);
+            writeSolution(puno,R,pu,tempname2,fnames.savesnapsteps,fnames);
          } /* Save snapshot every savesnapfreq timesteps */
          iPreviousR = R[ipu];
          if (GoodChange(*change,anneal.temp)==1)
@@ -2891,7 +2858,7 @@ void ThermalAnnealing(int spno, int puno, struct sconnections connections[],int 
                  sprintf(tempname2,"%s_snap%sc%05li.txt",savename,tempname1,++snapcount%10000);
               else
                   sprintf(tempname2,"%s_snap%sc%05li.dat",savename,tempname1,++snapcount%10000);
-              OutputSolution(puno,R,pu,tempname2,fnames.savesnapchanges,fnames);
+              writeSolution(puno,R,pu,tempname2,fnames.savesnapchanges,fnames);
             } /* Save snapshot every savesnapfreq changes */
 
          } /* Good change has been made */
@@ -2943,13 +2910,13 @@ void ThermalAnnealing(int spno, int puno, struct sconnections connections[],int 
        displayProgress1("  ThermalAnnealing:");
 
        #ifdef DEBUG_PRINTRESVALPROB
-       AppendDebugTraceFile("before PrintResVal ThermalAnnealing:\n");
+       appendTraceFile("before PrintResVal ThermalAnnealing:\n");
        #endif
 
        PrintResVal(puno,spno,R,*reserve,spec,misslevel);
 
        #ifdef DEBUG_PRINTRESVALPROB
-       AppendDebugTraceFile("after PrintResVal ThermalAnnealing:\n");
+       appendTraceFile("after PrintResVal ThermalAnnealing:\n");
        #endif
      }
 
@@ -2989,12 +2956,12 @@ void QuantumAnnealing(int spno, int puno, struct sconnections connections[],int 
      else
          strcpy(sDecayType,"SIGMOIDAL");
 
-     AppendDebugTraceFile("QuantumAnnealing start iterations %ld decay type %s proportion %f decay A %f decay B %f acceptance probability %f saveannealingtrace %i\n",
+     appendTraceFile("QuantumAnnealing start iterations %ld decay type %s proportion %f decay A %f decay B %f acceptance probability %f saveannealingtrace %i\n",
                           anneal.iterations,sDecayType,rQAPROP,rQADECAY,rQADECAYB,rQAACCPR,fnames.saveannealingtrace);
      if (verbosity > 4)
      {
         sprintf(sRun,"%i",irun);
-        DumpR(0,"after_Annealing_entered",puno,R,pu,fnames);
+        writeR(0,"after_Annealing_entered",puno,R,pu,fnames);
         writename = (char *) calloc(strlen(fnames.outputdir) + strlen("debug_maropt_annealing_.csv") + strlen(sRun) + 2, sizeof(char));
         strcpy(writename,fnames.outputdir);
         strcat(writename,"debug_maropt_annealing_");
@@ -3068,7 +3035,7 @@ void QuantumAnnealing(int spno, int puno, struct sconnections connections[],int 
          //rFluctuationMagnitude = iFluctuationCount / puno;
 
          #ifdef DEBUG_QA
-         AppendDebugTraceFile("QuantumAnnealing rFluctuationMagnitude %f iFluctuationCount %i\n",
+         appendTraceFile("QuantumAnnealing rFluctuationMagnitude %f iFluctuationCount %i\n",
                               rFluctuationMagnitude,iFluctuationCount);
          #endif
 
@@ -3086,14 +3053,14 @@ void QuantumAnnealing(int spno, int puno, struct sconnections connections[],int 
                  j = RandNum(puno);
 
                  #ifdef DEBUG_QA
-                 AppendDebugTraceFile("QuantumAnnealing j %i PUChosen[j] %i R[j] %i \n",j,PUChosen[j],R[j]);
+                 appendTraceFile("QuantumAnnealing j %i PUChosen[j] %i R[j] %i \n",j,PUChosen[j],R[j]);
                  #endif
                }
                while ((PUChosen[j] > 0) || (R[j] > 1));
                // select PU's at random that are not already chosen or locked
 
                #ifdef DEBUG_QA
-               AppendDebugTraceFile("QuantumAnnealing chose ipu %i\n",j);
+               appendTraceFile("QuantumAnnealing chose ipu %i\n",j);
                #endif
 
 
@@ -3120,7 +3087,7 @@ void QuantumAnnealing(int spno, int puno, struct sconnections connections[],int 
                  sprintf(tempname2,"%s_snap%st%05li.txt",savename,tempname1,++snapcount%10000);
               else
                   sprintf(tempname2,"%s_snap%st%05li.dat",savename,tempname1,++snapcount%10000);
-              OutputSolution(puno,R,pu,tempname2,fnames.savesnapsteps,fnames);
+              writeSolution(puno,R,pu,tempname2,fnames.savesnapsteps,fnames);
            } /* Save snapshot every savesnapfreq timesteps */
            if (GoodQuantumChange(*change,rAcceptanceProbability)==1)
            {
@@ -3141,7 +3108,7 @@ void QuantumAnnealing(int spno, int puno, struct sconnections connections[],int 
                    sprintf(tempname2,"%s_snap%sc%05li.txt",savename,tempname1,++snapcount%10000);
                 else
                     sprintf(tempname2,"%s_snap%sc%05li.dat",savename,tempname1,++snapcount%10000);
-                OutputSolution(puno,R,pu,tempname2,fnames.savesnapchanges,fnames);
+                writeSolution(puno,R,pu,tempname2,fnames.savesnapchanges,fnames);
               } /* Save snapshot every savesnapfreq changes */
 
            } /* Good change has been made */
@@ -3203,13 +3170,13 @@ void QuantumAnnealing(int spno, int puno, struct sconnections connections[],int 
        displayProgress1("  QuantumAnnealing:");
 
        #ifdef DEBUG_PRINTRESVALPROB
-       AppendDebugTraceFile("before PrintResVal QuantumAnnealing:\n");
+       appendTraceFile("before PrintResVal QuantumAnnealing:\n");
        #endif
 
        PrintResVal(puno,spno,R,*reserve,spec,misslevel);
 
        #ifdef DEBUG_PRINTRESVALPROB
-       AppendDebugTraceFile("after PrintResVal QuantumAnnealing:\n");
+       appendTraceFile("after PrintResVal QuantumAnnealing:\n");
        #endif
      }
 
@@ -3225,7 +3192,7 @@ void QuantumAnnealing(int spno, int puno, struct sconnections connections[],int 
         fclose(ttfp);
         fclose(Rfp);
      }
-     AppendDebugTraceFile("QuantumAnnealing end iterations %ld tests %li\n",iIterations,iTests);
+     appendTraceFile("QuantumAnnealing end iterations %ld tests %li\n",iIterations,iTests);
 
 }  /* Main Quantum Annealing Function */
 
@@ -4915,15 +4882,15 @@ void SetOptions(double *cm,double *prop,struct sanneal *anneal,
 
      #ifdef DEBUGTRACEFILE
      sprintf(debugbuffer,"PROBABILITYWEIGHTING %g\n",rProbabilityWeighting);
-     AppendDebugTraceFile(debugbuffer);
+     appendTraceFile(debugbuffer);
      sprintf(debugbuffer,"STARTDECTHRESH %g\n",rStartDecThresh);
-     AppendDebugTraceFile(debugbuffer);
+     appendTraceFile(debugbuffer);
      sprintf(debugbuffer,"ENDDECTHRESH %g\n",rEndDecThresh);
-     AppendDebugTraceFile(debugbuffer);
+     appendTraceFile(debugbuffer);
      sprintf(debugbuffer,"STARTDECMULT %g\n",rStartDecMult);
-     AppendDebugTraceFile(debugbuffer);
+     appendTraceFile(debugbuffer);
      sprintf(debugbuffer,"ENDDECMULT %g\n",rEndDecMult);
-     AppendDebugTraceFile(debugbuffer);
+     appendTraceFile(debugbuffer);
      #endif
 
      if ((*fnames).outputdir[0] != '0')
@@ -4956,7 +4923,7 @@ void PrepareWeightedConnectivityFile(struct sfname fnames)
     strcat(writename,fnames.connectionname);
     strcat(writename,"~");
     // back up the connection file
-    CopyFile(readname1,writename);
+    copyFile(readname1,writename);
     free(writename);
     free(readname1);
 
@@ -5036,7 +5003,7 @@ void PrepareWeightedConnectivityFile(struct sfname fnames)
           #ifdef DEBUGTRACEFILE
           sprintf(debugbuffer,"connectivity file %s weighting %lf asymmetric >%s< records %i\n",
                               sFileName,rWeighting,sAsymmetric,iRecords);
-          AppendDebugTraceFile(debugbuffer);
+          appendTraceFile(debugbuffer);
           #endif
 
           free(sFileName);
@@ -5046,7 +5013,7 @@ void PrepareWeightedConnectivityFile(struct sfname fnames)
 
     #ifdef DEBUGTRACEFILE
     sprintf(debugbuffer,"total files %i records %i\n",iFiles,iTotalRecords);
-    AppendDebugTraceFile(debugbuffer);
+    appendTraceFile(debugbuffer);
     #endif
 
     fclose(fpOutputConnection);
@@ -5121,7 +5088,7 @@ void SetRareness(int puno, int spno, double Rare[],int R[],struct spustuff pu[],
      int i, ism, isp,ipu;
 
      #ifdef DEBUG_HEURISTICS
-     AppendDebugTraceFile("SetRareness start\n");
+     appendTraceFile("SetRareness start\n");
      #endif
 
      fcount = (double *) calloc(spno,sizeof(double));
@@ -5146,7 +5113,7 @@ void SetRareness(int puno, int spno, double Rare[],int R[],struct spustuff pu[],
          Rare[isp] = fcount[isp];
 
          #ifdef DEBUG_HEURISTICS
-         AppendDebugTraceFile("SetRareness isp %i Rare %g\n",isp,Rare[isp]);
+         appendTraceFile("SetRareness isp %i Rare %g\n",isp,Rare[isp]);
          #endif
      }
 
@@ -5159,7 +5126,7 @@ void SetRareness(int puno, int spno, double Rare[],int R[],struct spustuff pu[],
      free(fcount);
 
      #ifdef DEBUG_HEURISTICS
-     AppendDebugTraceFile("SetRareness end\n");
+     appendTraceFile("SetRareness end\n");
      #endif
 }  // SetRareness
 
@@ -5281,21 +5248,21 @@ double SumRareScore(int ipu,int puno,struct sspecies spec[],struct spu SM[],
        double rarescore = 0;
 
        #ifdef DEBUG_HEURISTICS
-       AppendDebugTraceFile("SumRareScore start\n");
+       appendTraceFile("SumRareScore start\n");
        #endif
 
        if (pu[ipu].richness)
           for (i=0;i<pu[ipu].richness;i++)
           {
               #ifdef DEBUG_HEURISTICS
-              AppendDebugTraceFile("SumRareScore feature %i of %i\n",i,pu[ipu].richness);
+              appendTraceFile("SumRareScore feature %i of %i\n",i,pu[ipu].richness);
               #endif
 
               ism = pu[ipu].offset + i;
               isp = SM[ism].spindex;
 
               #ifdef DEBUG_HEURISTICS
-              AppendDebugTraceFile("SumRareScore SMamount %g target %g specamount %g rare %g\n",SM[ism].amount,spec[isp].target,spec[isp].amount,Rare[isp]);
+              appendTraceFile("SumRareScore SMamount %g target %g specamount %g rare %g\n",SM[ism].amount,spec[isp].target,spec[isp].amount,Rare[isp]);
               #endif
 
               if (SM[ism].amount &&
@@ -5305,7 +5272,7 @@ double SumRareScore(int ipu,int puno,struct sspecies spec[],struct spu SM[],
           }
 
        #ifdef DEBUG_HEURISTICS
-       AppendDebugTraceFile("SumRareScore end\n");
+       appendTraceFile("SumRareScore end\n");
        #endif
 
        return(rarescore);
@@ -5388,7 +5355,7 @@ void Heuristics(int spno,int puno,struct spustuff pu[],struct sconnections conne
      double *Rare;
 
      #ifdef DEBUG_HEURISTICS
-     AppendDebugTraceFile("Heuristics start\n");
+     appendTraceFile("Heuristics start\n");
      #endif
 
      // Irreplacability
@@ -5399,7 +5366,7 @@ void Heuristics(int spno,int puno,struct spustuff pu[],struct sconnections conne
         SetAbundance(puno,Rare,pu,SM);
 
         #ifdef DEBUG_HEURISTICS
-        AppendDebugTraceFile("Heuristics 6 or 7\n");
+        appendTraceFile("Heuristics 6 or 7\n");
         #endif
      }
 
@@ -5409,7 +5376,7 @@ void Heuristics(int spno,int puno,struct spustuff pu[],struct sconnections conne
         SetRareness(puno,spno,Rare,R,pu,SM);
 
         #ifdef DEBUG_HEURISTICS
-        AppendDebugTraceFile("Heuristics 2 to 5 after SetRareness\n");
+        appendTraceFile("Heuristics 2 to 5 after SetRareness\n");
         #endif
      }
 
@@ -5446,13 +5413,13 @@ void Heuristics(int spno,int puno,struct spustuff pu[],struct sconnections conne
               {
 
                  #ifdef DEBUG_HEURISTICS
-                 AppendDebugTraceFile("Heuristics pu %i of %i\n",i,puno);
+                 appendTraceFile("Heuristics pu %i of %i\n",i,puno);
                  #endif
 
                  currscore = SumRareScore(i,puno,spec,SM,R,connections,pu,cm,Rare,clumptype);
 
                  #ifdef DEBUG_HEURISTICS
-                 AppendDebugTraceFile("Heuristics after SumRareScore\n");
+                 appendTraceFile("Heuristics after SumRareScore\n");
                  #endif
               }
               if (imode == 6)
@@ -5510,7 +5477,7 @@ void Heuristics(int spno,int puno,struct spustuff pu[],struct sconnections conne
      reserve->total = reserve->cost + reserve->connection + reserve->penalty + reserve->probability1D + reserve->probability2D;
 
      #ifdef DEBUG_HEURISTICS
-     AppendDebugTraceFile("Heuristics end\n");
+     appendTraceFile("Heuristics end\n");
      #endif
 } // Heuristics
 
@@ -5560,7 +5527,7 @@ void heapSort_ii(struct iimp numbers[], int array_size)
      {
          #ifdef DEBUGTRACEFILE
          //sprintf(debugbuffer,"heapSort_ii i %i\n",i);
-         //AppendDebugTraceFile(debugbuffer);
+         //appendTraceFile(debugbuffer);
          #endif
 
          siftDown_ii(numbers, i, array_size, array_size);
@@ -5570,7 +5537,7 @@ void heapSort_ii(struct iimp numbers[], int array_size)
      {
          #ifdef DEBUGTRACEFILE
          //sprintf(debugbuffer,"heapSort_ii i %i\n",i);
-         //AppendDebugTraceFile(debugbuffer);
+         //appendTraceFile(debugbuffer);
          #endif
 
          temp = numbers[0];
@@ -5592,14 +5559,14 @@ void IterativeImprovement(int puno,int spno,struct spustuff pu[], struct sconnec
      FILE *ttfp,*Rfp;
      char *writename;
 
-     AppendDebugTraceFile("IterativeImprovement start\n");
+     appendTraceFile("IterativeImprovement start\n");
 
      // counting pu's we need to test
      for (i=0;i<puno;i++)
          if ((R[i] < 2) && (pu[i].status < 2))
             puvalid++;
 
-     AppendDebugTraceFile("IterativeImprovement puvalid %i\n",puvalid);
+     appendTraceFile("IterativeImprovement puvalid %i\n",puvalid);
 
      if (fnames.saveitimptrace)
      {
@@ -5645,12 +5612,12 @@ void IterativeImprovement(int puno,int spno,struct spustuff pu[], struct sconnec
                ipu++;
             }
 
-        AppendDebugTraceFile("IterativeImprovement after array init\n");
+        appendTraceFile("IterativeImprovement after array init\n");
 
         // sort the iimp array by the randomindex field
         heapSort_ii(iimparray,puvalid);
 
-        AppendDebugTraceFile("IterativeImprovement after heapSort_ii\n");
+        appendTraceFile("IterativeImprovement after heapSort_ii\n");
 
         /***** Doing the improvements ****/
         for (i=0;i<puvalid;i++)
@@ -5699,7 +5666,7 @@ void IterativeImprovement(int puno,int spno,struct spustuff pu[], struct sconnec
         fclose(Rfp);
      }
 
-     AppendDebugTraceFile("IterativeImprovement end\n");
+     appendTraceFile("IterativeImprovement end\n");
 }  // Time Optimised Iterative Improvement
 
 /*********************
@@ -6303,7 +6270,7 @@ void ApplySpecProp(int spno,typesp spec[],int puno,struct spustuff pu[],struct s
          }
 }
 
-// Change in probability for adding or deleting one PU
+// Change in probability 1D for adding or deleting one PU
 double ChangeProbability1D(int iIteration, int ipu, int spno,int puno,struct sspecies spec[],struct spustuff pu[],struct spu SM[],int imode)
 {
        int i, ism, isp, iNewHeavisideStepFunction, iOrigHeavisideStepFunction;
@@ -6321,7 +6288,7 @@ double ChangeProbability1D(int iIteration, int ipu, int spno,int puno,struct ssp
           strcat(sDebugFileName,"output_ChangeProbability1DDebug_");
           strcat(sDebugFileName,sIteration);
           strcat(sDebugFileName,".csv");
-          OutputChangeProbability1DDebugTable(sDebugFileName,iIteration,ipu,spno,spec,pu,SM,imode);
+          writeChangeProbability1DDebugTable(sDebugFileName,iIteration,ipu,spno,spec,pu,SM,imode);
        }
        #endif
 
@@ -6395,7 +6362,7 @@ double ChangeProbability1D(int iIteration, int ipu, int spno,int puno,struct ssp
        return (rSumProbability * rProbabilityWeighting);
 }  // Change in probability for adding or deleting one PU
 
-// Change in probability for adding or deleting one PU
+// Change in probability 2D for adding or deleting one PU
 double ChangeProbability2D(int iIteration, int ipu, int spno,int puno,struct sspecies spec[],struct spustuff pu[],struct spu SM[],int imode)
 {
     int i, ism, isp, iNewHeavisideStepFunction, iOrigHeavisideStepFunction;
@@ -6412,7 +6379,7 @@ double ChangeProbability2D(int iIteration, int ipu, int spno,int puno,struct ssp
        strcat(sDebugFileName,"output_ChangeProbability2DDebug_");
        strcat(sDebugFileName,sIteration);
        strcat(sDebugFileName,"_.csv");
-       OutputChangeProbability2DDebugTable(sDebugFileName,iIteration,ipu,spno,spec,pu,SM,imode);
+       writeChangeProbability2DDebugTable(sDebugFileName,iIteration,ipu,spno,spec,pu,SM,imode);
     }
     #endif
 
@@ -6533,7 +6500,7 @@ double ComputeProbability1D(double ExpectedAmount1D[],double VarianceInExpectedA
        int i, iHeavisideStepFunction;
        double rProbability, rSumProbability = 0, rShortfallPenalty;
 
-       AppendDebugTraceFile("ComputeProbability1D start\n");
+       appendTraceFile("ComputeProbability1D start\n");
 
        for (i=0;i<spno;i++)
        {
@@ -6562,12 +6529,12 @@ double ComputeProbability1D(double ExpectedAmount1D[],double VarianceInExpectedA
            rSumProbability += spec[i].probability1D;
 
            #ifdef DEBUG_PROB1D
-           AppendDebugTraceFile("ComputeProbability1D i %i p %lf one minus p %lf pst %lf pst2 %lf\n",
+           appendTraceFile("ComputeProbability1D i %i p %lf one minus p %lf pst %lf pst2 %lf\n",
                                 i,rProbability,(1-rProbability),spec[i].probability1D,(1-spec[i].probability1D));
            #endif
        }
 
-       AppendDebugTraceFile("ComputeProbability1D sump %lf\n",rSumProbability);
+       appendTraceFile("ComputeProbability1D sump %lf\n",rSumProbability);
 
        return rSumProbability * rProbabilityWeighting;
 }
@@ -6579,7 +6546,7 @@ double ComputeProbability2D(double ExpectedAmount2D[],double VarianceInExpectedA
        int i, iHeavisideStepFunction;
        double rProbability, rSumProbability = 0, rShortfallPenalty;
 
-       AppendDebugTraceFile("ComputeProbability2D start\n");
+       appendTraceFile("ComputeProbability2D start\n");
 
        for (i=0;i<spno;i++)
        {
@@ -6608,12 +6575,12 @@ double ComputeProbability2D(double ExpectedAmount2D[],double VarianceInExpectedA
            rSumProbability += spec[i].probability2D;
 
            #ifdef DEBUG_PROB2D
-           AppendDebugTraceFile("ComputeProbability2D i %i p %lf one minus p %lf psf %lf psf2 %lf\n",
+           appendTraceFile("ComputeProbability2D i %i p %lf one minus p %lf psf %lf psf2 %lf\n",
                                 i,rProbability,(1-rProbability),spec[i].probability2D,(1-spec[i].probability2D));
            #endif
        }
 
-       AppendDebugTraceFile("ComputeProbability2D sump %lf\n",rSumProbability);
+       appendTraceFile("ComputeProbability2D sump %lf\n",rSumProbability);
 
        return rSumProbability * rProbabilityWeighting;
 }

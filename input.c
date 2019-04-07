@@ -658,7 +658,7 @@ void readSparseMatrix(int *iSMSize, struct spu *SM[], int puno, int spno, struct
          if (_puid < iLastPUID)
          {
 	        // error condition exists, file is not in ascending order for PUID
-            AppendDebugTraceFile("Error: PU v Species file %s is not in ascending order for PUID at record %i.\nAborting Program.",fnames.puvsprname,i+1);
+            appendTraceFile("Error: PU v Species file %s is not in ascending order for PUID at record %i.\nAborting Program.",fnames.puvsprname,i+1);
 	        displayErrorMessage("Error: PU v Species file %s is not in ascending order for PUID at record %i.\nAborting Program.",fnames.puvsprname,i+1);
 		 }
 
@@ -720,7 +720,7 @@ void readPenalties(typesp spec[],int spno,struct sfname fnames,struct binsearch 
 
            spec[i].rUserPenalty = rPenalty;
 
-           AppendDebugTraceFile("readPenalties spname %i user penalty %g\n",spec[i].name,rPenalty);
+           appendTraceFile("readPenalties spname %i user penalty %g\n",spec[i].name,rPenalty);
 	 }
 
      fclose(fp);
@@ -776,7 +776,7 @@ void readSparseMatrixSpOrder(int *iSMSize, struct spusporder *SM[], int puno, in
          if (_spid < iLastSPID)
          {
 	        // error condition exists, file is not in ascending order for SPID
-            AppendDebugTraceFile("Error: PU v Species file %s is not in ascending order for SPID at record %i.\nAborting Program.",fnames.puvsprname,i+1);
+            appendTraceFile("Error: PU v Species file %s is not in ascending order for SPID at record %i.\nAborting Program.",fnames.puvsprname,i+1);
 	        displayErrorMessage("Error: PU v Species file %s is not in ascending order for SPID at record %i.\nAborting Program.",fnames.puvsprname,i+1);
 		 }
 
