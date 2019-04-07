@@ -486,8 +486,8 @@ int readConnections(int puno,struct sconnections connections[],struct spustuff p
           sVarVal = strtok(NULL," ,;:^*\"/\t\'\\\n");
           sscanf(sVarVal,"%lf",&fcost);
 
-          id1 = FastNameToPUID(puno,id1,PULookup);
-          id2 = FastNameToPUID(puno,id2,PULookup);
+          id1 = binarySearchPuIndex(puno,id1,PULookup);
+          id2 = binarySearchPuIndex(puno,id2,PULookup);
 
           if (id1==id2)
           {  // irremovable connection
@@ -666,8 +666,8 @@ void readSparseMatrix(int *iSMSize, struct spu *SM[], int puno, int spno, struct
 
          iLastPUID = _puid;
 
-         _puid = FastNameToPUID(puno,_puid,PULookup);
-         _spid = FastNameToSPID(spno,_spid,SPLookup);
+         _puid = binarySearchPuIndex(puno,_puid,PULookup);
+         _spid = binarySearchSpecIndex(spno,_spid,SPLookup);
 
          /* increment richness for planning unit containing this feature */
          PU[_puid].richness += 1;
@@ -718,7 +718,7 @@ void readPenalties(typesp spec[],int spno,struct sfname fnames,struct binsearch 
            sVarVal = strtok(NULL," ,;:^*\"/\t\'\\\n");
            sscanf(sVarVal,"%lf",&rPenalty);
 
-           i = FastNameToSPID(spno,iSPID,SPLookup);
+           i = binarySearchSpecIndex(spno,iSPID,SPLookup);
 
            spec[i].rUserPenalty = rPenalty;
 
@@ -784,8 +784,8 @@ void readSparseMatrixSpOrder(int *iSMSize, struct spusporder *SM[], int puno, in
 
          iLastSPID = _spid;
 
-         _puid = FastNameToPUID(puno,_puid,PULookup);
-         spid = FastNameToSPID(spno,_spid,SPLookup);
+         _puid = binarySearchPuIndex(puno,_puid,PULookup);
+         spid = binarySearchSpecIndex(spno,_spid,SPLookup);
 
          // increment richness for planning unit containing this feature
          spec[spid].richness += 1;

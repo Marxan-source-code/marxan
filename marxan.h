@@ -1,4 +1,5 @@
-// declare types and predefine functions
+// declare types
+// predefine functions that are called before they're defined
 
 #define DebugFree(x)
 #ifndef mainheaderfile
@@ -290,11 +291,11 @@ void ConnollyInit(int puno,int spno,struct spustuff pu[],typeconnection connecti
 void AdaptiveInit(int puno,int spno,double prop,int *R,struct spustuff pu[],struct sconnections connections[],
                   struct spu SM[],double cm,struct sspecies spec[],int aggexist,struct sanneal *anneal,int clumptype);
 void AdaptiveDec(struct sanneal *anneal);
-void ThermalAnnealing(int spno, int puno, struct sconnections connections[],int R[], double cm,
+void thermalAnnealing(int spno, int puno, struct sconnections connections[],int R[], double cm,
                       typesp *spec, struct spustuff pu[], struct spu SM[], struct scost *change, struct scost *reserve,
                       long int repeats,int irun,char *savename,double misslevel,
                       int aggexist,double costthresh, double tpf1, double tpf2,int clumptype);
-void QuantumAnnealing(int spno, int puno, struct sconnections connections[],int R[], double cm,
+void quantumAnnealing(int spno, int puno, struct sconnections connections[],int R[], double cm,
                       typesp *spec, struct spustuff pu[], struct spu SM[], struct scost *change, struct scost *reserve,
                       long int repeats,int irun,char *savename,double misslevel,
                       int aggexist,double costthresh, double tpf1, double tpf2,int clumptype);
@@ -367,7 +368,6 @@ int ReadGenSpeciesData(int *gspno,struct sgenspec *gspec[],struct sfname fnames)
 int DumpAsymmetricConnectivityFile(int puno,struct sconnections connections[],struct spustuff pu[],struct sfname fnames);
 int readConnections(int puno,struct sconnections connections[],struct spustuff pu[],
                     struct binsearch PULookup[],struct sfname fnames);
-void PrepareWeightedConnectivityFile(struct sfname fnames);
 
 void ReadPUVSPFile22(int puno,int spno,struct spu SM[],struct spustuff pu[],
     typesp spec[],struct sfname fnames);
@@ -388,12 +388,10 @@ void readSparseMatrixSpOrder(int *iSMSize, struct spusporder *SM[], int puno, in
 void writeBinarySearchArrays(char *sName,struct sfname fnames, int puno, int spno, struct binsearch PULookup[],
                              struct binsearch SPLookup[]);
 
-void PrepareBinarySearchArrays(int puno, int spno, struct spustuff PU[], typesp spec[],
-                               struct binsearch *PULookup[], struct binsearch *SPLookup[]);
-void TestFastNameToPUID(int puno, struct binsearch PULookup[], struct spustuff PU[], struct sfname fnames);
-int FastNameToPUID(int puno,int name, struct binsearch PULookup[]);
-void TestFastNameToSPID(int spno, struct binsearch SPLookup[], typesp spec[], struct sfname fnames);
-int FastNameToSPID(int spno,int name, struct binsearch SPLookup[]);
+void computeBinarySearch(int puno, int spno, struct spustuff PU[], typesp spec[],
+                         struct binsearch *PULookup[], struct binsearch *SPLookup[]);
+int binarySearchPuIndex(int puno,int name, struct binsearch PULookup[]);
+int binarySearchSpecIndex(int spno,int name, struct binsearch SPLookup[]);
 int returnIndexSpecAtPu(struct spustuff PU[], struct spu SM[], int iPUIndex, int iSpecIndex);
 double returnAmountSpecAtPu(struct spustuff PU[], struct spu SM[], int iPUIndex, int iSpecIndex);
 int rtnClumpSpecAtPu(struct spustuff PU[], struct spu SM[], int iPUIndex, int iSpecIndex);
@@ -467,13 +465,13 @@ int RandNum (int num);
 #ifndef outputheader
 #define outputheader
 
-void displayStartupMessage(void);        /* Display startup message */
-void displayShutdownMessage(void);        /* display shutdown message */
+void displayStartupMessage(void);
+void displayShutdownMessage(void);
 
 void SetVerbosity(int verb);
 
-void displayErrorMessage(char sMess[],...);  /* Displays error message then terminates */
-void displayWarningMessage(char sMess[],...);/* Displays warning message without terminating */
+void displayErrorMessage(char sMess[],...);
+void displayWarningMessage(char sMess[],...);
 
 void displayProgress(char sMess[],...);
 void displayProgress1(char sMess[],...);
@@ -488,8 +486,6 @@ void SetLogFile(int my_savelog, char* my_savelogname);
 
 #ifndef sepheader
 #define sepheader
-
-/* Structure Definitions */
 
 typedef struct sseplist{
     int size;
@@ -536,10 +532,8 @@ void writePenalty(int spno,struct sspecies spec[],char savename[],int iOutputTyp
 void writePenaltyPlanningUnits(int puno,struct spustuff pu[],int Rtemp[],char savename[],int iOutputType);
 void writeSpec(int spno,struct sspecies spec[],char savename[]);
 
-// functions for cluster analysis in R
 void createSolutionsMatrix(int puno,struct spustuff pu[],char savename_ism[],int iOutputType,int iIncludeHeaders);
-void ExecuteRScript(struct sfname fnames);
 
 void writeSlaveSyncFileRun(int iSyncRun);
-void SlaveExit(void);
+void slaveExit(void);
 

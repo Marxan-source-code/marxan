@@ -1628,3 +1628,123 @@ void displayUsage(char *programName)
     fprintf(stderr,"%s usage: %s -[o] -[c] [input file name]\n",programName,programName);
 }
 
+// if a weighted connectivity file is in use, construct one. written for Maria Beger. Not documented.
+void writeWeightedConnectivityFile(struct sfname fnames)
+{
+    char *readname1, *readname2, *writename, *sFileName,*sWeighting, *sId1, *sId2, *sConnection, *sAsymmetric;
+    FILE *fpnames, *fpInputConnection, *fpOutputConnection;
+    char sLine[500];
+    int iRecords, iTotalRecords, iFiles;
+    double rWeighting, rConnection;
+    #ifdef DEBUGTRACEFILE
+    char debugbuffer[200];
+    #endif
+
+    // prepare file names for backing up the connection file
+    readname1 = (char *) calloc(strlen(fnames.connectionname) + strlen(fnames.inputdir)+2, sizeof(char));
+    strcpy(readname1,fnames.inputdir);
+    strcat(readname1,fnames.connectionname);
+    writename = (char *) calloc(strlen(fnames.connectionname) + strlen(fnames.inputdir)+3, sizeof(char));
+    strcpy(writename,fnames.inputdir);
+    strcat(writename,fnames.connectionname);
+    strcat(writename,"~");
+    // back up the connection file
+    copyFile(readname1,writename);
+    free(writename);
+    free(readname1);
+
+    // prepare connection file for output
+    writename = (char *) calloc(strlen(fnames.connectionname) + strlen(fnames.inputdir)+2, sizeof(char));
+    strcpy(writename,fnames.inputdir);
+    strcat(writename,fnames.connectionname);
+    if ((fpOutputConnection = fopen(writename,"w"))==NULL)
+    {
+       displayProgress1("Warning: Connection File %s cannot be written ",fnames.connectionname);
+       free(writename);
+    }
+    free(writename);
+    fprintf(fpOutputConnection,"id1,id2,connection\n");
+
+    // prepare connection file names file for input
+    readname1 = (char *) calloc(strlen(fnames.connectionfilesname) + strlen(fnames.inputdir)+2, sizeof(char));
+    strcpy(readname1,fnames.inputdir);
+    strcat(readname1,fnames.connectionfilesname);
+    if ((fpnames = fopen(readname1,"r"))==NULL)
+    {
+       displayProgress1("Warning: Connectivity Files Name File %s not found ",fnames.connectionfilesname);
+       free(readname1);
+    }
+    free(readname1);
+    fgets(sLine,500-1,fpnames);
+
+    // loop through the connectivity files
+    iTotalRecords = 0;
+    iFiles = 0;
+    while (fgets(sLine,500-1,fpnames))
+    {
+          iFiles++;
+          iRecords = 0;
+
+          // read the 3 fields from the line
+          sFileName = strtok(sLine," ,;:^*\"/\t\'\\\n");
+          sWeighting = strtok(NULL," ,;:^*\"/\t\'\\\n");
+          sscanf(sWeighting,"%lf",&rWeighting);
+          sAsymmetric = strtok(NULL," ,;:^*\"/\t\'\\\n");
+
+          if (rWeighting != 0)
+          {
+             // prepare current connectivity file for input
+             readname2 = (char *) calloc(strlen(sFileName) + strlen(fnames.inputdir)+2, sizeof(char));
+             strcpy(readname2,fnames.inputdir);
+             strcat(readname2,sFileName);
+             if ((fpInputConnection = fopen(readname2,"r"))==NULL)
+             {
+                displayProgress1("Warning: Input Connectivity  File %s not found ",sFileName);
+                free(readname2);
+             }
+             free(readname2);
+             // read the header row
+             fgets(sLine,500-1,fpInputConnection);
+
+             // write the input connection file contents to the output connection file with appropriate weightings
+             while (fgets(sLine,500-1,fpInputConnection))
+             {
+                   iRecords++;
+                   iTotalRecords++;
+
+                   sId1 = strtok(sLine," ,;:^*\"/\t\'\\\n");
+                   sId2 = strtok(NULL," ,;:^*\"/\t\'\\\n");
+                   sConnection = strtok(NULL," ,;:^*\"/\t\'\\\n");
+                   sscanf(sConnection,"%lf",&rConnection);
+
+                   fprintf(fpOutputConnection,"%s,%s,%lf\n",sId1,sId2,(rConnection*rWeighting));
+
+                   if (strcmp("yes",sAsymmetric) == 0)
+                      fprintf(fpOutputConnection,"%s,%s,%lf\n",sId2,sId1,(rConnection*rWeighting));
+             }
+
+             fclose(fpInputConnection);
+          }
+
+          #ifdef DEBUGTRACEFILE
+          sprintf(debugbuffer,"connectivity file %s weighting %lf asymmetric >%s< records %i\n",
+                              sFileName,rWeighting,sAsymmetric,iRecords);
+          appendTraceFile(debugbuffer);
+          #endif
+
+          free(sFileName);
+          free(sWeighting);
+          free(sAsymmetric);
+    }
+
+    #ifdef DEBUGTRACEFILE
+    sprintf(debugbuffer,"total files %i records %i\n",iFiles,iTotalRecords);
+    appendTraceFile(debugbuffer);
+    #endif
+
+    fclose(fpOutputConnection);
+    fclose(fpnames);
+
+    asymmetricconnectivity = 1;
+}
+

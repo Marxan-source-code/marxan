@@ -162,24 +162,24 @@ void executeRunLoop(long int repeats,int puno,int spno,double cm,int aggexist,do
 
         if (runoptions.ThermalAnnealingOn)
         {
-           appendTraceFile("before ThermalAnnealing run %i\n",irun);
+           appendTraceFile("before thermalAnnealing run %i\n",irun);
 
-           ThermalAnnealing(spno,puno,connections,R2D[irun-1],cm,spec,pu,SM,&change,&reserve,
+           thermalAnnealing(spno,puno,connections,R2D[irun-1],cm,spec,pu,SM,&change,&reserve,
                             repeats,irun,savename,misslevel,
                             aggexist,costthresh,tpf1,tpf2,clumptype);
 
-           appendTraceFile("after ThermalAnnealing run %i\n",irun);
+           appendTraceFile("after thermalAnnealing run %i\n",irun);
         }  // End of Thermal Annealing On
 
         if (runoptions.QuantumAnnealingOn)
         {
-           appendTraceFile("before QuantumAnnealing run %i\n",irun);
+           appendTraceFile("before quantumAnnealing run %i\n",irun);
 
-           QuantumAnnealing(spno,puno,connections,R2D[irun-1],cm,spec,pu,SM,&change,&reserve,
+           quantumAnnealing(spno,puno,connections,R2D[irun-1],cm,spec,pu,SM,&change,&reserve,
                             repeats,irun,savename,misslevel,
                             aggexist,costthresh,tpf1,tpf2,clumptype);
 
-           appendTraceFile("after QuantumAnnealing run %i\n",irun);
+           appendTraceFile("after quantumAnnealing run %i\n",irun);
         }  // End of Quantum Annealing On
 
         if (runoptions.HeuristicOn)
@@ -392,7 +392,7 @@ int executeMarxan(char sInputFileName[])
     appendTraceFile("before build search arrays\n");
 
     // create the fast lookup tables for planning units and species names
-    PrepareBinarySearchArrays(puno,spno,pu,spec,&PULookup,&SPLookup);
+    computeBinarySearch(puno,spno,pu,spec,&PULookup,&SPLookup);
 
     appendTraceFile("after build search arrays\n");
 
@@ -410,7 +410,7 @@ int executeMarxan(char sInputFileName[])
        appendTraceFile("before readConnections\n");
 
        if (strcmp("NULL",fnames.connectionfilesname) != 0)
-          PrepareWeightedConnectivityFile(fnames);
+          writeWeightedConnectivityFile(fnames);
 
        itemp = readConnections(puno,connections,pu,PULookup,fnames);
 
@@ -662,7 +662,7 @@ int executeMarxan(char sInputFileName[])
                 displayShutdownMessage();
 
                 if (marxanisslave == 1)
-                   SlaveExit();
+                   slaveExit();
 
                 if (aggexist)
                    ClearClumps(spno,spec,pu,SM);  // Remove these pointers for cleanliness sake
@@ -770,7 +770,7 @@ int executeMarxan(char sInputFileName[])
               sprintf(tempname2,"%s_solutionsmatrix.dat",savename);
 
           if (marxanisslave == 1)
-             SlaveExit();
+             slaveExit();
        }
 
     if (aggexist)
@@ -2459,7 +2459,8 @@ void AdaptiveDec(struct sanneal *anneal)
 
 } /* Adaptive Decrement. Sets the new temperature based on old values */
 
-void ThermalAnnealing(int spno, int puno, struct sconnections connections[],int R[], double cm,
+// run simulated thermal annealing selection algorithm
+void thermalAnnealing(int spno, int puno, struct sconnections connections[],int R[], double cm,
                       typesp *spec, struct spustuff pu[], struct spu SM[], struct scost *change, struct scost *reserve,
                       long int repeats,int irun,char *savename,double misslevel,
                       int aggexist,
@@ -2472,7 +2473,7 @@ void ThermalAnnealing(int spno, int puno, struct sconnections connections[],int 
      FILE *fp,*ttfp,*Rfp;
      char *writename;
 
-     appendTraceFile("ThermalAnnealing start iterations %ld\n",anneal.iterations);
+     appendTraceFile("thermalAnnealing start iterations %ld\n",anneal.iterations);
      if (verbosity > 4)
      {
         sprintf(sRun,"%i",irun);
@@ -2537,7 +2538,7 @@ void ThermalAnnealing(int spno, int puno, struct sconnections connections[],int 
             iRowLimit = floor(anneal.iterations / fnames.annealingtracerows);
      }
 
-     displayProgress2("  Main ThermalAnnealing Section.\n");
+     displayProgress2("  Main thermalAnnealing Section.\n");
 
      rThreshold = costthresh;
      costthresh = rThreshold * rStartDecMult;
@@ -2666,16 +2667,16 @@ void ThermalAnnealing(int spno, int puno, struct sconnections connections[],int 
      if (verbosity > 1)
      {
        ReserveCost(puno,spno,R,pu,connections,SM,cm,spec,aggexist,reserve,clumptype);
-       displayProgress1("  ThermalAnnealing:");
+       displayProgress1("  thermalAnnealing:");
 
        #ifdef DEBUG_PRINTRESVALPROB
-       appendTraceFile("before displayValueForPUs ThermalAnnealing:\n");
+       appendTraceFile("before displayValueForPUs thermalAnnealing:\n");
        #endif
 
        displayValueForPUs(puno,spno,R,*reserve,spec,misslevel);
 
        #ifdef DEBUG_PRINTRESVALPROB
-       appendTraceFile("after displayValueForPUs ThermalAnnealing:\n");
+       appendTraceFile("after displayValueForPUs thermalAnnealing:\n");
        #endif
      }
 
@@ -2690,9 +2691,10 @@ void ThermalAnnealing(int spno, int puno, struct sconnections connections[],int 
         fclose(ttfp);
         fclose(Rfp);
      }
-}  // ThermalAnnealing
+} // thermalAnnealing
 
-void QuantumAnnealing(int spno, int puno, struct sconnections connections[],int R[], double cm,
+// run simulated quantum annealing selection algorithm
+void quantumAnnealing(int spno, int puno, struct sconnections connections[],int R[], double cm,
                       typesp *spec, struct spustuff pu[], struct spu SM[], struct scost *change, struct scost *reserve,
                       long int repeats,int irun,char *savename,double misslevel,
                       int aggexist,
@@ -2715,7 +2717,7 @@ void QuantumAnnealing(int spno, int puno, struct sconnections connections[],int 
      else
          strcpy(sDecayType,"SIGMOIDAL");
 
-     appendTraceFile("QuantumAnnealing start iterations %ld decay type %s proportion %f decay A %f decay B %f acceptance probability %f saveannealingtrace %i\n",
+     appendTraceFile("quantumAnnealing start iterations %ld decay type %s proportion %f decay A %f decay B %f acceptance probability %f saveannealingtrace %i\n",
                           anneal.iterations,sDecayType,rQAPROP,rQADECAY,rQADECAYB,rQAACCPR,fnames.saveannealingtrace);
      if (verbosity > 4)
      {
@@ -2769,7 +2771,7 @@ void QuantumAnnealing(int spno, int puno, struct sconnections connections[],int 
             iRowLimit = floor(anneal.iterations / fnames.annealingtracerows);
      }
 
-     displayProgress2("  Main QuantumAnnealing Section.\n");
+     displayProgress2("  Main quantumAnnealing Section.\n");
 
      rThreshold = costthresh;
      costthresh = rThreshold * rStartDecMult;
@@ -2794,7 +2796,7 @@ void QuantumAnnealing(int spno, int puno, struct sconnections connections[],int 
          //rFluctuationMagnitude = iFluctuationCount / puno;
 
          #ifdef DEBUG_QA
-         appendTraceFile("QuantumAnnealing rFluctuationMagnitude %f iFluctuationCount %i\n",
+         appendTraceFile("quantumAnnealing rFluctuationMagnitude %f iFluctuationCount %i\n",
                               rFluctuationMagnitude,iFluctuationCount);
          #endif
 
@@ -2812,14 +2814,14 @@ void QuantumAnnealing(int spno, int puno, struct sconnections connections[],int 
                  j = RandNum(puno);
 
                  #ifdef DEBUG_QA
-                 appendTraceFile("QuantumAnnealing j %i PUChosen[j] %i R[j] %i \n",j,PUChosen[j],R[j]);
+                 appendTraceFile("quantumAnnealing j %i PUChosen[j] %i R[j] %i \n",j,PUChosen[j],R[j]);
                  #endif
                }
                while ((PUChosen[j] > 0) || (R[j] > 1));
                // select PU's at random that are not already chosen or locked
 
                #ifdef DEBUG_QA
-               appendTraceFile("QuantumAnnealing chose ipu %i\n",j);
+               appendTraceFile("quantumAnnealing chose ipu %i\n",j);
                #endif
 
 
@@ -2926,16 +2928,16 @@ void QuantumAnnealing(int spno, int puno, struct sconnections connections[],int 
      if (verbosity >1)
      {
        ReserveCost(puno,spno,R,pu,connections,SM,cm,spec,aggexist,reserve,clumptype);
-       displayProgress1("  QuantumAnnealing:");
+       displayProgress1("  quantumAnnealing:");
 
        #ifdef DEBUG_PRINTRESVALPROB
-       appendTraceFile("before displayValueForPUs QuantumAnnealing:\n");
+       appendTraceFile("before displayValueForPUs quantumAnnealing:\n");
        #endif
 
        displayValueForPUs(puno,spno,R,*reserve,spec,misslevel);
 
        #ifdef DEBUG_PRINTRESVALPROB
-       appendTraceFile("after displayValueForPUs QuantumAnnealing:\n");
+       appendTraceFile("after displayValueForPUs quantumAnnealing:\n");
        #endif
      }
 
@@ -2951,21 +2953,14 @@ void QuantumAnnealing(int spno, int puno, struct sconnections connections[],int 
         fclose(ttfp);
         fclose(Rfp);
      }
-     appendTraceFile("QuantumAnnealing end iterations %ld tests %li\n",iIterations,iTests);
+     appendTraceFile("quantumAnnealing end iterations %ld tests %li\n",iIterations,iTests);
 
-}  /* Main Quantum Annealing Function */
+} // quantumAnnealing
 
-/* ANNEALING.C END */
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+// Big O notation: optimisation functions by Matt Watts
 
-/* optimisation functions written by Matt Watts */
-
-void siftDown_bs(struct binsearch numbers[], int root, int bottom, int array_size)
+// helps to do a heap sort
+void siftDownBinarySearch(struct binsearch numbers[], int root, int bottom, int array_size)
 {
      int done, maxChild;
      typebinsearch temp;
@@ -2997,24 +2992,26 @@ void siftDown_bs(struct binsearch numbers[], int root, int bottom, int array_siz
      }
 }
 
-void heapSort_bs(struct binsearch numbers[], int array_size)
+// sort a datastructure with heap sort
+void heapSortBinarySearch(struct binsearch numbers[], int array_size)
 {
      int i;
      typebinsearch temp;
 
      for (i = (array_size / 2)-1; i >= 0; i--)
-         siftDown_bs(numbers, i, array_size, array_size);
+         siftDownBinarySearch(numbers, i, array_size, array_size);
 
      for (i = array_size-1; i >= 1; i--)
      {
          temp = numbers[0];
          numbers[0] = numbers[i];
          numbers[i] = temp;
-         siftDown_bs(numbers, 0, i-1, array_size);
+         siftDownBinarySearch(numbers, 0, i-1, array_size);
      }
 }
 
-void PrepareBinarySearchArrays(int puno, int spno, struct spustuff PU[], typesp spec[],
+// compute binary search arrays for looking up pu's and species fast
+void computeBinarySearch(int puno, int spno, struct spustuff PU[], typesp spec[],
                                struct binsearch *PULookup[], struct binsearch *SPLookup[])
 {
      int i;
@@ -3039,33 +3036,15 @@ void PrepareBinarySearchArrays(int puno, int spno, struct spustuff PU[], typesp 
         writeBinarySearchArrays("before",fnames,puno,spno,(* PULookup),(* SPLookup));
 
      /* sort the lookup arrays by name */
-     heapSort_bs((* PULookup),puno);
-     heapSort_bs((* SPLookup),spno);
+     heapSortBinarySearch((* PULookup),puno);
+     heapSortBinarySearch((* SPLookup),spno);
 
      if (verbosity > 3)
         writeBinarySearchArrays("after",fnames,puno,spno,(* PULookup),(* SPLookup));
 }
 
-void TestFastNameToPUID(int puno, struct binsearch PULookup[], struct spustuff PU[], struct sfname fnames)
-{
-     FILE *fp;
-     int i;
-     char *writename;
-
-     writename = (char *) calloc(strlen(fnames.inputdir) + strlen("TestFastNameToPUID.csv") + 2, sizeof(char));
-     strcpy(writename,fnames.inputdir);
-     strcat(writename,"TestFastNameToPUID.csv");
-     if ((fp = fopen(writename,"w"))==NULL)
-          displayErrorMessage("cannot create TestFastNameToPUID file %s\n",writename);
-     free(writename);
-     fputs("name,index,bin search index\n",fp);
-     for (i=0;i<puno;i++)
-          fprintf(fp,"%d,%d,%d\n",PU[i].id,i,FastNameToPUID(puno,PU[i].id,PULookup));
-     fclose(fp);
-}
-
-
-int FastNameToPUID(int puno,int name, struct binsearch PULookup[])
+// use binary search to find a PU index given it's id
+int binarySearchPuIndex(int puno,int name, struct binsearch PULookup[])
 {
     /* use a binary search to find the index of planning unit "name" */
     int iTop, iBottom, iCentre, iCount;
@@ -3092,28 +3071,10 @@ int FastNameToPUID(int puno,int name, struct binsearch PULookup[])
     return(PULookup[iCentre].index);
 }
 
-void TestFastNameToSPID(int spno, struct binsearch SPLookup[], typesp spec[], struct sfname fnames)
+// use binary search to find a species index given it's id
+int binarySearchSpecIndex(int spno,int name, struct binsearch SPLookup[])
 {
-     FILE *fp;
-     int i;
-     char *writename;
-
-     writename = (char *) calloc(strlen(fnames.inputdir) + strlen("TestFastNameToSPID.csv") + 2, sizeof(char));
-     strcpy(writename,fnames.inputdir);
-     strcat(writename,"TestFastNameToSPID.csv");
-     if ((fp = fopen(writename,"w"))==NULL)
-        displayErrorMessage("cannot create TestFastNameToSPID file %s\n",writename);
-     free(writename);
-     fputs("name,index,bin search index\n",fp);
-     for (i=0;i<spno;i++)
-         fprintf(fp,"%d,%d,%d\n",spec[i].name,i,FastNameToSPID(spno,spec[i].name,SPLookup));
-     fclose(fp);
-}
-
-
-int FastNameToSPID(int spno,int name, struct binsearch SPLookup[])
-{
-    /* use a binary search to find the index of planning unit "name" */
+    /* use a binary search to find the index of species "name" */
     int iTop, iBottom, iCentre, iCount;
 
     iTop = 0;
@@ -3138,8 +3099,9 @@ int FastNameToSPID(int spno,int name, struct binsearch SPLookup[])
     return(SPLookup[iCentre].index);
 }
 
-// SlaveExit does not deliver a message prior to exiting, but creates a file so C-Plan knows marxan has exited
-void SlaveExit(void)
+// marxan is running as a slave and has finished. create a sync file so the calling software will know marxan has finished creating the output files
+// slaveExit does not deliver a message prior to exiting, but creates a file so C-Plan/Zonae Cogito/etc knows marxan has exited
+void slaveExit(void)
 {
      writeSlaveSyncFile();
 }
@@ -3513,126 +3475,6 @@ void SetOptions(double *cm,double *prop,struct sanneal *anneal,
      fclose(fp);
 
 }  /***** Set Options *******/
-
-void PrepareWeightedConnectivityFile(struct sfname fnames)
-{
-    char *readname1, *readname2, *writename, *sFileName,*sWeighting, *sId1, *sId2, *sConnection, *sAsymmetric;
-    FILE *fpnames, *fpInputConnection, *fpOutputConnection;
-    char sLine[500];
-    int iRecords, iTotalRecords, iFiles;
-    double rWeighting, rConnection;
-    #ifdef DEBUGTRACEFILE
-    char debugbuffer[200];
-    #endif
-
-    // prepare file names for backing up the connection file
-    readname1 = (char *) calloc(strlen(fnames.connectionname) + strlen(fnames.inputdir)+2, sizeof(char));
-    strcpy(readname1,fnames.inputdir);
-    strcat(readname1,fnames.connectionname);
-    writename = (char *) calloc(strlen(fnames.connectionname) + strlen(fnames.inputdir)+3, sizeof(char));
-    strcpy(writename,fnames.inputdir);
-    strcat(writename,fnames.connectionname);
-    strcat(writename,"~");
-    // back up the connection file
-    copyFile(readname1,writename);
-    free(writename);
-    free(readname1);
-
-    // prepare connection file for output
-    writename = (char *) calloc(strlen(fnames.connectionname) + strlen(fnames.inputdir)+2, sizeof(char));
-    strcpy(writename,fnames.inputdir);
-    strcat(writename,fnames.connectionname);
-    if ((fpOutputConnection = fopen(writename,"w"))==NULL)
-    {
-       displayProgress1("Warning: Connection File %s cannot be written ",fnames.connectionname);
-       free(writename);
-    }
-    free(writename);
-    fprintf(fpOutputConnection,"id1,id2,connection\n");
-
-    // prepare connection file names file for input
-    readname1 = (char *) calloc(strlen(fnames.connectionfilesname) + strlen(fnames.inputdir)+2, sizeof(char));
-    strcpy(readname1,fnames.inputdir);
-    strcat(readname1,fnames.connectionfilesname);
-    if ((fpnames = fopen(readname1,"r"))==NULL)
-    {
-       displayProgress1("Warning: Connectivity Files Name File %s not found ",fnames.connectionfilesname);
-       free(readname1);
-    }
-    free(readname1);
-    fgets(sLine,500-1,fpnames);
-
-    // loop through the connectivity files
-    iTotalRecords = 0;
-    iFiles = 0;
-    while (fgets(sLine,500-1,fpnames))
-    {
-          iFiles++;
-          iRecords = 0;
-
-          // read the 3 fields from the line
-          sFileName = strtok(sLine," ,;:^*\"/\t\'\\\n");
-          sWeighting = strtok(NULL," ,;:^*\"/\t\'\\\n");
-          sscanf(sWeighting,"%lf",&rWeighting);
-          sAsymmetric = strtok(NULL," ,;:^*\"/\t\'\\\n");
-
-          if (rWeighting != 0)
-          {
-             // prepare current connectivity file for input
-             readname2 = (char *) calloc(strlen(sFileName) + strlen(fnames.inputdir)+2, sizeof(char));
-             strcpy(readname2,fnames.inputdir);
-             strcat(readname2,sFileName);
-             if ((fpInputConnection = fopen(readname2,"r"))==NULL)
-             {
-                displayProgress1("Warning: Input Connectivity  File %s not found ",sFileName);
-                free(readname2);
-             }
-             free(readname2);
-             // read the header row
-             fgets(sLine,500-1,fpInputConnection);
-
-             // write the input connection file contents to the output connection file with appropriate weightings
-             while (fgets(sLine,500-1,fpInputConnection))
-             {
-                   iRecords++;
-                   iTotalRecords++;
-
-                   sId1 = strtok(sLine," ,;:^*\"/\t\'\\\n");
-                   sId2 = strtok(NULL," ,;:^*\"/\t\'\\\n");
-                   sConnection = strtok(NULL," ,;:^*\"/\t\'\\\n");
-                   sscanf(sConnection,"%lf",&rConnection);
-
-                   fprintf(fpOutputConnection,"%s,%s,%lf\n",sId1,sId2,(rConnection*rWeighting));
-
-                   if (strcmp("yes",sAsymmetric) == 0)
-                      fprintf(fpOutputConnection,"%s,%s,%lf\n",sId2,sId1,(rConnection*rWeighting));
-             }
-
-             fclose(fpInputConnection);
-          }
-
-          #ifdef DEBUGTRACEFILE
-          sprintf(debugbuffer,"connectivity file %s weighting %lf asymmetric >%s< records %i\n",
-                              sFileName,rWeighting,sAsymmetric,iRecords);
-          appendTraceFile(debugbuffer);
-          #endif
-
-          free(sFileName);
-          free(sWeighting);
-          free(sAsymmetric);
-    }
-
-    #ifdef DEBUGTRACEFILE
-    sprintf(debugbuffer,"total files %i records %i\n",iFiles,iTotalRecords);
-    appendTraceFile(debugbuffer);
-    #endif
-
-    fclose(fpOutputConnection);
-    fclose(fpnames);
-
-    asymmetricconnectivity = 1;
-}
-
 
 void MapUserPenalties(typesp spec[],int spno)
 {
@@ -4099,14 +3941,14 @@ int main(int argc,char *argv[])
     {
         if (marxanisslave == 1)
         {
-           SlaveExit();
+           slaveExit();
         }
 
         return 1;
     }  // Abnormal Exit
     if (marxanisslave == 1)
     {
-       SlaveExit();
+       slaveExit();
     }
 
     return 0;
