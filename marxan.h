@@ -253,7 +253,7 @@ void computeChangeScore(int iIteration,int ipu,int spno,int puno,struct spustuff
                         struct sspecies spec[],struct spu SM[],int *R,double cm,int imode,
                         struct scost *change, struct scost *reserve,double costthresh,double tpf1, double tpf2,
                         double timeprop,int clumptype);
-double NewPenalty(int ipu,int isp,struct sspecies spec[],struct spustuff pu[], struct spu SM[],int imode);
+double computeSpeciesPlanningUnitPenalty(int ipu,int isp,struct sspecies spec[],struct spustuff pu[], struct spu SM[],int imode);
 void doChange(int ipu,int puno,int *R,struct scost *reserve,struct scost change,
               struct spustuff pu[],struct spu SM[],struct sspecies spec[],struct sconnections connections[],
               int imode,int clumptype);

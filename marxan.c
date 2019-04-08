@@ -1364,7 +1364,7 @@ double computeChangePenalty(int ipu,int puno,struct sspecies spec[],struct spust
                  else
                  {
                     if (spec[isp].target)
-                       newamount = NewPenalty(ipu,isp,spec,pu,SM,imode)/spec[isp].target;
+                       newamount = computeSpeciesPlanningUnitPenalty(ipu,isp,spec,pu,SM,imode)/spec[isp].target;
                     if (spec[isp].targetocc)
                     {
                        tamount =  (double) (spec[isp].targetocc - spec[isp].occurrence - imode)    /
@@ -1790,8 +1790,8 @@ void computeQuantumChangeScore(int spno,int puno,struct spustuff pu[],struct sco
      #endif
 } // computeQuantumChangeScore
 
-// new Animal Penalty
-double NewPenalty(int ipu,int isp,struct sspecies spec[],struct spustuff pu[],struct spu SM[],int imode)
+// compute penalty for a species for changing status of a single planning unit
+double computeSpeciesPlanningUnitPenalty(int ipu,int isp,struct sspecies spec[],struct spustuff pu[],struct spu SM[],int imode)
 {
        double newpen;
 
@@ -1801,7 +1801,7 @@ double NewPenalty(int ipu,int isp,struct sspecies spec[],struct spustuff pu[],st
           newpen = 0;
 
        return(newpen);
-}  // Animal Penalty
+}
 
 // determines if the change value for changing a single planning unit status is good
 // does the change stochastically fall below the current acceptance probability?

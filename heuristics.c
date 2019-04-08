@@ -15,7 +15,7 @@ double GreedyPen(int ipu,int puno, int spno, typesp spec[],int R[],struct spustu
               if (spec[i].target2)
                  newamount = NewPenalty4(ipu,i,puno,spec,pu,SM,R,connections,1,clumptype);
               else
-                  newamount = NewPenalty(ipu,i,spec,pu,SM,1);
+                  newamount = computeSpeciesPlanningUnitPenalty(ipu,i,spec,pu,SM,1);
                   
               famount += (newamount - fold)*spec[i].spf;
            } // Add new penalty if species isn't already in the system
@@ -107,7 +107,7 @@ double RareScore(int isp,int ipu,int puno,typesp spec[],struct spu SM[], int R[]
           if (spec[isp].target2)
              newamount = NewPenalty4(ipu,isp,puno,spec,pu,SM,R,connections,1,clumptype);
           else
-              newamount = NewPenalty(ipu,isp,spec,pu,SM,1);
+              newamount = computeSpeciesPlanningUnitPenalty(ipu,isp,spec,pu,SM,1);
           currpen = newamount - fold;
        } // Add new penalty if species isn't already in the system
 
