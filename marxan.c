@@ -139,7 +139,7 @@ void executeRunLoop(long int repeats,int puno,int spno,double cm,int aggexist,do
 
         displayProgress1("  Creating the initial reserve \n");
         
-        InitReserve(puno,prop,R2D[irun-1]);  // Create Initial Reserve
+        initialiseReserve(puno,prop,R2D[irun-1]);  // Create Initial Reserve
        
         addReserve(puno,pu,R2D[irun-1]);
 
@@ -1063,7 +1063,7 @@ int computePenalties(int puno,int spno,struct spustuff pu[],struct sspecies spec
             {
                ftarget += returnAmountSpecAtPu(pu,SM,j,i);
                itargetocc++;
-               spec[i].penalty += cost(j,pu,connections,cm);
+               spec[i].penalty += computePlanningUnitValue(j,pu,connections,cm);
             }
         } // reset PUtemp and also target
 
@@ -1087,7 +1087,7 @@ int computePenalties(int puno,int spno,struct spustuff pu[],struct sspecies spec
               rAmount = returnAmountSpecAtPu(pu,SM,j,i);
               if (PUtemp[j] == 0 && rAmount>0)
               {
-                 fcost = cost(j,pu,connections,cm);
+                 fcost = computePlanningUnitValue(j,pu,connections,cm);
                  if (fcost == 0)
                     fcost = delta;
                  if (rAmount >= spec[i].target - ftarget && (imaxtarget == 0 || (imaxtarget == 1 && fcost < fbest)))
@@ -1201,7 +1201,7 @@ int computePenaltiesOptimise(int puno,int spno,struct spustuff pu[],struct sspec
                {
                   ftarget += SMsp[ism].amount;
                   itargetocc++;
-                  spec[i].penalty += cost(ipu,pu,connections,cm);
+                  spec[i].penalty += computePlanningUnitValue(ipu,pu,connections,cm);
                }
            } // reset PUtemp and also target
 
@@ -1227,7 +1227,7 @@ int computePenaltiesOptimise(int puno,int spno,struct spustuff pu[],struct sspec
                  rAmount = SMsp[ism].amount;
                   if (PUtemp[ipu] == 0)
                   {
-                    fcost = cost(ipu,pu,connections,cm);
+                    fcost = computePlanningUnitValue(ipu,pu,connections,cm);
                     if (fcost == 0)
                        fcost = delta;
                     if (rAmount >= spec[i].target - ftarget && (imaxtarget == 0 ||
@@ -1292,16 +1292,15 @@ int computePenaltiesOptimise(int puno,int spno,struct spustuff pu[],struct sspec
     return(badspecies);
 }// *** Calculate Initial Penalties ***
 
-// ********** Cost of Planning Unit & all connection costs of planning unit
-// **** Used only when calculating penalties
-double cost(int ipu,struct spustuff pu[],struct sconnections connections[],double cm)
+// compute cost + connectivity for a single planning unit
+double computePlanningUnitValue(int ipu,struct spustuff pu[],struct sconnections connections[],double cm)
 {
-       double fcost;
+       double theValue;
 
-       fcost = pu[ipu].cost;
-       fcost += ConnectionCost1(ipu,pu,connections,cm);
+       theValue = pu[ipu].cost;
+       theValue += ConnectionCost1(ipu,pu,connections,cm);
 
-       return(fcost);
+       return(theValue);
 }
 
 /************ Change in penalty for adding single PU ******/
@@ -1592,67 +1591,21 @@ void computeReserveValue(int puno,int spno,int *R,struct spustuff pu[],
 
 }  /**** value of a reserve ***/
 
-/*********** Set the Initial Reserve System ************/
-void InitReserve(int puno,double prop, int *R)
+// initialise a planning unit vector of status to random 1's and 0's
+void initialiseReserve(int puno,double prop, int *R)
 {
      int i;
      for (i=0;i<puno;i++)
          R[i] = rand1() < prop ? 1:0;
 }
 
-
-/******** Species Amounts ****************/
-/******** puts in the effective amount for each species in reserve R */
-void SpeciesAmounts(int spno,int puno,struct sspecies spec[],struct spustuff pu[],struct spu SM[],
-                    int *R,int clumptype)
-{
-     int i, ism, isp,ipu;
-
-     for (isp=0;isp<spno;isp++)
-     {
-         spec[isp].amount = 0;
-         spec[isp].occurrence = 0;
-         if (spec[isp].target2)
-            SpeciesAmounts4(isp,spec,clumptype);
-
-         spec[isp].expected1D = 0;
-         spec[isp].expected2D = 0;
-         spec[isp].variance1D = 0;
-         spec[isp].variance2D = 0;
-     }
-
-     for (ipu=0;ipu<puno;ipu++)
-         if (pu[ipu].richness)
-            if (R[ipu] ==1 || R[ipu] == 2)
-               for (i=0;i<pu[ipu].richness;i++)
-               {
-                   ism = pu[ipu].offset + i;
-                   isp = SM[ism].spindex;
-                   if (spec[isp].target2 == 0)
-                   {
-                      spec[isp].amount += SM[ism].amount;
-                      spec[isp].occurrence++;
-                   }
-               }
-
-     #ifdef ANNEALING_TEST
-     for (isp=0;isp<spno;isp++)
-     {
-         appendTraceFile("SpeciesAmounts isp %i spec.amount %g\n",
-                              isp,spec[isp].amount);
-     }
-     #endif
-
-} /*** Species Amounts ***/
-
-/** Threshold penalty used for Check Change ***/
-/** only used when there is a cost threshold **/
-double ThresholdPenalty(double tpf1,double tpf2,double timeprop)
+// sets cost threshold penalty when "cost threshold" is in use
+double thresholdPenalty(double tpf1,double tpf2,double timeprop)
 {
     if (tpf2 < 0)
        return(tpf1);
     return(tpf1*exp(tpf2*timeprop));
-} /* Threshold Penalty */
+}
 
 // compute change in the objective function score for adding or removing a single planning unit
 void computeChangeScore(int iIteration,int ipu,int spno,int puno,struct spustuff pu[],struct sconnections connections[],
@@ -1691,16 +1644,16 @@ void computeChangeScore(int iIteration,int ipu,int spno,int puno,struct spustuff
            else
                threshpen = (change->cost + change->connection +
                            reserve->cost + reserve->connection - costthresh) *
-                           ThresholdPenalty(tpf1,tpf2,timeprop);
+                           thresholdPenalty(tpf1,tpf2,timeprop);
         }
         else
         {
             if (change->cost + change->connection + reserve->cost + reserve->connection <= costthresh)
                 threshpen = (reserve->cost + reserve->connection - costthresh) *
-                            ThresholdPenalty(tpf1,tpf2,timeprop);
+                            thresholdPenalty(tpf1,tpf2,timeprop);
             else
                 threshpen = (change->cost + change->connection) *
-                            ThresholdPenalty(tpf1,tpf2,timeprop);
+                            thresholdPenalty(tpf1,tpf2,timeprop);
         }
      }
 
@@ -1794,16 +1747,16 @@ void computeQuantumChangeScore(int spno,int puno,struct spustuff pu[],struct sco
                else
                    threshpen = (change->cost + change->connection +
                                reserve->cost + reserve->connection - costthresh) *
-                               ThresholdPenalty(tpf1,tpf2,timeprop);
+                               thresholdPenalty(tpf1,tpf2,timeprop);
             }
             else
             {
                 if (change->cost + change->connection + reserve->cost + reserve->connection <= costthresh)
                      threshpen = (reserve->cost + reserve->connection - costthresh) *
-                                ThresholdPenalty(tpf1,tpf2,timeprop);
+                                thresholdPenalty(tpf1,tpf2,timeprop);
                 else
                     threshpen = (change->cost + change->connection) *
-                                ThresholdPenalty(tpf1,tpf2,timeprop);
+                                thresholdPenalty(tpf1,tpf2,timeprop);
             }
          }
 
@@ -2193,7 +2146,7 @@ void ConnollyInit(int puno,int spno,struct spustuff pu[],typeconnection connecti
 
      localdelta = 1E-10;
 
-     InitReserve(puno,prop,R);
+     initialiseReserve(puno,prop,R);
 
      #ifdef DEBUG_PROB1D
      appendTraceFile("ConnollyInit B\n");
@@ -2258,7 +2211,7 @@ void AdaptiveInit(int puno,int spno,double prop,int *R,
 
     for (i=0;i<isamples;i++)
     {  /* Generate Random Reserve */
-        InitReserve(puno,prop,R);
+        initialiseReserve(puno,prop,R);
         addReserve(puno,pu,R);
         /* Score Random reserve */
         computeReserveValue(puno,spno,R,pu,connections,SM,cm,spec,aggexist,&cost,clumptype);
