@@ -135,7 +135,7 @@ void executeRunLoop(long int repeats,int puno,int spno,double cm,int aggexist,do
            anneal.temp = anneal.Tinit;
         }  // Annealing Setup
 
-        appendTraceFile("before ReserveCost run %i\n",irun);
+        appendTraceFile("before computeReserveValue run %i\n",irun);
 
         displayProgress1("  Creating the initial reserve \n");
         
@@ -146,9 +146,9 @@ void executeRunLoop(long int repeats,int puno,int spno,double cm,int aggexist,do
         if (aggexist)
            ClearClumps(spno,spec,pu,SM);
 
-        ReserveCost(puno,spno,R2D[irun-1],pu,connections,SM,cm,spec,aggexist,&reserve,clumptype);
+        computeReserveValue(puno,spno,R2D[irun-1],pu,connections,SM,cm,spec,aggexist,&reserve,clumptype);
 
-        appendTraceFile("after ReserveCost run %i\n",irun);
+        appendTraceFile("after computeReserveValue run %i\n",irun);
 
         if (verbosity > 1)
         {
@@ -216,7 +216,7 @@ void executeRunLoop(long int repeats,int puno,int spno,double cm,int aggexist,do
 
            if (verbosity > 1)
            {
-              ReserveCost(puno,spno,R2D[irun-1],pu,connections,SM,cm,spec,aggexist,&reserve,clumptype);
+              computeReserveValue(puno,spno,R2D[irun-1],pu,connections,SM,cm,spec,aggexist,&reserve,clumptype);
               displayProgress1("  Iterative Improvement:");
               displayValueForPUs(puno,spno,R2D[irun-1],reserve,spec,misslevel);
            }
@@ -263,7 +263,7 @@ void executeRunLoop(long int repeats,int puno,int spno,double cm,int aggexist,do
         }
         
         // compute and store objective function score for this reserve system
-        ReserveCost(puno,spno,R2D[irun-1],pu,connections,SM,cm,spec,aggexist,&change,clumptype);
+        computeReserveValue(puno,spno,R2D[irun-1],pu,connections,SM,cm,spec,aggexist,&change,clumptype);
         rBestScore = change.total;
 
         if (fnames.savesolutionsmatrix)
@@ -326,10 +326,10 @@ int executeMarxan(char sInputFileName[])
 
     displayStartupMessage();
 
-    SetOptions(&cm,&prop,&anneal,
-               &iseed,&repeats,savename,&fnames,sInputFileName,
-               &runopts,&misslevel,&heurotype,&clumptype,&itimptype,&verbosity,
-               &costthresh,&tpf1,&tpf2);
+    readInputOptions(&cm,&prop,&anneal,
+                     &iseed,&repeats,savename,&fnames,sInputFileName,
+                     &runopts,&misslevel,&heurotype,&clumptype,&itimptype,&verbosity,
+                     &costthresh,&tpf1,&tpf2);
 
     setDefaultRunOptions(runopts,&runoptions);
 
@@ -1292,34 +1292,6 @@ int computePenaltiesOptimise(int puno,int spno,struct spustuff pu[],struct sspec
     return(badspecies);
 }// *** Calculate Initial Penalties ***
 
-// ********** Connection Cost Type 1
-// ** Total cost of all connections for PU independant of neighbour status
-double ConnectionCost1(int ipu,struct spustuff pu[],struct sconnections connections[],double cm)
-{
-       double fcost;
-       struct sneighbour *p;
-       #ifdef DEBUG_CONNECTIONCOST
-       char debugbuffer[200];
-       #endif
-
-       fcost = connections[ipu].fixedcost;
-       for (p = connections[ipu].first;p;p=p->next)
-           if (asymmetricconnectivity)
-           {
-              if (p->connectionorigon)
-                 fcost += p->cost;
-           }
-           else
-               fcost += p->cost;
-
-       #ifdef DEBUG_CONNECTIONCOST
-       sprintf(debugbuffer,"ConnectionCost1 ipu %i connection %g\n",ipu,fcost);
-       appendTraceFile(debugbuffer);
-       #endif
-
-       return(fcost*cm);
-}
-
 // ********** Cost of Planning Unit & all connection costs of planning unit
 // **** Used only when calculating penalties
 double cost(int ipu,struct spustuff pu[],struct sconnections connections[],double cm)
@@ -1433,10 +1405,10 @@ double computeChangePenalty(int ipu,int puno,struct sspecies spec[],struct spust
        return (fcost);
 }  /*** Change in penalty for adding or deleting one PU ****/
 
-/************** Value of a Reserve System ********/
-void ReserveCost(int puno,int spno,int *R,struct spustuff pu[],
-                 struct sconnections connections[],struct spu SM[],
-                 double cm, struct sspecies spec[],int aggexist,struct scost *reserve,int clumptype)
+// compute objective function value of a reserve system
+void computeReserveValue(int puno,int spno,int *R,struct spustuff pu[],
+                         struct sconnections connections[],struct spu SM[],
+                         double cm, struct sspecies spec[],int aggexist,struct scost *reserve,int clumptype)
 {
      int i,j;
      double ftemp;
@@ -1552,7 +1524,7 @@ void ReserveCost(int puno,int spno,int *R,struct spustuff pu[],
      sprintf(sProbDebugCost,"probability1D %f\n",reserve->probability1D);
      appendTraceFile(sProbDebugCost);
 
-     appendTraceFile("ReserveCost E\n");
+     appendTraceFile("computeReserveValue E\n");
 
      sprintf(sProbDebugCost,"%f",reserve->cost);
      strcpy(sProbDebugFileName,fnames.outputdir);
@@ -1563,7 +1535,7 @@ void ReserveCost(int puno,int spno,int *R,struct spustuff pu[],
                            ExpectedAmount1D,VarianceInExpectedAmount1D,spec);
 
 
-     appendTraceFile("ReserveCost F\n");
+     appendTraceFile("computeReserveValue F\n");
 
      sprintf(sProbDebugCost,"%f",reserve->cost);
      strcpy(sProbDebugFileName,fnames.outputdir);
@@ -1572,7 +1544,7 @@ void ReserveCost(int puno,int spno,int *R,struct spustuff pu[],
      strcat(sProbDebugFileName,".csv");
      writeProb1DDetailDebugTable(sProbDebugFileName,puno,spno,pu,SM,R);
 
-     appendTraceFile("ReserveCost G\n");
+     appendTraceFile("computeReserveValue G\n");
      #endif
 
      #ifdef DEBUG_PROB2D
@@ -2114,145 +2086,6 @@ int CountMissing(int spno,struct sspecies spec[],double misslevel,double *shortf
     return(isp);
 }  /* CountMissing*/
 
-// ********* Connection Cost Type 2 **************
-// **  Requires R[]. imode2 = 0 there is no negative cost for removing connection, we are calling from ReserveCost
-//                         or 1 there is a negative cost for removing connection, we are calling from Annealing
-//                   imode = -1 we are removing the planning unit from a reserve, calling from Annealing
-//                        or 1  we are adding the planning unit to a reserve, or it is already in reserve
-double ConnectionCost2(int ipu,struct sconnections connections[],int *R,int imode,int imode2,double cm)
-{
-       double fcost, rDelta;
-       struct sneighbour *p;
-       int R_pu1,i;
-
-       #ifdef DEBUG_CONNECTIONCOST2
-       if (asymmetricconnectivity)
-          if (imode2)
-          {
-             appendTraceFile("ConnectionCost2 start puid %i imode %i imode2 %i\n",pu[ipu].id,imode,imode2);
-          }
-       #endif
-
-       fcost = connections[ipu].fixedcost*imode;
-       p = connections[ipu].first;
-
-       if (asymmetricconnectivity)
-       {
-          while (p) // treatment for asymmetric connectivity
-          {
-                if (imode2) // calling from Annealing
-                {
-                   #ifdef DEBUG_CONNECTIONCOST2
-                   rDelta = 0;
-                   #endif
-
-                   if (imode == 1)
-                      R_pu1 = 0;
-                   else
-                       R_pu1 = 1;
-
-                   if (p->connectionorigon)
-                   {
-                      if (R[p->nbr] == 0)
-                      {
-                         if (R_pu1 == 1)
-                         {
-                            rDelta = -1*p->cost;
-                            fcost += rDelta;
-                         }
-                         else
-                         {
-                            rDelta = p->cost;
-                            fcost += rDelta;
-                         }
-                      }
-                   }
-                   else
-                   {
-                      if (R[p->nbr] == 1 || R[p->nbr] == 2)
-                      {
-                         if (R_pu1 == 1)
-                         {
-                            rDelta = p->cost;
-                            fcost += rDelta;
-                         }
-                         else
-                         {
-                            rDelta = -1*p->cost;
-                            fcost += rDelta;
-                         }
-                      }
-                   }
-
-                   #ifdef DEBUG_CONNECTIONCOST2
-                   appendTraceFile("ConnectionCost2 puidnbr %i Rnbr %i connectionorigon %i delta %g\n",
-                                        pu[p->nbr].id,R[p->nbr],p->connectionorigon,rDelta);
-                   #endif
-                }
-                else // calling from ReserveCost
-                {
-                    if (R[p->nbr] == 0)
-                       if (p->connectionorigon)
-                       {
-                          rDelta = p->cost;
-                          fcost += rDelta;
-                       }
-                }
-
-                p = p->next;
-          }
-       }
-       else
-       {
-           while (p) // treatment for symmetric connectivity
-           {
-                 if (fOptimiseConnectivityIn == 1)
-                 {  // optimise for "Connectivity In"
-                     if (R[p->nbr] == 1 || R[p->nbr] == 2)
-                     {
-                        rDelta = imode*p->cost;
-                        fcost += rDelta;
-                     }
-                     else
-                     {
-                         rDelta = imode*imode2*p->cost*-1;
-                         fcost += rDelta;
-                     }
-                 }
-                 else
-                 {   // optimise for "Connectivity Edge"
-                     if (R[p->nbr] == 1 || R[p->nbr] == 2)
-                     {
-                        rDelta = imode*imode2*p->cost*-1;
-                        fcost += rDelta;
-                     }
-                     else
-                     {
-                         rDelta = imode*p->cost;
-                         fcost += rDelta;
-                     }
-                 }
-
-                 p = p->next;
-           }
-       }
-
-       #ifdef DEBUG_CONNECTIONCOST2
-       if (asymmetricconnectivity)
-          if (imode2)
-          {
-             for (i=puno-1;i>-1;i--)
-             {
-                 appendTraceFile("puid%i R%i\n",pu[i].id,R[i]);
-             }
-
-             appendTraceFile("ConnectionCost2 end puid %i connection %g\n",pu[ipu].id,fcost);
-          }
-       #endif
-
-       return(fcost*cm);
-}/***** Connection Cost Type 2 *****************/
-
 void ComputeConnectivityIndices(double *rConnectivityTotal,double *rConnectivityIn,
                                 double *rConnectivityEdge,double *rConnectivityOut,
                                 int puno,int *R,typeconnection connections[])
@@ -2374,7 +2207,7 @@ void ConnollyInit(int puno,int spno,struct spustuff pu[],typeconnection connecti
      appendTraceFile("ConnollyInit C\n");
      #endif
 
-     ReserveCost(puno,spno,R,pu,connections,SM,cm,spec,aggexist,&reserve,clumptype);
+     computeReserveValue(puno,spno,R,pu,connections,SM,cm,spec,aggexist,&reserve,clumptype);
 
      #ifdef DEBUG_PROB1D
      appendTraceFile("ConnollyInit D\n");
@@ -2428,7 +2261,7 @@ void AdaptiveInit(int puno,int spno,double prop,int *R,
         InitReserve(puno,prop,R);
         addReserve(puno,pu,R);
         /* Score Random reserve */
-        ReserveCost(puno,spno,R,pu,connections,SM,cm,spec,aggexist,&cost,clumptype);
+        computeReserveValue(puno,spno,R,pu,connections,SM,cm,spec,aggexist,&cost,clumptype);
         /* Add Score to Sum */
         sum += cost.total;
         sum2 += cost.total*cost.total;
@@ -2673,7 +2506,7 @@ void thermalAnnealing(int spno, int puno, struct sconnections connections[],int 
      /** Post Processing  **********/
      if (verbosity > 1)
      {
-       ReserveCost(puno,spno,R,pu,connections,SM,cm,spec,aggexist,reserve,clumptype);
+       computeReserveValue(puno,spno,R,pu,connections,SM,cm,spec,aggexist,reserve,clumptype);
        displayProgress1("  thermalAnnealing:");
 
        #ifdef DEBUG_PRINTRESVALPROB
@@ -2934,7 +2767,7 @@ void quantumAnnealing(int spno, int puno, struct sconnections connections[],int 
      /** Post Processing  **********/
      if (verbosity >1)
      {
-       ReserveCost(puno,spno,R,pu,connections,SM,cm,spec,aggexist,reserve,clumptype);
+       computeReserveValue(puno,spno,R,pu,connections,SM,cm,spec,aggexist,reserve,clumptype);
        displayProgress1("  quantumAnnealing:");
 
        #ifdef DEBUG_PRINTRESVALPROB
@@ -3150,338 +2983,6 @@ int CheckVarName(char **varlist, int numvars, char *sVarName)
 
     return(foundit);
 }
-
-void rdsvar(FILE *infile, char varname[], void *address, int parmtype, int crit,int present)
-// Reads a variable of parmtype in from infile. Assumes that the next line is the one that has the
-// variable in question but will wrap once to find the variable.
-//
-// I changed this function because it was ignoring the last line of the file (also it was a dogs breakfast).
-// it returns the "Final value taken" error message when SAVESOLUTIONSMATRIX parameter is on last line, weird, need to fix this.
-{
-     int foundit, namelen, check1, check2, gotit;
-     char buffer[255] = "\0";    /* for storing the line found in the file */
-     namelen = strlen(varname);    /* figure out how long the string is */
-     foundit = 0;
-
-     rewind(infile); /* Always search from top of infile */
-      /* read first line. I'm in trouble if file is empty*/
-     do
-     {   /* loop through file looking for varname */
-       fgets(buffer,255,infile);
-       check1 = 0;
-       check2 = 0;
-
-       while (buffer[check1++] == varname[check2++])
-             ;
-
-       if (check1 > namelen)
-       {  // varname matches upto namelen
-          foundit++;
-          switch (parmtype)
-          {
-                 case REAL : gotit = sscanf(&buffer[check1]," %f", (float *) address);
-                             break;
-                 case DOUBLE : gotit = sscanf(&buffer[check1]," %lf", (double *) address);
-                               break;
-                 case INTEGER : gotit = sscanf(&buffer[check1]," %d", (int *) address);
-                                break;
-                 case LONGINT : gotit = sscanf(&buffer[check1]," %ld", (long int *) address);
-                                break;
-                 case STRING : // trim leading and trailing blanks (allow spaces which are important for directory names
-                               check1 += strspn(&buffer[check1]," ,");
-                               for (check2 = strlen(&buffer[check1])-1;isspace(buffer[check1+check2]) != 0;check2--)
-                                   ; // Find last non space character
-                               if (strlen(&buffer[check1]) <2)
-                                  buffer[check1] = '\0';
-                               buffer[check1 + check2+1] = '\0';
-
-                               strcpy((char *) address,&buffer[check1]);
-
-                               gotit = 1; // So that var check works. This needs further consideration
-                               break;
-                 default : displayErrorMessage("Invalid parameter type request %d: \n",parmtype);
-          }
-
-          if (!gotit)
-          {
-             displayWarningMessage("WARNING: found bad value for variable %s. Value ignored\n",varname);
-             foundit--;
-          }
-       }
-     } while (!(feof(infile)));
-
-     if (!foundit)
-        if (crit)
-           displayErrorMessage("Unable to find %s in input file.\n",varname);
-
-     if (foundit > 1)
-        displayWarningMessage("WARNING variable: %s appears more than once in the input file. Final value taken\n",varname);
-
-     present = foundit;
-
-     return;
-}
-
-/********** Set Options ************/
-//  PUno is the number of Planning units
-//  SPno is the number of species
-/* This file uses the freeform format method. Expecting a file with a variable name
- (generally all capital letters) followed by the value for that variable
- */
-void SetOptions(double *cm,double *prop,struct sanneal *anneal,
-                int *iseed,
-                long int *repeats,char savename[],struct sfname *fnames,char filename[],
-                int *runopts,double *misslevel,int *heurotype,int *clumptype,
-                int *itimptype, int *verb,
-                double *costthresh,double *tpf1,double *tpf2)
-{
-     FILE *fp;
-     double version;
-     int present;
-     char stemp[500];
-     #ifdef DEBUGTRACEFILE
-     char debugbuffer[200];
-     #endif
-
-     verbosity = 1; /* This enables local warning messages */
-     /* Setup all of the default parameter variables */
-     version = 0.1;
-     *cm = 0;
-     *prop = 0;
-     (*anneal).type = 1;
-     (*anneal).iterations = 0;
-     (*anneal).Tinit = 1;
-     (*anneal).Tcool = 0;
-     (*anneal).Titns = 1;
-     *iseed = -1;
-     *costthresh = 0;
-     *tpf1 = 0;
-     *tpf2 = 0;
-     *repeats = 0;
-     (*fnames).saverun = 0;
-     (*fnames).savebest = 0;
-     (*fnames).savesum = 0;
-     (*fnames).savesen = 0;
-     (*fnames).savespecies = 0;
-     (*fnames).savesumsoln = 0;
-     (*fnames).savepenalty = 0;
-     (*fnames).savetotalareas = 0;
-     (*fnames).savedebugtracefile = 0;
-     (*fnames).saverichness = 0;
-     (*fnames).savesolutionsmatrix = 0;
-     (*fnames).solutionsmatrixheaders = 1;
-     (*fnames).savelog = 0;
-     (*fnames).saveannealingtrace = 0;
-     (*fnames).annealingtracerows = 0;
-     (*fnames).saveitimptrace = 0;
-     (*fnames).itimptracerows = 0;
-     (*fnames).savespec = 0;
-     (*fnames).savepu = 0;
-     (*fnames).savepuvspr = 0;
-     (*fnames).savematrixsporder = 0;
-     (*fnames).rimagetype = 0;
-     (*fnames).rexecutescript = 0;
-     (*fnames).rclustercount = 0;
-     (*fnames).rimagewidth = 0;
-     (*fnames).rimageheight = 0;
-     (*fnames).rimagefontsize = 0;
-     asymmetricconnectivity = 0;
-
-
-     strcpy(savename,"temp");
-     *misslevel = 1;
-     *heurotype = 1;
-     *clumptype = 0;
-     verbosity = 1;
-
-     /* Open file and then feed in each variable type */
-     if ((fp = fopen(filename,"r"))==NULL)
-        displayErrorMessage("input file %s not found\nAborting Program.\n\n",filename);
-
-     rdsvar(fp,"VERSION",&version,DOUBLE,0,present);
-     rdsvar(fp,"BLM",cm,DOUBLE,0,present);
-     if (present == 0)
-        rdsvar(fp,"CM",cm,DOUBLE,0,present);
-     rdsvar(fp,"PROP",prop,DOUBLE,0,present);
-     rdsvar(fp,"RANDSEED",iseed,INTEGER,0,present);
-
-     /* Annealing Controls */
-     rdsvar(fp,"NUMITNS",&(*anneal).iterations,LONGINT,0,present);
-     rdsvar(fp,"STARTTEMP",&(*anneal).Tinit,DOUBLE,0,present);
-     rdsvar(fp,"COOLFAC",&(*anneal).Tcool,DOUBLE,0,present);
-     rdsvar(fp,"NUMTEMP",&(*anneal).Titns,INTEGER,0,present);
-
-     (*anneal).type = 1;
-     if ((*anneal).iterations < 1 )
-        (*anneal).type = 0;
-     if ((*anneal).Tinit < 0)
-        (*anneal).type = (int) (-(*anneal).Tinit) + 1;  /* type is negative of Tinit */
-     fscanf(fp,"%i",iseed); /* The random seed. -1 to set by clock */
-
-     /* Various controls */
-     rdsvar(fp,"NUMREPS",repeats,LONGINT,0,present);
-     rdsvar(fp,"COSTTHRESH",costthresh,DOUBLE,0,present);
-     rdsvar(fp,"THRESHPEN1",tpf1,DOUBLE,0,present);
-     rdsvar(fp,"THRESHPEN2",tpf2,DOUBLE,0,present);
-
-     /* SaveFiles */
-     rdsvar(fp,"SCENNAME",savename,STRING,0,present);
-
-     /* SaveFiles New Method */
-     rdsvar(fp,"SAVERUN",&(*fnames).saverun,INTEGER,0,present);
-     rdsvar(fp,"SAVEBEST",&(*fnames).savebest,INTEGER,0,present);
-     rdsvar(fp,"SAVESUMMARY",&(*fnames).savesum,INTEGER,0,present);
-     rdsvar(fp,"SAVESCEN",&(*fnames).savesen,INTEGER,0,present);
-     rdsvar(fp,"SAVETARGMET",&(*fnames).savespecies,INTEGER,0,present);
-     rdsvar(fp,"SAVESUMSOLN",&(*fnames).savesumsoln,INTEGER,0,present);
-     rdsvar(fp,"SAVESPEC",&(*fnames).savespec,INTEGER,0,present);
-     rdsvar(fp,"SAVEPU",&(*fnames).savepu,INTEGER,0,present);
-     rdsvar(fp,"SAVEMATRIXPUORDER",&(*fnames).savepuvspr,INTEGER,0,present);
-     rdsvar(fp,"SAVEMATRIXSPORDER",&(*fnames).savematrixsporder,INTEGER,0,present);
-     rdsvar(fp,"SAVEPENALTY",&(*fnames).savepenalty,INTEGER,0,present);
-     rdsvar(fp,"SAVETOTALAREAS",&(*fnames).savetotalareas,INTEGER,0,present);
-     rdsvar(fp,"SAVEDEBUGTRACEFILE",&(*fnames).savedebugtracefile,INTEGER,0,present);
-     rdsvar(fp,"SAVERICHNESS",&(*fnames).saverichness,INTEGER,0,present);
-     rdsvar(fp,"SAVESOLUTIONSMATRIX",&(*fnames).savesolutionsmatrix,INTEGER,0,present);
-     rdsvar(fp,"SOLUTIONSMATRIXHEADERS",&(*fnames).solutionsmatrixheaders,INTEGER,0,present);
-     rdsvar(fp,"SAVELOG",&(*fnames).savelog,INTEGER,0,present);
-     rdsvar(fp,"SAVESNAPSTEPS",&(*fnames).savesnapsteps,INTEGER,0,present);
-     rdsvar(fp,"SAVESNAPCHANGES",&(*fnames).savesnapchanges,INTEGER,0,present);
-     rdsvar(fp,"SAVESNAPFREQUENCY",&(*fnames).savesnapfrequency,INTEGER,0,present);
-     rdsvar(fp,"SAVEANNEALINGTRACE",&(*fnames).saveannealingtrace,INTEGER,0,present);
-     rdsvar(fp,"ANNEALINGTRACEROWS",&(*fnames).annealingtracerows,INTEGER,0,present);
-     rdsvar(fp,"SAVEITIMPTRACE",&(*fnames).saveitimptrace,INTEGER,0,present);
-     rdsvar(fp,"ITIMPTRACEROWS",&(*fnames).itimptracerows,INTEGER,0,present);
-     rdsvar(fp,"RIMAGETYPE",&(*fnames).rimagetype,INTEGER,0,present);
-     rdsvar(fp,"REXECUTESCRIPT",&(*fnames).rexecutescript,INTEGER,0,present);
-     rdsvar(fp,"RCLUSTERCOUNT",&(*fnames).rclustercount,INTEGER,0,present);
-     rdsvar(fp,"RIMAGEWIDTH",&(*fnames).rimagewidth,INTEGER,0,present);
-     rdsvar(fp,"RIMAGEHEIGHT",&(*fnames).rimageheight,INTEGER,0,present);
-     rdsvar(fp,"RIMAGEFONTSIZE",&(*fnames).rimagefontsize,INTEGER,0,present);
-     rdsvar(fp,"ASYMMETRICCONNECTIVITY",&asymmetricconnectivity,INTEGER,0,present);
-     rdsvar(fp,"CONNECTIVITYIN",&fOptimiseConnectivityIn,INTEGER,0,present);
-
-     // quantum annealing control parameters
-     rdsvar(fp,"QAPROP",&rQAPROP,DOUBLE,0,present);
-     rdsvar(fp,"QADECAY",&rQADECAY,DOUBLE,0,present);
-     rdsvar(fp,"QADECAYB",&rQADECAYB,DOUBLE,0,present);
-     rdsvar(fp,"QADECAYTYPE",&iQADECAYTYPE,INTEGER,0,present);
-     rdsvar(fp,"QAACCPR",&rQAACCPR,DOUBLE,0,present);
-
-     if (!(*fnames).savesnapfrequency)
-        (*fnames).savesnapfrequency = 1;
-
-     /* Filenames */
-     rdsvar(fp,"INPUTDIR",stemp,STRING,1,present);
-     if (stemp[strlen(stemp)-1] != '/' && stemp[strlen(stemp)-1] != '\\')
-        strcat(stemp,"/");
-     (*fnames).inputdir = (char *) calloc(strlen(stemp)+1,sizeof(char));
-     strcpy((*fnames).inputdir,stemp);
-
-     rdsvar(fp,"OUTPUTDIR",stemp,STRING,1,present);
-     if (stemp[strlen(stemp)-1] != '/' && stemp[strlen(stemp)-1] != '\\')
-        strcat(stemp,"/");
-     (*fnames).outputdir = (char *) calloc(strlen(stemp)+1,sizeof(char));
-     strcpy((*fnames).outputdir,stemp);
-
-     strcpy(stemp,"PU.dat");
-     rdsvar(fp,"PUNAME",stemp,STRING,1,present);
-     (*fnames).puname = (char *) calloc(strlen(stemp)+1,sizeof(char));
-     strcpy((*fnames).puname,stemp);
-
-     strcpy(stemp,"spec.dat");
-     rdsvar(fp,"SPECNAME",stemp,STRING,1,present);
-     //if (present == 0)
-     //   rdsvar(fp,"FEATNAME",stemp,STRING,0,present);
-     (*fnames).specname = (char *) calloc(strlen(stemp)+1,sizeof(char));
-     strcpy((*fnames).specname,stemp);
-
-     strcpy(stemp,"puvspr2.dat");
-     rdsvar(fp,"PUVSPRNAME",stemp,STRING,1,present);
-     (*fnames).puvsprname = (char *) calloc(strlen(stemp)+1,sizeof(char));
-     strcpy((*fnames).puvsprname,stemp);
-
-     //strcpy(stemp,"NULL");
-     //rdsvar(fp,"PUVSPPROBNAME",stemp,STRING,0,present);
-     //(*fnames).puvspprobname = (char *) calloc(strlen(stemp)+1,sizeof(char));
-     //strcpy((*fnames).puvspprobname,stemp);
-
-     strcpy(stemp,"NULL");
-     rdsvar(fp,"MATRIXSPORDERNAME",stemp,STRING,0,present);
-     (*fnames).matrixspordername = (char *) calloc(strlen(stemp)+1,sizeof(char));
-     strcpy((*fnames).matrixspordername,stemp);
-
-     strcpy(stemp,"NULL");
-     rdsvar(fp,"PENALTYNAME",stemp,STRING,0,present);
-     (*fnames).penaltyname = (char *) calloc(strlen(stemp)+1,sizeof(char));
-     strcpy((*fnames).penaltyname,stemp);
-
-     strcpy(stemp,"NULL");
-     rdsvar(fp,"BOUNDNAME",stemp,STRING,0,present);
-     if (present == 0)
-        rdsvar(fp,"CONNECTIONNAME",stemp,STRING,0,present);
-     (*fnames).connectionname = (char *) calloc(strlen(stemp)+1,sizeof(char));
-     strcpy((*fnames).connectionname,stemp);
-
-     strcpy(stemp,"NULL");
-     rdsvar(fp,"CONNECTIONFILESNAME",stemp,STRING,0,present);
-     (*fnames).connectionfilesname = (char *) calloc(strlen(stemp)+1,sizeof(char));
-     strcpy((*fnames).connectionfilesname,stemp);
-
-     strcpy(stemp,"NULL");
-     rdsvar(fp,"BLOCKDEFNAME",stemp,STRING,0,present);
-     (*fnames).blockdefname = (char *) calloc(strlen(stemp)+1,sizeof(char));
-     strcpy((*fnames).blockdefname,stemp);
-
-     strcpy(stemp,"SOLUTION");
-     rdsvar(fp,"BESTFIELDNAME",stemp,STRING,0,present);
-     (*fnames).bestfieldname = (char *) calloc(strlen(stemp)+1,sizeof(char));
-     strcpy((*fnames).bestfieldname,stemp);
-
-
-     strcpy(stemp,"NULL");
-     rdsvar(fp,"RBINARYPATHNAME",stemp,STRING,0,present);
-     (*fnames).rbinarypath = (char *) calloc(strlen(stemp)+1,sizeof(char));
-     strcpy((*fnames).rbinarypath,stemp);
-
-     /* various other controls */
-     rdsvar(fp,"RUNMODE",runopts,INTEGER,1,present);
-     rdsvar(fp,"MISSLEVEL",misslevel,DOUBLE,0,present);
-     rdsvar(fp,"HEURTYPE",heurotype,INTEGER,0,present);
-     rdsvar(fp,"CLUMPTYPE",clumptype,INTEGER,0,present);
-     rdsvar(fp,"ITIMPTYPE",itimptype,INTEGER,0,present);
-     rdsvar(fp,"VERBOSITY",verb,INTEGER,0,present);
-     verbosity = *verb;
-     rdsvar(fp,"PROBABILITYWEIGHTING",stemp,STRING,0,present);
-     sscanf(stemp, "%lf", &rProbabilityWeighting);
-
-     rdsvar(fp,"STARTDECTHRESH",&rStartDecThresh,DOUBLE,0,present);
-     rdsvar(fp,"ENDDECTHRESH",&rEndDecThresh,DOUBLE,0,present);
-     rdsvar(fp,"STARTDECMULT",&rStartDecMult,DOUBLE,0,present);
-     rdsvar(fp,"ENDDECMULT",&rEndDecMult,DOUBLE,0,present);
-
-     #ifdef DEBUGTRACEFILE
-     sprintf(debugbuffer,"PROBABILITYWEIGHTING %g\n",rProbabilityWeighting);
-     appendTraceFile(debugbuffer);
-     sprintf(debugbuffer,"STARTDECTHRESH %g\n",rStartDecThresh);
-     appendTraceFile(debugbuffer);
-     sprintf(debugbuffer,"ENDDECTHRESH %g\n",rEndDecThresh);
-     appendTraceFile(debugbuffer);
-     sprintf(debugbuffer,"STARTDECMULT %g\n",rStartDecMult);
-     appendTraceFile(debugbuffer);
-     sprintf(debugbuffer,"ENDDECMULT %g\n",rEndDecMult);
-     appendTraceFile(debugbuffer);
-     #endif
-
-     if ((*fnames).outputdir[0] != '0')
-     {
-        strcpy(stemp,(*fnames).outputdir);
-        strcat(stemp,savename);
-        strcpy(savename,stemp);
-     }
-     fclose(fp);
-
-}  /***** Set Options *******/
 
 void MapUserPenalties(typesp spec[],int spno)
 {
@@ -3733,165 +3234,6 @@ int RandNum (int num)
     if (temp == num) return(0);
     else return((int)temp);
 }
-
-/*****************************************************/
-/********* Separation Measure Routines ***************/
-/*****************************************************/
-
-// Sep Penalty
-// This returns the penalty for not meeting separation requirments. Feed in sepnum and current
-//  separation and returns a value from 0 to 1 which is an artificial shortfall.
-double SepPenalty(int ival,int itarget)
-{
-       double fval;
-
-       if (!itarget)
-          return (0); /* no penalty if no separation requirement*/
-          
-       fval = (double) ival / (double) itarget;
-       if (!ival)
-          fval = 1.0 /(double) itarget;
-
-       return (1/(7*fval+0.2)-(1/7.2)); // Gives a nice hyperbole with fval = 1 return 0 and fval = 0 or 0.1 returning almost 1
-} // SepPenalty
-
-/* This is a modified form of count separation where the user can specify any
-    maximum separation distance rather than just assuming a sep distance of three */
-/* ipu and newno used when imode <> 0. When counting as if ipu were added or removed
-    ipu used for non-clumping and newno for clumping species */
-
-int CountSeparation2(int isp,int ipu,struct sclumps *newno,int puno,int R[],
-                     struct spustuff pu[],struct spu SM[],typesp spec[],int imode)
-{   
-    typeseplist *Dist;
-    struct slink *head = NULL,*temp;
-    int sepcount,bestsep = 0,i,currcol;
-    double targetdist;
-    
-    targetdist = spec[isp].sepdistance * spec[isp].sepdistance;
-
-    if (targetdist == 0)
-       return(spec[isp].sepnum); // Shortcut if sep not apply to this species
-
-    // Set up array for counting separation
-    Dist = (typeseplist *) calloc(spec[isp].sepnum,sizeof(typeseplist));
-    // First scan through sites. Grab first valid and place rest in lists
-    head = makelist(isp,ipu,puno,R,newno,spec,pu,SM,imode);
-
-    if (!head)
-    {
-       free(Dist);
-       return(0);
-    } // There was nothing to put in the list
-
-
-    Dist[0].head = head;
-    Dist[0].size = 1;
-    Dist[0].tail = head;
-    head = head->next;
-    Dist[0].tail->next = NULL;
-    if (!head)
-    {
-       free(Dist[0].head);
-       free(Dist);
-       return(1);
-    }  // There was only one item in the list
-
-    // Deal out link list
-    sepcount = SepDealList(head,Dist,pu,spec,Dist[0].head->id,0,targetdist,isp);
-    if (sepcount >= spec[isp].sepnum-1)
-    {
-       // clean up arrays
-       for (i=0;i<spec[isp].sepnum;i++)
-           while (Dist[i].head)
-           {
-                 temp = Dist[i].head;
-                 Dist[i].head = Dist[i].head->next;
-                 free(temp);
-           }
-           
-       free(Dist);
-       return(spec[isp].sepnum);
-    } // I'm at maximum separation
-    
-    bestsep = sepcount;
-
-    do
-    {
-      // The main Loop
-      for (currcol=0;Dist[currcol+1].head && currcol < spec[isp].sepnum-2;currcol++)
-          ;
-          
-      if (currcol == 0)
-      {
-         if (Dist[0].size < spec[isp].sepnum)
-         {
-            while (Dist[0].head)
-            {
-                  temp = Dist[0].head;
-                  Dist[0].head = Dist[0].head->next;
-                  free(temp);
-            }
-            free(Dist);
-            return(bestsep + 1);
-         } // cannot increase separation terminate function
-         else
-         {
-             temp = Dist[0].head;
-             Dist[0].head = Dist[0].head->next;
-             head = Dist[0].head->next;
-             Dist[0].head->next = NULL;
-             Dist[0].size = 1;
-             Dist[0].tail = Dist[0].head;
-             free(temp);
-             sepcount = SepDealList(head,Dist,pu,spec,Dist[0].head->id,0,targetdist,isp);
-         }
-      } // Deal with first column
-      else
-      {
-          if (Dist[currcol].size + currcol  < spec[isp].sepnum)
-          {
-             Dist[currcol-1].tail->next = Dist[currcol].head;
-             Dist[currcol-1].tail = Dist[currcol].tail;
-             Dist[currcol-1].tail->next = NULL;
-             Dist[currcol-1].size += Dist[currcol].size;
-             Dist[currcol].head = NULL;
-             Dist[currcol].size = 0;
-             Dist[currcol].tail = NULL;
-             sepcount = 0;
-          } // list is not long enough to increase sepcount
-          else
-          {
-              Dist[currcol-1].tail->next = Dist[currcol].head;
-              Dist[currcol-1].tail = Dist[currcol].head;
-              Dist[currcol-1].size++;
-              Dist[currcol].head = Dist[currcol].head->next;
-              head = Dist[currcol].head->next;
-              Dist[currcol].head->next = NULL;
-              Dist[currcol-1].tail->next = NULL;
-              Dist[currcol].tail = Dist[currcol].head;
-              Dist[currcol].size = 1;
-              sepcount = SepDealList(head,Dist,pu,spec,
-              Dist[currcol].head->id,currcol,targetdist,isp);
-          } // else this column might be long enough
-      } // Deal with columns other than the first
-      
-      if (sepcount > bestsep)
-         bestsep = sepcount;
-    } while(bestsep < spec[isp].sepnum-1); // Main loop.
-
-    // clean up arrays
-    for (i=0;i<spec[isp].sepnum;i++)
-        while (Dist[i].head)
-        {
-              temp = Dist[i].head;
-              Dist[i].head = Dist[i].head->next;
-              free(temp);
-        }
-        
-    free(Dist);
-    return(bestsep+1);
-} // CountSeparation 2
 
 // handle command line parameters for the marxan executable
 void handleOptions(int argc,char *argv[],char sInputFileName[])

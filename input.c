@@ -808,3 +808,323 @@ void readSparseMatrixSpOrder(int *iSMSize, struct spusporder *SM[], int puno, in
                       iInternalSMSize,iBigMatrixSize,rDensity);
 } // readSparseMatrixSpOrder
 
+void readInputOption(FILE *infile, char varname[], void *address, int parmtype, int crit,int present)
+// Reads a variable of parmtype in from infile. Assumes that the next line is the one that has the
+// variable in question but will wrap once to find the variable.
+//
+// I changed this function because it was ignoring the last line of the file (also it was a dogs breakfast).
+// it returns the "Final value taken" error message when SAVESOLUTIONSMATRIX parameter is on last line, weird, need to fix this.
+{
+     int foundit, namelen, check1, check2, gotit;
+     char buffer[255] = "\0";    /* for storing the line found in the file */
+     namelen = strlen(varname);    /* figure out how long the string is */
+     foundit = 0;
+
+     rewind(infile); /* Always search from top of infile */
+      /* read first line. I'm in trouble if file is empty*/
+     do
+     {   /* loop through file looking for varname */
+       fgets(buffer,255,infile);
+       check1 = 0;
+       check2 = 0;
+
+       while (buffer[check1++] == varname[check2++])
+             ;
+
+       if (check1 > namelen)
+       {  // varname matches upto namelen
+          foundit++;
+          switch (parmtype)
+          {
+                 case REAL : gotit = sscanf(&buffer[check1]," %f", (float *) address);
+                             break;
+                 case DOUBLE : gotit = sscanf(&buffer[check1]," %lf", (double *) address);
+                               break;
+                 case INTEGER : gotit = sscanf(&buffer[check1]," %d", (int *) address);
+                                break;
+                 case LONGINT : gotit = sscanf(&buffer[check1]," %ld", (long int *) address);
+                                break;
+                 case STRING : // trim leading and trailing blanks (allow spaces which are important for directory names
+                               check1 += strspn(&buffer[check1]," ,");
+                               for (check2 = strlen(&buffer[check1])-1;isspace(buffer[check1+check2]) != 0;check2--)
+                                   ; // Find last non space character
+                               if (strlen(&buffer[check1]) <2)
+                                  buffer[check1] = '\0';
+                               buffer[check1 + check2+1] = '\0';
+
+                               strcpy((char *) address,&buffer[check1]);
+
+                               gotit = 1; // So that var check works. This needs further consideration
+                               break;
+                 default : displayErrorMessage("Invalid parameter type request %d: \n",parmtype);
+          }
+
+          if (!gotit)
+          {
+             displayWarningMessage("WARNING: found bad value for variable %s. Value ignored\n",varname);
+             foundit--;
+          }
+       }
+     } while (!(feof(infile)));
+
+     if (!foundit)
+        if (crit)
+           displayErrorMessage("Unable to find %s in input file.\n",varname);
+
+     if (foundit > 1)
+        displayWarningMessage("WARNING variable: %s appears more than once in the input file. Final value taken\n",varname);
+
+     present = foundit;
+
+     return;
+} // readInputOption
+
+// read values for the parameters specified in input.dat parameter file
+void readInputOptions(double *cm,double *prop,struct sanneal *anneal,
+                      int *iseed,
+                      long int *repeats,char savename[],struct sfname *fnames,char filename[],
+                      int *runopts,double *misslevel,int *heurotype,int *clumptype,
+                      int *itimptype, int *verb,
+                      double *costthresh,double *tpf1,double *tpf2)
+{
+     FILE *fp;
+     double version;
+     int present;
+     char stemp[500];
+     #ifdef DEBUGTRACEFILE
+     char debugbuffer[200];
+     #endif
+
+     verbosity = 1; /* This enables local warning messages */
+     /* Setup all of the default parameter variables */
+     version = 0.1;
+     *cm = 0;
+     *prop = 0;
+     (*anneal).type = 1;
+     (*anneal).iterations = 0;
+     (*anneal).Tinit = 1;
+     (*anneal).Tcool = 0;
+     (*anneal).Titns = 1;
+     *iseed = -1;
+     *costthresh = 0;
+     *tpf1 = 0;
+     *tpf2 = 0;
+     *repeats = 0;
+     (*fnames).saverun = 0;
+     (*fnames).savebest = 0;
+     (*fnames).savesum = 0;
+     (*fnames).savesen = 0;
+     (*fnames).savespecies = 0;
+     (*fnames).savesumsoln = 0;
+     (*fnames).savepenalty = 0;
+     (*fnames).savetotalareas = 0;
+     (*fnames).savedebugtracefile = 0;
+     (*fnames).saverichness = 0;
+     (*fnames).savesolutionsmatrix = 0;
+     (*fnames).solutionsmatrixheaders = 1;
+     (*fnames).savelog = 0;
+     (*fnames).saveannealingtrace = 0;
+     (*fnames).annealingtracerows = 0;
+     (*fnames).saveitimptrace = 0;
+     (*fnames).itimptracerows = 0;
+     (*fnames).savespec = 0;
+     (*fnames).savepu = 0;
+     (*fnames).savepuvspr = 0;
+     (*fnames).savematrixsporder = 0;
+     (*fnames).rimagetype = 0;
+     (*fnames).rexecutescript = 0;
+     (*fnames).rclustercount = 0;
+     (*fnames).rimagewidth = 0;
+     (*fnames).rimageheight = 0;
+     (*fnames).rimagefontsize = 0;
+     asymmetricconnectivity = 0;
+
+
+     strcpy(savename,"temp");
+     *misslevel = 1;
+     *heurotype = 1;
+     *clumptype = 0;
+     verbosity = 1;
+
+     /* Open file and then feed in each variable type */
+     if ((fp = fopen(filename,"r"))==NULL)
+        displayErrorMessage("input file %s not found\nAborting Program.\n\n",filename);
+
+     readInputOption(fp,"VERSION",&version,DOUBLE,0,present);
+     readInputOption(fp,"BLM",cm,DOUBLE,0,present);
+     if (present == 0)
+        readInputOption(fp,"CM",cm,DOUBLE,0,present);
+     readInputOption(fp,"PROP",prop,DOUBLE,0,present);
+     readInputOption(fp,"RANDSEED",iseed,INTEGER,0,present);
+
+     /* Annealing Controls */
+     readInputOption(fp,"NUMITNS",&(*anneal).iterations,LONGINT,0,present);
+     readInputOption(fp,"STARTTEMP",&(*anneal).Tinit,DOUBLE,0,present);
+     readInputOption(fp,"COOLFAC",&(*anneal).Tcool,DOUBLE,0,present);
+     readInputOption(fp,"NUMTEMP",&(*anneal).Titns,INTEGER,0,present);
+
+     (*anneal).type = 1;
+     if ((*anneal).iterations < 1 )
+        (*anneal).type = 0;
+     if ((*anneal).Tinit < 0)
+        (*anneal).type = (int) (-(*anneal).Tinit) + 1;  /* type is negative of Tinit */
+     fscanf(fp,"%i",iseed); /* The random seed. -1 to set by clock */
+
+     /* Various controls */
+     readInputOption(fp,"NUMREPS",repeats,LONGINT,0,present);
+     readInputOption(fp,"COSTTHRESH",costthresh,DOUBLE,0,present);
+     readInputOption(fp,"THRESHPEN1",tpf1,DOUBLE,0,present);
+     readInputOption(fp,"THRESHPEN2",tpf2,DOUBLE,0,present);
+
+     /* SaveFiles */
+     readInputOption(fp,"SCENNAME",savename,STRING,0,present);
+
+     /* SaveFiles New Method */
+     readInputOption(fp,"SAVERUN",&(*fnames).saverun,INTEGER,0,present);
+     readInputOption(fp,"SAVEBEST",&(*fnames).savebest,INTEGER,0,present);
+     readInputOption(fp,"SAVESUMMARY",&(*fnames).savesum,INTEGER,0,present);
+     readInputOption(fp,"SAVESCEN",&(*fnames).savesen,INTEGER,0,present);
+     readInputOption(fp,"SAVETARGMET",&(*fnames).savespecies,INTEGER,0,present);
+     readInputOption(fp,"SAVESUMSOLN",&(*fnames).savesumsoln,INTEGER,0,present);
+     readInputOption(fp,"SAVESPEC",&(*fnames).savespec,INTEGER,0,present);
+     readInputOption(fp,"SAVEPU",&(*fnames).savepu,INTEGER,0,present);
+     readInputOption(fp,"SAVEMATRIXPUORDER",&(*fnames).savepuvspr,INTEGER,0,present);
+     readInputOption(fp,"SAVEMATRIXSPORDER",&(*fnames).savematrixsporder,INTEGER,0,present);
+     readInputOption(fp,"SAVEPENALTY",&(*fnames).savepenalty,INTEGER,0,present);
+     readInputOption(fp,"SAVETOTALAREAS",&(*fnames).savetotalareas,INTEGER,0,present);
+     readInputOption(fp,"SAVEDEBUGTRACEFILE",&(*fnames).savedebugtracefile,INTEGER,0,present);
+     readInputOption(fp,"SAVERICHNESS",&(*fnames).saverichness,INTEGER,0,present);
+     readInputOption(fp,"SAVESOLUTIONSMATRIX",&(*fnames).savesolutionsmatrix,INTEGER,0,present);
+     readInputOption(fp,"SOLUTIONSMATRIXHEADERS",&(*fnames).solutionsmatrixheaders,INTEGER,0,present);
+     readInputOption(fp,"SAVELOG",&(*fnames).savelog,INTEGER,0,present);
+     readInputOption(fp,"SAVESNAPSTEPS",&(*fnames).savesnapsteps,INTEGER,0,present);
+     readInputOption(fp,"SAVESNAPCHANGES",&(*fnames).savesnapchanges,INTEGER,0,present);
+     readInputOption(fp,"SAVESNAPFREQUENCY",&(*fnames).savesnapfrequency,INTEGER,0,present);
+     readInputOption(fp,"SAVEANNEALINGTRACE",&(*fnames).saveannealingtrace,INTEGER,0,present);
+     readInputOption(fp,"ANNEALINGTRACEROWS",&(*fnames).annealingtracerows,INTEGER,0,present);
+     readInputOption(fp,"SAVEITIMPTRACE",&(*fnames).saveitimptrace,INTEGER,0,present);
+     readInputOption(fp,"ITIMPTRACEROWS",&(*fnames).itimptracerows,INTEGER,0,present);
+     readInputOption(fp,"RIMAGETYPE",&(*fnames).rimagetype,INTEGER,0,present);
+     readInputOption(fp,"REXECUTESCRIPT",&(*fnames).rexecutescript,INTEGER,0,present);
+     readInputOption(fp,"RCLUSTERCOUNT",&(*fnames).rclustercount,INTEGER,0,present);
+     readInputOption(fp,"RIMAGEWIDTH",&(*fnames).rimagewidth,INTEGER,0,present);
+     readInputOption(fp,"RIMAGEHEIGHT",&(*fnames).rimageheight,INTEGER,0,present);
+     readInputOption(fp,"RIMAGEFONTSIZE",&(*fnames).rimagefontsize,INTEGER,0,present);
+     readInputOption(fp,"ASYMMETRICCONNECTIVITY",&asymmetricconnectivity,INTEGER,0,present);
+     readInputOption(fp,"CONNECTIVITYIN",&fOptimiseConnectivityIn,INTEGER,0,present);
+
+     // quantum annealing control parameters
+     readInputOption(fp,"QAPROP",&rQAPROP,DOUBLE,0,present);
+     readInputOption(fp,"QADECAY",&rQADECAY,DOUBLE,0,present);
+     readInputOption(fp,"QADECAYB",&rQADECAYB,DOUBLE,0,present);
+     readInputOption(fp,"QADECAYTYPE",&iQADECAYTYPE,INTEGER,0,present);
+     readInputOption(fp,"QAACCPR",&rQAACCPR,DOUBLE,0,present);
+
+     if (!(*fnames).savesnapfrequency)
+        (*fnames).savesnapfrequency = 1;
+
+     /* Filenames */
+     readInputOption(fp,"INPUTDIR",stemp,STRING,1,present);
+     if (stemp[strlen(stemp)-1] != '/' && stemp[strlen(stemp)-1] != '\\')
+        strcat(stemp,"/");
+     (*fnames).inputdir = (char *) calloc(strlen(stemp)+1,sizeof(char));
+     strcpy((*fnames).inputdir,stemp);
+
+     readInputOption(fp,"OUTPUTDIR",stemp,STRING,1,present);
+     if (stemp[strlen(stemp)-1] != '/' && stemp[strlen(stemp)-1] != '\\')
+        strcat(stemp,"/");
+     (*fnames).outputdir = (char *) calloc(strlen(stemp)+1,sizeof(char));
+     strcpy((*fnames).outputdir,stemp);
+
+     strcpy(stemp,"PU.dat");
+     readInputOption(fp,"PUNAME",stemp,STRING,1,present);
+     (*fnames).puname = (char *) calloc(strlen(stemp)+1,sizeof(char));
+     strcpy((*fnames).puname,stemp);
+
+     strcpy(stemp,"spec.dat");
+     readInputOption(fp,"SPECNAME",stemp,STRING,1,present);
+     (*fnames).specname = (char *) calloc(strlen(stemp)+1,sizeof(char));
+     strcpy((*fnames).specname,stemp);
+
+     strcpy(stemp,"puvspr2.dat");
+     readInputOption(fp,"PUVSPRNAME",stemp,STRING,1,present);
+     (*fnames).puvsprname = (char *) calloc(strlen(stemp)+1,sizeof(char));
+     strcpy((*fnames).puvsprname,stemp);
+
+     strcpy(stemp,"NULL");
+     readInputOption(fp,"MATRIXSPORDERNAME",stemp,STRING,0,present);
+     (*fnames).matrixspordername = (char *) calloc(strlen(stemp)+1,sizeof(char));
+     strcpy((*fnames).matrixspordername,stemp);
+
+     strcpy(stemp,"NULL");
+     readInputOption(fp,"PENALTYNAME",stemp,STRING,0,present);
+     (*fnames).penaltyname = (char *) calloc(strlen(stemp)+1,sizeof(char));
+     strcpy((*fnames).penaltyname,stemp);
+
+     strcpy(stemp,"NULL");
+     readInputOption(fp,"BOUNDNAME",stemp,STRING,0,present);
+     if (present == 0)
+        readInputOption(fp,"CONNECTIONNAME",stemp,STRING,0,present);
+     (*fnames).connectionname = (char *) calloc(strlen(stemp)+1,sizeof(char));
+     strcpy((*fnames).connectionname,stemp);
+
+     strcpy(stemp,"NULL");
+     readInputOption(fp,"CONNECTIONFILESNAME",stemp,STRING,0,present);
+     (*fnames).connectionfilesname = (char *) calloc(strlen(stemp)+1,sizeof(char));
+     strcpy((*fnames).connectionfilesname,stemp);
+
+     strcpy(stemp,"NULL");
+     readInputOption(fp,"BLOCKDEFNAME",stemp,STRING,0,present);
+     (*fnames).blockdefname = (char *) calloc(strlen(stemp)+1,sizeof(char));
+     strcpy((*fnames).blockdefname,stemp);
+
+     strcpy(stemp,"SOLUTION");
+     readInputOption(fp,"BESTFIELDNAME",stemp,STRING,0,present);
+     (*fnames).bestfieldname = (char *) calloc(strlen(stemp)+1,sizeof(char));
+     strcpy((*fnames).bestfieldname,stemp);
+
+
+     strcpy(stemp,"NULL");
+     readInputOption(fp,"RBINARYPATHNAME",stemp,STRING,0,present);
+     (*fnames).rbinarypath = (char *) calloc(strlen(stemp)+1,sizeof(char));
+     strcpy((*fnames).rbinarypath,stemp);
+
+     /* various other controls */
+     readInputOption(fp,"RUNMODE",runopts,INTEGER,1,present);
+     readInputOption(fp,"MISSLEVEL",misslevel,DOUBLE,0,present);
+     readInputOption(fp,"HEURTYPE",heurotype,INTEGER,0,present);
+     readInputOption(fp,"CLUMPTYPE",clumptype,INTEGER,0,present);
+     readInputOption(fp,"ITIMPTYPE",itimptype,INTEGER,0,present);
+     readInputOption(fp,"VERBOSITY",verb,INTEGER,0,present);
+     verbosity = *verb;
+     readInputOption(fp,"PROBABILITYWEIGHTING",stemp,STRING,0,present);
+     sscanf(stemp, "%lf", &rProbabilityWeighting);
+
+     readInputOption(fp,"STARTDECTHRESH",&rStartDecThresh,DOUBLE,0,present);
+     readInputOption(fp,"ENDDECTHRESH",&rEndDecThresh,DOUBLE,0,present);
+     readInputOption(fp,"STARTDECMULT",&rStartDecMult,DOUBLE,0,present);
+     readInputOption(fp,"ENDDECMULT",&rEndDecMult,DOUBLE,0,present);
+
+     #ifdef DEBUGTRACEFILE
+     sprintf(debugbuffer,"PROBABILITYWEIGHTING %g\n",rProbabilityWeighting);
+     appendTraceFile(debugbuffer);
+     sprintf(debugbuffer,"STARTDECTHRESH %g\n",rStartDecThresh);
+     appendTraceFile(debugbuffer);
+     sprintf(debugbuffer,"ENDDECTHRESH %g\n",rEndDecThresh);
+     appendTraceFile(debugbuffer);
+     sprintf(debugbuffer,"STARTDECMULT %g\n",rStartDecMult);
+     appendTraceFile(debugbuffer);
+     sprintf(debugbuffer,"ENDDECMULT %g\n",rEndDecMult);
+     appendTraceFile(debugbuffer);
+     #endif
+
+     if ((*fnames).outputdir[0] != '0')
+     {
+        strcpy(stemp,(*fnames).outputdir);
+        strcat(stemp,savename);
+        strcpy(savename,stemp);
+     }
+     fclose(fp);
+
+} // readInputOptions
+

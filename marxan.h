@@ -245,9 +245,9 @@ double ConnectionCost2(int ipu,struct sconnections connections[],int R[],int imo
 void ComputeConnectivityIndices(double *rConnectivityTotal,double *rConnectivityIn,
                                 double *rConnectivityEdge,double *rConnectivityOut,
                                 int puno,int *R,typeconnection connections[]);
-void ReserveCost(int puno,int spno,int R[],struct spustuff pu[],
-        struct sconnections connections[],struct spu SM[],
-        double cm, struct sspecies spec[],int aggexist,struct scost *reserve,int clumptype);
+void computeReserveValue(int puno,int spno,int R[],struct spustuff pu[],
+                         struct sconnections connections[],struct spu SM[],
+                         double cm, struct sspecies spec[],int aggexist,struct scost *reserve,int clumptype);
 void InitReserve(int puno,double prop, int R[]);
 void SpeciesAmounts(int spno,int puno,struct sspecies spec[],struct spustuff pu[],
                     struct spu SM[],int R[],int clumptype);
@@ -345,14 +345,13 @@ int CheckVarName(char **varlist, int numvars, char *sVarName);
 
 int NameToPUID(int puno,int name, struct spustuff pu[]);
 int NameToSPID(int spno,int name,typesp spec[]);
-void rdsvar(FILE *infile, char varname[], void *address, int parmtype, int crit,int present);
 
-void SetOptions(double *cm,double *prop,struct sanneal *anneal,
-                int *iseed,
-                long int *repeats,char savename[],struct sfname *fname,char filename[],
-                int *runopts,double *misslevel,int *heurotype,int *clumptype,
-                int *itimptype, int *verb,
-                double *costthresh,double *tpf1,double *tpf2);
+void readInputOptions(double *cm,double *prop,struct sanneal *anneal,
+                      int *iseed,
+                      long int *repeats,char savename[],struct sfname *fname,char filename[],
+                      int *runopts,double *misslevel,int *heurotype,int *clumptype,
+                      int *itimptype, int *verb,
+                      double *costthresh,double *tpf1,double *tpf2);
 
 int LoadPuDat(int *puno,struct spustuff *pu[],struct sfname fnames);
 int LoadSpecDat(int *spno,struct sspecies *spec[],struct sfname fnames);
