@@ -358,8 +358,8 @@ void Heuristics(int spno,int puno,struct spustuff pu[],struct sconnections conne
                  currscore = GreedyScore(i,puno,spno,spec,SM,connections,R,pu,cm,clumptype);
               if (imode == 1)
               {
-                 CheckChange(-1,i,spno,puno,pu,connections,spec,SM,R,cm,1,&change,reserve,
-                             costthresh,tpf1,tpf2,1, clumptype);
+                 computeChangeScore(-1,i,spno,puno,pu,connections,spec,SM,R,cm,1,&change,reserve,
+                                    costthresh,tpf1,tpf2,1, clumptype);
                  currscore = change.total;
               }
               if (imode == 2)
@@ -406,9 +406,9 @@ void Heuristics(int spno,int puno,struct spustuff pu[],struct sconnections conne
            } // I've looked through each pu to find best
            if (bestscore)
            {
-              CheckChange(-1,bestpu,spno,puno,pu,connections,spec,SM,R,cm,1,&change,reserve,
-                          costthresh,tpf1,tpf2,1,clumptype);
-              DoChange(bestpu,puno,R,reserve,change,pu,SM,spec,connections,1,clumptype);
+              computeChangeScore(-1,bestpu,spno,puno,pu,connections,spec,SM,R,cm,1,&change,reserve,
+                                 costthresh,tpf1,tpf2,1,clumptype);
+              doChange(bestpu,puno,R,reserve,change,pu,SM,spec,connections,1,clumptype);
 
               // Different Heuristics might have different penalty effects
               // Old fashioned penalty and missing counting

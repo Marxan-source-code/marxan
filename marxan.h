@@ -245,9 +245,6 @@ double ConnectionCost2(int ipu,struct sconnections connections[],int R[],int imo
 void ComputeConnectivityIndices(double *rConnectivityTotal,double *rConnectivityIn,
                                 double *rConnectivityEdge,double *rConnectivityOut,
                                 int puno,int *R,typeconnection connections[]);
-double ChangePen(int ipu,int puno,struct sspecies spec[], struct spustuff pu[],
-                 struct spu SM[],int R[], struct sconnections connections[],
-                 int imode,int clumptype,double *rShortfall);
 void ReserveCost(int puno,int spno,int R[],struct spustuff pu[],
         struct sconnections connections[],struct spu SM[],
         double cm, struct sspecies spec[],int aggexist,struct scost *reserve,int clumptype);
@@ -256,22 +253,17 @@ void SpeciesAmounts(int spno,int puno,struct sspecies spec[],struct spustuff pu[
                     struct spu SM[],int R[],int clumptype);
 
 double ThresholdPenalty(double tpf1,double tpf2,double timeprop);
-void CheckChange(int iIteration,int ipu,int spno,int puno,struct spustuff pu[],struct sconnections connections[],
-                 struct sspecies spec[],struct spu SM[],int *R,double cm,int imode,
-                 struct scost *change, struct scost *reserve,double costthresh,double tpf1, double tpf2,
-                 double timeprop,int clumptype);
-void CheckQuantumChange(int spno,int puno,struct spustuff pu[],struct sconnections connections[],
-                        struct sspecies spec[],struct spu SM[],int *R,double cm,
-                        struct scost *change, struct scost *reserve,double costthresh,double tpf1,
-                        double tpf2,double timeprop,int clumptype,int iFluctuationCount,int *PUChosen);
+void computeChangeScore(int iIteration,int ipu,int spno,int puno,struct spustuff pu[],struct sconnections connections[],
+                        struct sspecies spec[],struct spu SM[],int *R,double cm,int imode,
+                        struct scost *change, struct scost *reserve,double costthresh,double tpf1, double tpf2,
+                        double timeprop,int clumptype);
 double NewPenalty(int ipu,int isp,struct sspecies spec[],struct spustuff pu[], struct spu SM[],int imode);
-int GoodChange(struct scost change,double temp);
-int GoodQuantumChange(struct scost change,double rProbAcceptance);
-void DoChange(int ipu,int puno,int R[],struct scost *reserve,struct scost change,
-              struct spustuff pu[],struct spu SM[],struct sspecies spec[],struct sconnections connections[],int imode,int clumptype);
-void DoQuantumChange(int puno,int R[],struct scost *reserve,struct scost change,
-                     struct spustuff pu[],struct spu SM[],struct sspecies spec[],struct sconnections connections[],
-                     int clumptype,int iFluctuationCount,int *PUChosen);
+void doChange(int ipu,int puno,int *R,struct scost *reserve,struct scost change,
+              struct spustuff pu[],struct spu SM[],struct sspecies spec[],struct sconnections connections[],
+              int imode,int clumptype);
+//void DoQuantumChange(int puno,int R[],struct scost *reserve,struct scost change,
+//                     struct spustuff pu[],struct spu SM[],struct sspecies spec[],struct sconnections connections[],
+//                     int clumptype,int iFluctuationCount,int *PUChosen);
 
 int CountMissing(int spno,struct sspecies spec[],double misslevel,double *shortfall,double *rMinimumProportionMet);
 void displayValueForPUs(int puno, int spno,int R[],struct scost reserve,

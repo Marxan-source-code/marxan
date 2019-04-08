@@ -1333,8 +1333,8 @@ double cost(int ipu,struct spustuff pu[],struct sconnections connections[],doubl
 }
 
 /************ Change in penalty for adding single PU ******/
-double ChangePen(int ipu,int puno,struct sspecies spec[],struct spustuff pu[],struct spu SM[],
-                 int R[],struct sconnections connections[],int imode,int clumptype,double *rShortfall)
+double computeChangePenalty(int ipu,int puno,struct sspecies spec[],struct spustuff pu[],struct spu SM[],
+                          int R[],struct sconnections connections[],int imode,int clumptype,double *rShortfall)
 {
        int i, ism, isp;
        double famount, fcost= 0.0,newamount,tamount;
@@ -1345,7 +1345,7 @@ double ChangePen(int ipu,int puno,struct sspecies spec[],struct spustuff pu[],st
 
        #ifdef ANNEALING_TEST
        if (ipu == (puno-1))
-          appendTraceFile("ChangePen start\n");
+          appendTraceFile("computeChangePenalty start\n");
        #endif
 
        *rShortfall = 0;
@@ -1426,7 +1426,7 @@ double ChangePen(int ipu,int puno,struct sspecies spec[],struct spustuff pu[],st
        #ifdef ANNEALING_TEST
        if (ipu == (puno-1))
        {
-          sprintf(debugbuffer,"ChangePen end fcost %g\n",fcost);
+          sprintf(debugbuffer,"computeChangePenalty end fcost %g\n",fcost);
           appendTraceFile(debugbuffer);
        }
        #endif
@@ -1682,11 +1682,11 @@ double ThresholdPenalty(double tpf1,double tpf2,double timeprop)
     return(tpf1*exp(tpf2*timeprop));
 } /* Threshold Penalty */
 
-/*** Check Change ******************************/
-void CheckChange(int iIteration,int ipu,int spno,int puno,struct spustuff pu[],struct sconnections connections[],
-                 struct sspecies spec[],struct spu SM[],int *R,double cm,int imode,
-                 struct scost *change, struct scost *reserve,double costthresh,double tpf1, double tpf2,
-                 double timeprop,int clumptype)
+// compute change in the objective function score for adding or removing a single planning unit
+void computeChangeScore(int iIteration,int ipu,int spno,int puno,struct spustuff pu[],struct sconnections connections[],
+                        struct sspecies spec[],struct spu SM[],int *R,double cm,int imode,
+                        struct scost *change, struct scost *reserve,double costthresh,double tpf1, double tpf2,
+                        double timeprop,int clumptype)
      // imode = 1 add PU, imode = -1 remove PU
 {
      double threshpen = 0;
@@ -1707,7 +1707,7 @@ void CheckChange(int iIteration,int ipu,int spno,int puno,struct spustuff pu[],s
         reserve->connection = 0;
      }
 
-     change->penalty = ChangePen(ipu,puno,spec,pu,SM,R,connections,imode,clumptype,&change->shortfall);
+     change->penalty = computeChangePenalty(ipu,puno,spec,pu,SM,R,connections,imode,clumptype,&change->shortfall);
 
      if (costthresh)
      {
@@ -1759,10 +1759,11 @@ void CheckChange(int iIteration,int ipu,int spno,int puno,struct spustuff pu[],s
 
 }  /*** Check Change ***/
 
-void CheckQuantumChange(int spno,int puno,struct spustuff pu[],struct sconnections connections[],
-                        struct sspecies spec[],struct spu SM[],int *R,double cm,
-                        struct scost *change, struct scost *reserve,double costthresh,double tpf1, double tpf2,
-                        double timeprop,int clumptype,int iFluctuationCount,int *PUChosen)
+// compute change in the objective function score for adding or removing a set of planning units
+void computeQuantumChangeScore(int spno,int puno,struct spustuff pu[],struct sconnections connections[],
+                               struct sspecies spec[],struct spu SM[],int *R,double cm,
+                               struct scost *change, struct scost *reserve,double costthresh,double tpf1, double tpf2,
+                               double timeprop,int clumptype,int iFluctuationCount,int *PUChosen)
      // imode = 1 add PU, imode = -1 remove PU
 {
      // We query a whole bunch of changes in one, passed in by Quantum annealing.
@@ -1774,7 +1775,7 @@ void CheckQuantumChange(int spno,int puno,struct spustuff pu[],struct sconnectio
      #endif
 
      #ifdef DEBUG_QA
-     appendTraceFile("CheckQuantumChange start iFluctuationCount %i\n",iFluctuationCount);
+     appendTraceFile("computeQuantumChangeScore start iFluctuationCount %i\n",iFluctuationCount);
      #endif
 
      change->cost = 0;
@@ -1795,7 +1796,7 @@ void CheckQuantumChange(int spno,int puno,struct spustuff pu[],struct sconnectio
          imode = R[j] == 1 ? -1 : 1;
 
          #ifdef DEBUG_QA
-         appendTraceFile("CheckQuantumChange ipu %i chosen %i imode %i\n",j,PUChosen[j],imode);
+         appendTraceFile("computeQuantumChangeScore ipu %i chosen %i imode %i\n",j,PUChosen[j],imode);
          #endif
 
          change->cost += pu[j].cost*imode;    /* Cost of this PU on it's own */
@@ -1809,7 +1810,7 @@ void CheckQuantumChange(int spno,int puno,struct spustuff pu[],struct sconnectio
             reserve->connection = 0;
          }
 
-         change->penalty += ChangePen(j,puno,spec,pu,SM,R,connections,imode,clumptype,&change->shortfall);
+         change->penalty += computeChangePenalty(j,puno,spec,pu,SM,R,connections,imode,clumptype,&change->shortfall);
 
          if (costthresh)
          {
@@ -1860,9 +1861,9 @@ void CheckQuantumChange(int spno,int puno,struct spustuff pu[],struct sconnectio
      #endif
 
      #ifdef DEBUG_QA
-     appendTraceFile("CheckQuantumChange end\n");
+     appendTraceFile("computeQuantumChangeScore end\n");
      #endif
-}  // Check Quantum Change
+} // computeQuantumChangeScore
 
 // new Animal Penalty
 double NewPenalty(int ipu,int isp,struct sspecies spec[],struct spustuff pu[],struct spu SM[],int imode)
@@ -1877,12 +1878,16 @@ double NewPenalty(int ipu,int isp,struct sspecies spec[],struct spustuff pu[],st
        return(newpen);
 }  // Animal Penalty
 
-int GoodChange(struct scost change,double temp)
+// determines if the change value for changing a single planning unit status is good
+// does the change stochastically fall below the current acceptance probability?
+int isGoodChange(struct scost change,double temp)
 {
     return (exp(-change.total/temp)> rand1()) ? 1 : 0;
 }
 
-int GoodQuantumChange(struct scost change,double rProbAcceptance)
+// determines if the change value for changing status for a set of planning units is good
+// does it stochastically fall below the current acceptance probability?
+int isGoodQuantumChange(struct scost change,double rProbAcceptance)
 {
     if (change.total <= 0)
        return 1;
@@ -1890,7 +1895,8 @@ int GoodQuantumChange(struct scost change,double rProbAcceptance)
         return (rProbAcceptance > rand1()) ? 1 : 0;
 }
 
-void DoChange(int ipu,int puno,int *R,struct scost *reserve,struct scost change,
+// change the status of a single planning unit
+void doChange(int ipu,int puno,int *R,struct scost *reserve,struct scost change,
               struct spustuff pu[],struct spu SM[],struct sspecies spec[],struct sconnections connections[],
               int imode,int clumptype)
 {    int i,ism,isp;
@@ -1949,7 +1955,7 @@ void DoChange(int ipu,int puno,int *R,struct scost *reserve,struct scost change,
                 }
 
                 #ifdef ANNEALING_TEST
-                appendTraceFile("DoChange ipu %i isp %i spec.amount %g imode %i\n",
+                appendTraceFile("doChange ipu %i isp %i spec.amount %g imode %i\n",
                                      ipu,isp,spec[isp].amount,imode);
                 #endif
             }  /* None clumping species */
@@ -1960,9 +1966,10 @@ void DoChange(int ipu,int puno,int *R,struct scost *reserve,struct scost change,
         } /* Invoke Species Change */
 
      reserve->total = reserve->cost + reserve->connection + reserve->penalty + reserve->probability1D + reserve->probability2D;
-}
+} // doChange
 
-void DoQuantumChange(int puno,int *R,struct scost *reserve,struct scost change,
+// change the status of a set of planning units
+void doQuantumChange(int puno,int *R,struct scost *reserve,struct scost change,
                      struct spustuff pu[],struct spu SM[],struct sspecies spec[],struct sconnections connections[],
                      int clumptype,int iFluctuationCount,int *PUChosen)
 {
@@ -1971,7 +1978,7 @@ void DoQuantumChange(int puno,int *R,struct scost *reserve,struct scost change,
      double rAmount;
 
      #ifdef DEBUG_QA
-     appendTraceFile("DoQuantumChange start\n");
+     appendTraceFile("doQuantumChange start\n");
      #endif
 
      reserve->cost += change.cost;
@@ -2025,7 +2032,7 @@ void DoQuantumChange(int puno,int *R,struct scost *reserve,struct scost change,
                           spec[isp].amount = 0;
 
                     #ifdef ANNEALING_TEST
-                    appendTraceFile("DoChange ipu %i isp %i spec.amount %g imode %i\n",
+                    appendTraceFile("doChange ipu %i isp %i spec.amount %g imode %i\n",
                                          ipu,isp,spec[isp].amount,imode);
                     #endif
                 }  // No clumping species
@@ -2039,9 +2046,9 @@ void DoQuantumChange(int puno,int *R,struct scost *reserve,struct scost change,
      reserve->total = reserve->cost + reserve->connection + reserve->penalty + reserve->probability1D + reserve->probability2D;
 
      #ifdef DEBUG_QA
-     appendTraceFile("DoQuantumChange end\n");
+     appendTraceFile("doQuantumChange end\n");
      #endif
-} // Do Quantum Change
+} // doQuantumChange
 
 /*****************************************************/
 /*********** Post Processing *************************/
@@ -2379,8 +2386,8 @@ void ConnollyInit(int puno,int spno,struct spustuff pu[],typeconnection connecti
          iOldR = R[ipu];
          imode = R[ipu]==1?-1:1;
 
-         CheckChange(-1,ipu,spno,puno,pu,connections,spec,SM,R,cm,imode,&change,&reserve,0,0,0,0,clumptype);
-         DoChange(ipu,puno,R,&reserve,change,pu,SM,spec,connections,imode,clumptype);
+         computeChangeScore(-1,ipu,spno,puno,pu,connections,spec,SM,R,cm,imode,&change,&reserve,0,0,0,0,clumptype);
+         doChange(ipu,puno,R,&reserve,change,pu,SM,spec,connections,imode,clumptype);
 
          if (change.total > deltamax)
             deltamax = change.total;
@@ -2553,9 +2560,9 @@ void thermalAnnealing(int spno, int puno, struct sconnections connections[],int 
 
          itemp = R[ipu] == 1 ? -1 : 1;  /* Add or Remove PU ? */
 
-         CheckChange(itime,ipu,spno,puno,pu,connections,spec,SM,R,cm,itemp,change,reserve,
-                     costthresh,tpf1,tpf2,(double) itime/ (double) anneal.iterations,clumptype);
-         /* Need to calculate Appropriate temperature in GoodChange or another function */
+         computeChangeScore(itime,ipu,spno,puno,pu,connections,spec,SM,R,cm,itemp,change,reserve,
+                            costthresh,tpf1,tpf2,(double) itime/ (double) anneal.iterations,clumptype);
+         /* Need to calculate Appropriate temperature in isGoodChange or another function */
          /* Upgrade temperature */
          if (itime%anneal.Tlen == 0)
          {
@@ -2599,12 +2606,12 @@ void thermalAnnealing(int spno, int puno, struct sconnections connections[],int 
             writeSolution(puno,R,pu,tempname2,fnames.savesnapsteps,fnames);
          } /* Save snapshot every savesnapfreq timesteps */
          iPreviousR = R[ipu];
-         if (GoodChange(*change,anneal.temp)==1)
+         if (isGoodChange(*change,anneal.temp)==1)
          {
             iGoodChange = 1;
 
             ++ichanges;
-            DoChange(ipu,puno,R,reserve,*change,pu,SM,spec,connections,itemp,clumptype);
+            doChange(ipu,puno,R,reserve,*change,pu,SM,spec,connections,itemp,clumptype);
             if (fnames.savesnapchanges && !(ichanges % fnames.savesnapfrequency))
             {
                if (repeats > 1)
@@ -2829,9 +2836,9 @@ void quantumAnnealing(int spno, int puno, struct sconnections connections[],int 
            }
 
            // compute objective function score with these bits flipped
-           CheckQuantumChange(spno,puno,pu,connections,spec,SM,R,cm,change,reserve,
-                              costthresh,tpf1,tpf2,(double) itime/ (double) anneal.iterations,
-                              clumptype,iFluctuationCount,PUChosen);
+           computeQuantumChangeScore(spno,puno,pu,connections,spec,SM,R,cm,change,reserve,
+                                     costthresh,tpf1,tpf2,(double) itime/ (double) anneal.iterations,
+                                     clumptype,iFluctuationCount,PUChosen);
 
            // we only accept good changes
 
@@ -2850,12 +2857,12 @@ void quantumAnnealing(int spno, int puno, struct sconnections connections[],int 
                   sprintf(tempname2,"%s_snap%st%05li.dat",savename,tempname1,++snapcount%10000);
               writeSolution(puno,R,pu,tempname2,fnames.savesnapsteps,fnames);
            } /* Save snapshot every savesnapfreq timesteps */
-           if (GoodQuantumChange(*change,rAcceptanceProbability)==1)
+           if (isGoodQuantumChange(*change,rAcceptanceProbability)==1)
            {
               iGoodChange = 1;
 
               ++ichanges;
-              DoQuantumChange(puno,R,reserve,*change,pu,SM,spec,connections,clumptype,iFluctuationCount,PUChosen);
+              doQuantumChange(puno,R,reserve,*change,pu,SM,spec,connections,clumptype,iFluctuationCount,PUChosen);
               if (fnames.savesnapchanges && !(ichanges % fnames.savesnapfrequency))
               {
                  if (repeats > 1)
@@ -3619,12 +3626,12 @@ void iterativeImprovement(int puno,int spno,struct spustuff pu[], struct sconnec
             if ((R[ichoice] < 2) && (pu[ichoice].status < 2))
             {
                imode = R[ichoice] == 1 ? -1 : 1;
-               CheckChange(-1,ichoice,spno,puno,pu,connections,spec,SM,R,cm,imode,change,reserve,
-                           costthresh,tpf1,tpf2,1,clumptype);
+               computeChangeScore(-1,ichoice,spno,puno,pu,connections,spec,SM,R,cm,imode,change,reserve,
+                                  costthresh,tpf1,tpf2,1,clumptype);
                if (change->total < 0)
                {
                   displayProgress2("It Imp has changed %i with change value %lf \n",ichoice,change->total);
-                  DoChange(ichoice,puno,R,reserve,*change,pu,SM,spec,connections,imode,clumptype);
+                  doChange(ichoice,puno,R,reserve,*change,pu,SM,spec,connections,imode,clumptype);
                }   // I've just made a good change
             }
 
