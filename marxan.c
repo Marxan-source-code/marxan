@@ -1980,7 +1980,8 @@ void doQuantumChange(int puno,int *R,struct scost *reserve,struct scost change,
 /*****************************************************/
 
 /***  Counts the number of species missing from the reserve ****/
-int CountMissing(int spno,struct sspecies spec[],double misslevel,double *shortfall,double *rMinimumProportionMet)
+// compute the number of species whose representation fraction is less that the MISSLEVEL parameter
+int computeRepresentationMISSLEVEL(int spno,struct sspecies spec[],double misslevel,double *shortfall,double *rMinimumProportionMet)
 {
     int i,isp = 0;
     double rProportionMet;
@@ -2001,7 +2002,7 @@ int CountMissing(int spno,struct sspecies spec[],double misslevel,double *shortf
                  *rMinimumProportionMet = rProportionMet;
 
               #ifdef DEBUG_COUNTMISSING
-              appendTraceFile("CountMissing i %i target %g amount %g shortfall %g\n",i,spec[i].target,spec[i].amount,*shortfall);
+              appendTraceFile("computeRepresentationMISSLEVEL i %i target %g amount %g shortfall %g\n",i,spec[i].target,spec[i].amount,*shortfall);
               #endif
            }
         if (spec[i].targetocc > 0)
@@ -2033,11 +2034,11 @@ int CountMissing(int spno,struct sspecies spec[],double misslevel,double *shortf
     }
 
     #ifdef DEBUG_COUNTMISSING
-    appendTraceFile("CountMissing shortfall %g\n",*shortfall);
+    appendTraceFile("computeRepresentationMISSLEVEL shortfall %g\n",*shortfall);
     #endif
 
     return(isp);
-}  /* CountMissing*/
+}
 
 void ComputeConnectivityIndices(double *rConnectivityTotal,double *rConnectivityIn,
                                 double *rConnectivityEdge,double *rConnectivityOut,

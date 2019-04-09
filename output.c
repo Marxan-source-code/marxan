@@ -614,10 +614,10 @@ void writeSummary(int puno,int spno,int R[],struct sspecies spec[],struct scost 
              for (i=0;i<=puno-1;i++)
                 if (R[i]==1 || R[i]==2)
                    ino ++;
-             isp = CountMissing(spno,spec,misslevel,&shortfall,&rMPM);
+             isp = computeRepresentationMISSLEVEL(spno,spec,misslevel,&shortfall,&rMPM);
 
              #ifdef DEBUG_COUNTMISSING
-             appendTraceFile("OutputSummary shortfall %g\n",shortfall);
+             appendTraceFile("writeSummary shortfall %g\n",shortfall);
              #endif
 
              ComputeConnectivityIndices(&rConnectivityTotal,&rConnectivityIn,&rConnectivityEdge,&rConnectivityOut,
@@ -1591,7 +1591,7 @@ void displayValueForPUs(int puno, int spno,int *R,struct scost reserve,
      appendTraceFile("PrintResVal start\n");
      #endif
 
-     isp = CountMissing(spno,spec,misslevel,&shortfall,&rMPM);
+     isp = computeRepresentationMISSLEVEL(spno,spec,misslevel,&shortfall,&rMPM);
 
      //ComputeConnectivityIndices(rConnectivityTotal,rConnectivityIn,rConnectivityEdge,rConnectivityOut,
      //                           puno,R,connections);
@@ -1675,7 +1675,8 @@ void writeWeightedConnectivityFile(struct sfname fnames)
        free(readname1);
     }
     free(readname1);
-    fgets(sLine,500-1,fpnames);
+    if (fgets(sLine,500-1,fpnames) == NULL)
+        displayErrorMessage("Error reading connectivity file.\n");
 
     // loop through the connectivity files
     iTotalRecords = 0;
@@ -1704,7 +1705,8 @@ void writeWeightedConnectivityFile(struct sfname fnames)
              }
              free(readname2);
              // read the header row
-             fgets(sLine,500-1,fpInputConnection);
+             if (fgets(sLine,500-1,fpInputConnection) == NULL)
+                 displayErrorMessage("Error reading connectivity file.\n");
 
              // write the input connection file contents to the output connection file with appropriate weightings
              while (fgets(sLine,500-1,fpInputConnection))

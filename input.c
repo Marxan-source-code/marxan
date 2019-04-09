@@ -28,7 +28,8 @@ int readPlanningUnits(int *puno,struct spustuff *pu[],struct sfname fnames)
     free(readname);
 
     // Scan header
-    fgets(sLine,500-1,fp);
+    if (fgets(sLine,500-1,fp) == NULL)
+        displayErrorMessage("Error reading planning units.\n");
 
     sVarName = strtok(sLine," ,;:^*\"/\t\'\\\n");
     head = GetVarName(varlist,numvars,sVarName,head,fnames.puname);
@@ -169,7 +170,8 @@ int readSpecies(int *spno,struct sspecies *spec[],struct sfname fnames)
 
 
     // Scan header
-    fgets(sLine,500-1,fp);
+    if (fgets(sLine,500-1,fp) == NULL)
+        displayErrorMessage("Error reading species.\n");
 
     sVarName = strtok(sLine," ,;:^*\"/\t\'\\\n");
     snhead = GetVarName(varlist,numvars,sVarName,snhead,fnames.specname);
@@ -348,7 +350,9 @@ int readSpeciesBlockDefinition(int *gspno,struct sgenspec *gspec[],struct sfname
     free(readname);
 
     /* Scan header */
-    fgets(sLine,500-1,fp);
+    if (fgets(sLine,500-1,fp) == NULL)
+        displayErrorMessage("Error reading block definition.\n");
+
     sVarName = strtok(sLine," ,;:^*\"/\t\'\\\n");
     head = GetVarName(varlist,numvars,sVarName,head,fnames.blockdefname);
     ivars = 1;
@@ -473,7 +477,9 @@ int readConnections(int puno,struct sconnections connections[],struct spustuff p
        return(0);
     }
     free(readname);
-    fgets(sLine,500-1,fp);
+
+    if (fgets(sLine,500-1,fp) == NULL)
+        displayErrorMessage("Error reading connections.\n");
 
     while (fgets(sLine,500-1,fp))
     {
@@ -610,12 +616,16 @@ void readSparseMatrix(int *iSMSize, struct spu *SM[], int puno, int spno, struct
      free(readname);
 
      // read through the file first to see how many lines
-     fgets(sLine,500-1,fp);
+     if (fgets(sLine,500-1,fp) == NULL)
+        displayErrorMessage("Error reading sparse matrix.\n");
+
      while (fgets(sLine,500-1,fp))
            iInternalSMSize++;
 
      rewind(fp);
-     fgets(sLine,500-1,fp);
+
+     if (fgets(sLine,500-1,fp) == NULL)
+        displayErrorMessage("Error reading sparse matrix.\n");
 
      // scan the first line to see if the prob field is tagged on the end
      // 3 = regular marxan matrix
@@ -642,7 +652,8 @@ void readSparseMatrix(int *iSMSize, struct spu *SM[], int puno, int spno, struct
      // init with zero values
      for (i=0;i<iInternalSMSize;i++)
      {
-         fgets(sLine,500-1,fp);
+         if (fgets(sLine,500-1,fp) == NULL)
+             displayErrorMessage("Error reading sparse matrix.\n");
 
          sVarVal = strtok(sLine," ,;:^*\"/\t\'\\\n");
          sscanf(sVarVal,"%d",&_spid);
@@ -710,7 +721,9 @@ void readPenalties(typesp spec[],int spno,struct sfname fnames,struct binsearch 
      for (i=0;i<spno;i++)
          spec[i].rUserPenalty = 0;
 
-     fgets(sLine,500-1,fp);
+     if (fgets(sLine,500-1,fp) == NULL)
+         displayErrorMessage("Error reading penalties.\n");
+
      while (fgets(sLine,500-1,fp))
      {
            sVarVal = strtok(sLine," ,;:^*\"/\t\'\\\n");
@@ -747,12 +760,15 @@ void readSparseMatrixSpOrder(int *iSMSize, struct spusporder *SM[], int puno, in
      free(readname);
 
      // read through the file first to see how many lines
-     fgets(sLine,500-1,fp);
+     if (fgets(sLine,500-1,fp) == NULL)
+         displayErrorMessage("Error reading sparse matrix sporder.\n");
+
      while (fgets(sLine,500-1,fp))
         iInternalSMSize++;
 
      rewind(fp);
-     fgets(sLine,500-1,fp);
+     if (fgets(sLine,500-1,fp) == NULL)
+         displayErrorMessage("Error reading sparse matrix sporder.\n");
 
      *iSMSize = iInternalSMSize;
 
@@ -766,7 +782,8 @@ void readSparseMatrixSpOrder(int *iSMSize, struct spusporder *SM[], int puno, in
      for (i=0;i<iInternalSMSize;i++)
      {
 
-         fgets(sLine,500-1,fp);
+         if (fgets(sLine,500-1,fp) == NULL)
+             displayErrorMessage("Error reading sparse matrix sporder.\n");
 
          sVarVal = strtok(sLine," ,;:^*\"/\t\'\\\n");
          sscanf(sVarVal,"%d",&_spid);
@@ -824,7 +841,8 @@ void readInputOption(FILE *infile, char varname[], void *address, int parmtype, 
       /* read first line. I'm in trouble if file is empty*/
      do
      {   /* loop through file looking for varname */
-       fgets(buffer,255,infile);
+       if (fgets(buffer,255,infile) == NULL)
+           displayErrorMessage("Error reading input parameter %s.\n",varname);
        check1 = 0;
        check2 = 0;
 
@@ -968,7 +986,8 @@ void readInputOptions(double *cm,double *prop,struct sanneal *anneal,
         (*anneal).type = 0;
      if ((*anneal).Tinit < 0)
         (*anneal).type = (int) (-(*anneal).Tinit) + 1;  /* type is negative of Tinit */
-     fscanf(fp,"%i",iseed); /* The random seed. -1 to set by clock */
+     if (fscanf(fp,"%i",iseed) == 0)  /* The random seed. -1 to set by clock */
+         displayErrorMessage("Error reading input parameter random seed.\n");
 
      /* Various controls */
      readInputOption(fp,"NUMREPS",repeats,LONGINT,0,present);

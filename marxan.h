@@ -261,7 +261,7 @@ void doChange(int ipu,int puno,int *R,struct scost *reserve,struct scost change,
 //                     struct spustuff pu[],struct spu SM[],struct sspecies spec[],struct sconnections connections[],
 //                     int clumptype,int iFluctuationCount,int *PUChosen);
 
-int CountMissing(int spno,struct sspecies spec[],double misslevel,double *shortfall,double *rMinimumProportionMet);
+int computeRepresentationMISSLEVEL(int spno,struct sspecies spec[],double misslevel,double *shortfall,double *rMinimumProportionMet);
 void displayValueForPUs(int puno, int spno,int R[],struct scost reserve,
                         struct sspecies spec[],double misslevel);
 void TimePassed(void);
