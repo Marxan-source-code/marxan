@@ -109,19 +109,19 @@ void executeRunLoop(long int repeats,int puno,int spno,double cm,int aggexist,do
            {
               if (anneal.type == 2 )
               {
-                 appendTraceFile("before ConnollyInit run %i\n",irun);
+                 appendTraceFile("before initialiseConnollyAnnealing run %i\n",irun);
 
-                 ConnollyInit(puno,spno,pu,connections,spec,SM,cm,&anneal,aggexist,R2D[irun-1],prop,clumptype,irun);
+                 initialiseConnollyAnnealing(puno,spno,pu,connections,spec,SM,cm,&anneal,aggexist,R2D[irun-1],prop,clumptype,irun);
 
-                 appendTraceFile("after ConnollyInit run %i\n",irun);
+                 appendTraceFile("after initialiseConnollyAnnealing run %i\n",irun);
               }
               if (anneal.type == 3)
               {
-                 appendTraceFile("before AdaptiveInit run %i\n",irun);
+                 appendTraceFile("before initialiseAdaptiveAnnealing run %i\n",irun);
 
-                 AdaptiveInit(puno,spno,prop,R2D[irun-1],pu,connections,SM,cm,spec,aggexist,&anneal,clumptype);
+                 initialiseAdaptiveAnnealing(puno,spno,prop,R2D[irun-1],pu,connections,SM,cm,spec,aggexist,&anneal,clumptype);
 
-                 appendTraceFile("after AdaptiveInit run %i\n",irun);
+                 appendTraceFile("after initialiseAdaptiveAnnealing run %i\n",irun);
               }
 
               displayProgress1("  Using Calculated Tinit = %.4f Tcool = %.8f \n",
@@ -358,7 +358,7 @@ int executeMarxan(char sInputFileName[])
 
     delta = 1e-14;  // This would more elegantly be done as a constant
 
-    InitRandSeed(iseed);
+    initialiseRandomSeed(iseed);
     seedinit = iseed;
 
     appendTraceFile("RandSeed iseed %i RandSeed1 %li\n",iseed,RandSeed1);
@@ -563,7 +563,7 @@ int executeMarxan(char sInputFileName[])
        }
 
        // transfer loaded penalties to correct data structrure
-       MapUserPenalties(spec,spno);
+       applyUserPenalties(spec,spno);
 	}
 	else
 	{
@@ -1596,7 +1596,7 @@ void initialiseReserve(int puno,double prop, int *R)
 {
      int i;
      for (i=0;i<puno;i++)
-         R[i] = rand1() < prop ? 1:0;
+         R[i] = returnRandomFloat() < prop ? 1:0;
 }
 
 // sets cost threshold penalty when "cost threshold" is in use
@@ -1807,7 +1807,7 @@ double computeSpeciesPlanningUnitPenalty(int ipu,int isp,struct sspecies spec[],
 // does the change stochastically fall below the current acceptance probability?
 int isGoodChange(struct scost change,double temp)
 {
-    return (exp(-change.total/temp)> rand1()) ? 1 : 0;
+    return (exp(-change.total/temp)> returnRandomFloat()) ? 1 : 0;
 }
 
 // determines if the change value for changing status for a set of planning units is good
@@ -1817,7 +1817,7 @@ int isGoodQuantumChange(struct scost change,double rProbAcceptance)
     if (change.total <= 0)
        return 1;
     else
-        return (rProbAcceptance > rand1()) ? 1 : 0;
+        return (rProbAcceptance > returnRandomFloat()) ? 1 : 0;
 }
 
 // change the status of a single planning unit
@@ -2040,7 +2040,8 @@ int computeRepresentationMISSLEVEL(int spno,struct sspecies spec[],double missle
     return(isp);
 }
 
-void ComputeConnectivityIndices(double *rConnectivityTotal,double *rConnectivityIn,
+// compute connectivity total, in, edge, out for summary report
+void computeConnectivityIndices(double *rConnectivityTotal,double *rConnectivityIn,
                                 double *rConnectivityEdge,double *rConnectivityOut,
                                 int puno,int *R,typeconnection connections[])
      // We record 4 categories for connectivity;
@@ -2110,9 +2111,9 @@ void ComputeConnectivityIndices(double *rConnectivityTotal,double *rConnectivity
      }
 }
 
-void ConnollyInit(int puno,int spno,struct spustuff pu[],typeconnection connections[],typesp spec[],
-                  struct spu SM[],double cm, struct sanneal *anneal,int aggexist,
-                  int R[],double prop,int clumptype,int irun)
+void initialiseConnollyAnnealing(int puno,int spno,struct spustuff pu[],typeconnection connections[],typesp spec[],
+                                 struct spu SM[],double cm, struct sanneal *anneal,int aggexist,
+                                 int R[],double prop,int clumptype,int irun)
 {
      long int i,ipu,imode, iOldR;
      double deltamin = 0,deltamax = 0;
@@ -2124,25 +2125,25 @@ void ConnollyInit(int puno,int spno,struct spustuff pu[],typeconnection connecti
      #endif
 
      #ifdef DEBUGTRACEFILE
-     appendTraceFile("ConnollyInit start\n");
+     appendTraceFile("initialiseConnollyAnnealing start\n");
      if (verbosity > 4)
      {
         sprintf(sRun,"%i",irun);
-        writename = (char *) calloc(strlen(fnames.outputdir) + strlen("debug_maropt_ConnollyInit_.csv") + strlen(sRun) + 2, sizeof(char));
+        writename = (char *) calloc(strlen(fnames.outputdir) + strlen("debug_maropt_initialiseConnollyAnnealing_.csv") + strlen(sRun) + 2, sizeof(char));
         strcpy(writename,fnames.outputdir);
-        strcat(writename,"debug_maropt_ConnollyInit_");
+        strcat(writename,"debug_maropt_initialiseConnollyAnnealing_");
         strcat(writename,sRun);
         strcat(writename,".csv");
         fp = fopen(writename,"w");
         if (fp==NULL)
-           displayErrorMessage("cannot create debug_maropt_ConnollyInit file %s\n",writename);
+           displayErrorMessage("cannot create debug_maropt_initialiseConnollyAnnealing file %s\n",writename);
         free(writename);
         fprintf(fp,"i,ipu,puid,old R,imode,R,total,max,min\n");
      }
      #endif
 
      #ifdef DEBUG_PROB1D
-     appendTraceFile("ConnollyInit A\n");
+     appendTraceFile("initialiseConnollyAnnealing A\n");
      #endif
 
      localdelta = 1E-10;
@@ -2150,7 +2151,7 @@ void ConnollyInit(int puno,int spno,struct spustuff pu[],typeconnection connecti
      initialiseReserve(puno,prop,R);
 
      #ifdef DEBUG_PROB1D
-     appendTraceFile("ConnollyInit B\n");
+     appendTraceFile("initialiseConnollyAnnealing B\n");
      #endif
 
      addReserve(puno,pu,R);
@@ -2158,18 +2159,18 @@ void ConnollyInit(int puno,int spno,struct spustuff pu[],typeconnection connecti
         ClearClumps(spno,spec,pu,SM);
 
      #ifdef DEBUG_PROB1D
-     appendTraceFile("ConnollyInit C\n");
+     appendTraceFile("initialiseConnollyAnnealing C\n");
      #endif
 
      computeReserveValue(puno,spno,R,pu,connections,SM,cm,spec,aggexist,&reserve,clumptype);
 
      #ifdef DEBUG_PROB1D
-     appendTraceFile("ConnollyInit D\n");
+     appendTraceFile("initialiseConnollyAnnealing D\n");
      #endif
 
      for (i=1;i<= (*anneal).iterations/100; i++)
      {
-         ipu = RandNum(puno);
+         ipu = returnRandom(puno);
          iOldR = R[ipu];
          imode = R[ipu]==1?-1:1;
 
@@ -2191,14 +2192,13 @@ void ConnollyInit(int puno,int spno,struct spustuff pu[],typeconnection connecti
 
      (*anneal).Tcool = exp(log(deltamin/ (*anneal).Tinit)/(double)(*anneal).Titns);
 
-     appendTraceFile("ConnollyInit end\n");
+     appendTraceFile("initialiseConnollyAnnealing end\n");
      if (verbosity > 4)
         fclose(fp);
-} // Init Annealing Schedule According to Connolly Scheme
+} // initialiseConnollyAnnealing
 
-/******* Adaptive Annealing 2 *********************/
-/**** Initial Trial Runs. Run for some small time to establish sigma. ****/
-void AdaptiveInit(int puno,int spno,double prop,int *R,
+// initialise adaptive annealing (where anneal type = 3)
+void initialiseAdaptiveAnnealing(int puno,int spno,double prop,int *R,
     struct spustuff pu[],struct sconnections connections[],
     struct spu SM[],double cm,struct sspecies spec[],int aggexist,struct sanneal *anneal,int clumptype)
 {
@@ -2236,8 +2236,8 @@ void AdaptiveInit(int puno,int spno,double prop,int *R,
 
 /**** Set TInitial from this as well ****/
 
-/**** Function to decrement T and decide if it is time to stop? *****/
-void AdaptiveDec(struct sanneal *anneal)
+// reduce annealing temperature when anneal type = 3
+void reduceTemperature(struct sanneal *anneal)
 {
      double omega = 0.7; /* Control parameter */
      double sigmanew,sigmamod;
@@ -2251,7 +2251,7 @@ void AdaptiveDec(struct sanneal *anneal)
      (*anneal).sum = 0;
      (*anneal).sum2 = 0;
 
-} /* Adaptive Decrement. Sets the new temperature based on old values */
+}
 
 // run simulated thermal annealing selection algorithm
 void thermalAnnealing(int spno, int puno, struct sconnections connections[],int R[], double cm,
@@ -2342,7 +2342,7 @@ void thermalAnnealing(int spno, int puno, struct sconnections connections[],int 
      {
          do
          {
-           ipu = RandNum(puno);
+           ipu = returnRandom(puno);
          } while (R[ipu] > 1); /*  Select a PU at random */
 
          itemp = R[ipu] == 1 ? -1 : 1;  /* Add or Remove PU ? */
@@ -2369,7 +2369,7 @@ void thermalAnnealing(int spno, int puno, struct sconnections connections[],int 
                 }
             }
             if (anneal.type == 3)
-               AdaptiveDec(&anneal);
+               reduceTemperature(&anneal);
             else
                 anneal.temp = anneal.temp*anneal.Tcool;
 
@@ -2605,7 +2605,7 @@ void quantumAnnealing(int spno, int puno, struct sconnections connections[],int 
            {
                do
                {
-                 j = RandNum(puno);
+                 j = returnRandom(puno);
 
                  #ifdef DEBUG_QA
                  appendTraceFile("quantumAnnealing j %i PUChosen[j] %i R[j] %i \n",j,PUChosen[j],R[j]);
@@ -2900,8 +2900,9 @@ void slaveExit(void)
      writeSlaveSyncFile();
 }
 
-struct snlink *GetVarName(char **varlist,int numvars,char *sVarName,
-                          struct snlink *head,char *fname)
+// add a field name from an input file header to a list
+struct snlink *storeFieldName(char **varlist,int numvars,char *sVarName,
+                              struct snlink *head,char *fname)
 {
        int i,foundit = 0;
        struct snlink *temp,*newlink=NULL;
@@ -2926,19 +2927,8 @@ struct snlink *GetVarName(char **varlist,int numvars,char *sVarName,
        return(newlink);
 }
 
-int CheckVarName(char **varlist, int numvars, char *sVarName)
-{
-    // This routine checks if the variable name occurs in the list. It is similar to GetVarName but does not create list
-    int i,foundit = 0;
-
-    for (i=0;i<numvars;++i)
-        if(strcmp(varlist[i],sVarName) == 0)
-               foundit++;
-
-    return(foundit);
-}
-
-void MapUserPenalties(typesp spec[],int spno)
+// apply the species penalties nominated in input penalties file for use in the annealing algorithms
+void applyUserPenalties(typesp spec[],int spno)
 {
      int i;
 
@@ -3062,7 +3052,7 @@ void iterativeImprovement(int puno,int spno,struct spustuff pu[], struct sconnec
             if ((R[i] < 2) && (pu[i].status < 2))
             {
                iimparray[ipu].puindex = i;
-               iimparray[ipu].randomfloat = rand1();
+               iimparray[ipu].randomfloat = returnRandomFloat();
                ipu++;
             }
 
@@ -3138,37 +3128,49 @@ void iterativeImprovement(int puno,int spno,struct spustuff pu[], struct sconnec
 #define EPS 1.2e-7
 #define RNMX (1.0-EPS)
 
-long    RandomIY;
-long    RandomIV[NTAB];
-float rand1(void)
+long RandomIY;
+long RandomIV[NTAB];
+
+// random random floating point number. not sure what this one does exactly...
+float returnRandomFloat(void)
 {
-    int        j;
-    long    k;
-    float   temp;
+    int j;
+    long k;
+    float temp;
 
     if(RandSeed1 <= 0 || !RandomIY)    /* Initialize */
     {
-    RandSeed1 = -RandSeed1;
-    for(j = NTAB+7; j >= 0; j--)
-    {
-        k = RandSeed1/IQ;
-        RandSeed1 = IA * (RandSeed1 - k * IQ) - IR * k;
-        if(RandSeed1 < 0) RandSeed1 += IM;
-        if(j < NTAB) RandomIV[j] = RandSeed1;
-    }
-    RandomIY=RandomIV[0];
+        RandSeed1 = -RandSeed1;
+        for(j = NTAB+7; j >= 0; j--)
+        {
+            k = RandSeed1/IQ;
+            RandSeed1 = IA * (RandSeed1 - k * IQ) - IR * k;
+            if (RandSeed1 < 0)
+                RandSeed1 += IM;
+            if (j < NTAB)
+                RandomIV[j] = RandSeed1;
+        }
+        RandomIY = RandomIV[0];
     }
     k=RandSeed1/IQ;        /* The stuff we do on calls after the first */
     RandSeed1 = IA * (RandSeed1 - k * IQ) - IR * k;
-    if(RandSeed1 < 0) RandSeed1 += IM;
+    if(RandSeed1 < 0)
+    {
+        RandSeed1 += IM;
+    }
     j = RandomIY/NDIV;
     RandomIY=RandomIV[j];
     RandomIV[j] = RandSeed1;
-    if((temp=AM*RandomIY) > RNMX) return(RNMX);
-    else return(temp);
+    if ((temp=AM*RandomIY) > RNMX)
+    {
+        return(RNMX);
+    } else {
+        return(temp);
+    }
 }
 
-void InitRandSeed(int iSeed) {
+// initialise random seed
+void initialiseRandomSeed(int iSeed) {
     if (iSeed>0)
         RandSeed1 = iSeed;
     else
@@ -3178,13 +3180,15 @@ void InitRandSeed(int iSeed) {
         //return RandSeed1;
 }
 
-/* Returns a random number between 0 and num - 1, where num is an int */
-int RandNum (int num)
+// return random number between 0 and parameter n-1
+int returnRandom (int num)
 {
     long    temp;
 
-    if(num == 0) return(0);
-    temp = (int)(rand1() * num);
+    if (num == 0)
+        return(0);
+
+    temp = (int)(returnRandomFloat() * num);
     if (temp == num) return(0);
     else return((int)temp);
 }

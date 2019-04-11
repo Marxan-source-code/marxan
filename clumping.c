@@ -708,7 +708,7 @@ int CalcPenaltyType4(int isp,int puno, struct spu SM[],struct sconnections conne
     do
     {  /*** take all pu's at random until satisfied or I've run out **/
       /* Pluck a PU out at random */
-      ipu = RandNum(iputotal);
+      ipu = returnRandom(iputotal);
       plist = plisthead;
       for (;ipu>0;ipu--)
       {

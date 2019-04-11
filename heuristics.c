@@ -396,7 +396,7 @@ void Heuristics(int spno,int puno,struct spustuff pu[],struct sconnections conne
                  currscore = -SumIrr(i,Rare,pu,SM,spec);
               }
 
-              currscore *=(double) rand1()*0.001 + 1.0;
+              currscore *=(double) returnRandomFloat()*0.001 + 1.0;
               if (!costthresh || pu[i].cost + reserve->cost <= costthresh)
                  if (currscore < bestscore)
                  {

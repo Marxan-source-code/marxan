@@ -620,7 +620,7 @@ void writeSummary(int puno,int spno,int R[],struct sspecies spec[],struct scost 
              appendTraceFile("writeSummary shortfall %g\n",shortfall);
              #endif
 
-             ComputeConnectivityIndices(&rConnectivityTotal,&rConnectivityIn,&rConnectivityEdge,&rConnectivityOut,
+             computeConnectivityIndices(&rConnectivityTotal,&rConnectivityIn,&rConnectivityEdge,&rConnectivityOut,
                                         puno,R,connections);
 
              if (rConnectivityTotal > 0)
@@ -1588,13 +1588,10 @@ void displayValueForPUs(int puno, int spno,int *R,struct scost reserve,
      double connectiontemp = 0, shortfall, rMPM;//, rConnectivityTotal = 0,rConnectivityIn = 0,rConnectivityEdge = 0,rConnectivityOut = 0;
 
      #ifdef DEBUG_PRINTRESVALPROB
-     appendTraceFile("PrintResVal start\n");
+     appendTraceFile("displayValueForPUs start\n");
      #endif
 
      isp = computeRepresentationMISSLEVEL(spno,spec,misslevel,&shortfall,&rMPM);
-
-     //ComputeConnectivityIndices(rConnectivityTotal,rConnectivityIn,rConnectivityEdge,rConnectivityOut,
-     //                           puno,R,connections);
 
      for (i=0;i<puno;i++)
          if (R[i]==1 || R[i] == 2)
@@ -1617,7 +1614,7 @@ void displayValueForPUs(int puno, int spno,int *R,struct scost reserve,
      displayProgress("\n");
 
      #ifdef DEBUG_PRINTRESVALPROB
-     appendTraceFile("PrintResVal end\n");
+     appendTraceFile("displayValueForPUs end\n");
      #endif
 }
 

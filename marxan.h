@@ -242,7 +242,7 @@ int computePenaltiesOptimise(int puno,int spno,struct spustuff pu[],struct sspec
 double ConnectionCost1(int ipu,struct spustuff pu[],struct sconnections connections[],double cm);
 double computePlanningUnitValue(int ipu,struct spustuff pu[],struct sconnections connections[],double cm);
 double ConnectionCost2(int ipu,struct sconnections connections[],int R[],int imode,int imode2,double cm);
-void ComputeConnectivityIndices(double *rConnectivityTotal,double *rConnectivityIn,
+void computeConnectivityIndices(double *rConnectivityTotal,double *rConnectivityIn,
                                 double *rConnectivityEdge,double *rConnectivityOut,
                                 int puno,int *R,typeconnection connections[]);
 void computeReserveValue(int puno,int spno,int R[],struct spustuff pu[],
@@ -273,12 +273,11 @@ void PauseExit(void);
 #define annealingheader
 
 
-void ConnollyInit(int puno,int spno,struct spustuff pu[],typeconnection connections[],typesp spec[],
-                  struct spu SM[],double cm, struct sanneal *anneal,int aggexist,
-                  int R[],double prop,int clumptype,int irun);
-void AdaptiveInit(int puno,int spno,double prop,int *R,struct spustuff pu[],struct sconnections connections[],
-                  struct spu SM[],double cm,struct sspecies spec[],int aggexist,struct sanneal *anneal,int clumptype);
-void AdaptiveDec(struct sanneal *anneal);
+void initialiseConnollyAnnealing(int puno,int spno,struct spustuff pu[],typeconnection connections[],typesp spec[],
+                                 struct spu SM[],double cm, struct sanneal *anneal,int aggexist,
+                                 int R[],double prop,int clumptype,int irun);
+void initialiseAdaptiveAnnealing(int puno,int spno,double prop,int *R,struct spustuff pu[],struct sconnections connections[],
+                                 struct spu SM[],double cm,struct sspecies spec[],int aggexist,struct sanneal *anneal,int clumptype);
 void thermalAnnealing(int spno, int puno, struct sconnections connections[],int R[], double cm,
                       typesp *spec, struct spustuff pu[], struct spu SM[], struct scost *change, struct scost *reserve,
                       long int repeats,int irun,char *savename,double misslevel,
@@ -335,9 +334,8 @@ struct snlink{char *name; struct snlink *next;};
 #define DOUBLE 4
 #define STRING 5
 
-struct snlink *GetVarName(char **varlist,int numvars,char *sVarName,
+struct snlink *storeFieldName(char **varlist,int numvars,char *sVarName,
     struct snlink *head,char *fname);
-int CheckVarName(char **varlist, int numvars, char *sVarName);
 
 int NameToPUID(int puno,int name, struct spustuff pu[]);
 int NameToSPID(int spno,int name,typesp spec[]);
@@ -362,7 +360,7 @@ void ReadPUVSPFileTable(FILE *infile, int puno,int spno,struct spu SM[],struct s
     typesp spec[]);
 
 void readPenalties(typesp spec[],int spno,struct sfname fnames,struct binsearch SPLookup[]);
-void MapUserPenalties(typesp spec[],int spno);
+void applyUserPenalties(typesp spec[],int spno);
 
 // functions for Matt's Big O notation optimisation
 void readSparseMatrix(int *iSMSize, struct spu *SM[], int puno, int spno, struct spustuff PU[],
@@ -442,9 +440,9 @@ void iterativeImprovement(int puno,int spno,struct spustuff pu[], struct sconnec
 #ifndef randomheader
 #define randomheader
 
-float rand1(void);
-void InitRandSeed(int iSeed);
-int RandNum (int num);
+float returnRandomFloat(void);
+void initialiseRandomSeed(int iSeed);
+int returnRandom (int num);
 
 
 #endif

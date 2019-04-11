@@ -32,14 +32,14 @@ int readPlanningUnits(int *puno,struct spustuff *pu[],struct sfname fnames)
         displayErrorMessage("Error reading planning units.\n");
 
     sVarName = strtok(sLine," ,;:^*\"/\t\'\\\n");
-    head = GetVarName(varlist,numvars,sVarName,head,fnames.puname);
+    head = storeFieldName(varlist,numvars,sVarName,head,fnames.puname);
 
     ivars = 1;
     temp = head;
     while ((sVarName = strtok(NULL," ,;:^*\"/\t\'\\\n")) != NULL)
     {
           ivars++;
-          temp->next = GetVarName(varlist,numvars,sVarName,head,fnames.puname);
+          temp->next = storeFieldName(varlist,numvars,sVarName,head,fnames.puname);
           temp = temp->next;
     }  // tokking out all the variable names from the header line. There are numVars of them.
 
@@ -174,12 +174,12 @@ int readSpecies(int *spno,struct sspecies *spec[],struct sfname fnames)
         displayErrorMessage("Error reading species.\n");
 
     sVarName = strtok(sLine," ,;:^*\"/\t\'\\\n");
-    snhead = GetVarName(varlist,numvars,sVarName,snhead,fnames.specname);
+    snhead = storeFieldName(varlist,numvars,sVarName,snhead,fnames.specname);
     ivars = 1;
     temp = snhead;
     while ((sVarName = strtok(NULL," ,;:^*\"/\t\'\\\n")) != NULL) {
         ivars++;
-        temp->next = GetVarName(varlist,numvars,sVarName,snhead,fnames.specname);
+        temp->next = storeFieldName(varlist,numvars,sVarName,snhead,fnames.specname);
         temp = temp->next;
     }  // tokking out all the variable names from the header line. There are numVars of them
 
@@ -354,12 +354,12 @@ int readSpeciesBlockDefinition(int *gspno,struct sgenspec *gspec[],struct sfname
         displayErrorMessage("Error reading block definition.\n");
 
     sVarName = strtok(sLine," ,;:^*\"/\t\'\\\n");
-    head = GetVarName(varlist,numvars,sVarName,head,fnames.blockdefname);
+    head = storeFieldName(varlist,numvars,sVarName,head,fnames.blockdefname);
     ivars = 1;
     temp = head;
     while ((sVarName = strtok(NULL," ,;:^*\"/\t\'\\\n")) != NULL) {
         ivars++;
-        temp->next = GetVarName(varlist,numvars,sVarName,head,fnames.blockdefname);
+        temp->next = storeFieldName(varlist,numvars,sVarName,head,fnames.blockdefname);
         temp = temp->next;
     }  /* tokking out all the variable names from the header line. There are numVars of them*/
     /* While there are still lines left feed information into temporary link list */
