@@ -6,9 +6,9 @@ int rtnClumpSpecAtPu(struct spustuff PU[], struct spu SM[], int iPUIndex, int iS
     int i;
 
     if (PU[iPUIndex].richness > 0)
-       for (i=0;i<PU[iPUIndex].richness;i++)
-           if (SM[PU[iPUIndex].offset + i].spindex == iSpecIndex)
-              return SM[PU[iPUIndex].offset + i].clump;
+        for (i=0;i<PU[iPUIndex].richness;i++)
+            if (SM[PU[iPUIndex].offset + i].spindex == iSpecIndex)
+                return SM[PU[iPUIndex].offset + i].clump;
 
     return 0;
 }
@@ -19,12 +19,10 @@ void setClumpSpecAtPu(struct spustuff PU[], struct spu SM[], int iPUIndex, int i
     int i;
 
     if (PU[iPUIndex].richness > 0)
-       for (i=0;i<PU[iPUIndex].richness;i++)
-           if (SM[PU[iPUIndex].offset + i].spindex == iSpecIndex)
-              SM[PU[iPUIndex].offset + i].clump = iSetClump;
+        for (i=0;i<PU[iPUIndex].richness;i++)
+            if (SM[PU[iPUIndex].offset + i].spindex == iSpecIndex)
+                SM[PU[iPUIndex].offset + i].clump = iSetClump;
 }
-
-// *********  Clump Utilities ******************
 
 // Clear a single Clump
 void ClearClump(int isp,struct sclumps *target,struct spustuff pu[],
@@ -32,8 +30,9 @@ void ClearClump(int isp,struct sclumps *target,struct spustuff pu[],
 {
     struct sclumppu *ppu;
 
-     /* Remove all links from this clump */
-    while (target->head) {
+    /* Remove all links from this clump */
+    while (target->head)
+    {
         ppu = target->head;
         if (rtnClumpSpecAtPu(pu,SM,ppu->puid,isp) == target->clumpid) /* in case pu is in new clump */
             setClumpSpecAtPu(pu,SM,ppu->puid,isp,0);
@@ -47,10 +46,10 @@ void ClearClump(int isp,struct sclumps *target,struct spustuff pu[],
 // Returns the value of the fragmented clumps if the given PU were removed
 // If imode = 1 then it will also do a separation count
 int ClumpCut(int isp,struct spustuff pu[],
-        struct sspecies spec[],struct sclumps *clump,
-        struct sclumppu *clumppu,struct sconnections connections[],struct spu SM[],
-        double *totalamount,int *totalocc,
-        int *iseparation, int imode,int clumptype)
+             struct sspecies spec[],struct sclumps *clump,
+             struct sclumppu *clumppu,struct sconnections connections[],struct spu SM[],
+             double *totalamount,int *totalocc,
+             int *iseparation, int imode,int clumptype)
 {
     int ineighbour = 0,iclumps = 0;
     struct slink{int id; struct slink *next;} *head = NULL, *newhead,*thead, *clumplist, *clumpcurr;
@@ -104,20 +103,19 @@ int ClumpCut(int isp,struct spustuff pu[],
         if (imode)
         { // separation distance called
             for(pclumppu=clump->head;pclumppu;pclumppu=pclumppu->next)
-             if (pclumppu != clumppu)
-             {
+            if (pclumppu != clumppu)
+            { // found someone in the clump who is not being removed
                 newpclump = (struct sclumps *) malloc(sizeof(struct sclumps));
                 newpclump->clumpid = pclumppu->puid;
                 newpclump->amount = clump->amount - returnAmountSpecAtPu(pu,SM,clumppu->puid,isp);
                 newpclump->next = spclump;
                 spclump = newpclump;
+            }
 
-             } /* found someone in the clump who is not being removed */
-
-             *iseparation = CountSeparation(isp,spclump,pu,SM,spec,0);
-        }
-        else
+            *iseparation = CountSeparation(isp,spclump,pu,SM,spec,0);
+        } else {
             (*iseparation = spec[isp].sepnum);
+        }
             
         if (head)
         {
@@ -144,107 +142,107 @@ int ClumpCut(int isp,struct spustuff pu[],
     // Put first neighbour at head of new list
     while (head)
     {
-          clumpamount = 0;
-          iclumps++;
-          clumplist = (struct slink *) malloc(sizeof(struct slink));
-          clumplist->next = NULL;
-          clumplist->id = head->id;
-          clumpcurr = clumplist;
-          newhead = head;
-          head = head->next;
-          free(newhead);  /* move first site from head to clumplist */
-          DebugFree(sizeof(struct slink));
-          ineighbour--;
-          do
-          {
+        clumpamount = 0;
+        iclumps++;
+        clumplist = (struct slink *) malloc(sizeof(struct slink));
+        clumplist->next = NULL;
+        clumplist->id = head->id;
+        clumpcurr = clumplist;
+        newhead = head;
+        head = head->next;
+        free(newhead);  /* move first site from head to clumplist */
+        DebugFree(sizeof(struct slink));
+        ineighbour--;
+        do
+        {
             for (pnbr = connections[clumpcurr->id].first;pnbr;pnbr = pnbr->next)
             {
                 if (rtnClumpSpecAtPu(pu,SM,pnbr->nbr,isp) == clump->clumpid && pnbr->nbr != clumppu->puid) // if neighbour in clump but not cut out one   
                 {
-                   for (newhead = clumplist;newhead && newhead->id != pnbr->nbr;newhead= newhead->next)
-                       ; // Cycle through clumplist looking to see if this fellow is already in it
+                    for (newhead = clumplist;newhead && newhead->id != pnbr->nbr;newhead= newhead->next)
+                        ; // Cycle through clumplist looking to see if this fellow is already in it
                        
-                   if (!newhead)
-                   {
-                      newhead = (struct slink *) malloc(sizeof(struct slink));
-                      newhead->id = pnbr->nbr;
-                      newhead->next = clumpcurr->next;
-                      clumpcurr->next = newhead;  /* put this item in my clumplist */
+                    if (!newhead)
+                    {
+                        newhead = (struct slink *) malloc(sizeof(struct slink));
+                        newhead->id = pnbr->nbr;
+                        newhead->next = clumpcurr->next;
+                        clumpcurr->next = newhead;  /* put this item in my clumplist */
                       
-                      // go through neighbour list and see if this one is there
-                      for (newhead=head;newhead && newhead->id != pnbr->nbr;newhead = newhead->next)
-                          ; // find this item on the neighbour list
+                        // go through neighbour list and see if this one is there
+                        for (newhead=head;newhead && newhead->id != pnbr->nbr;newhead = newhead->next)
+                            ; // find this item on the neighbour list
                           
-                      if (newhead && newhead->id == pnbr->nbr)
-                      {
-                         ineighbour--;
-                         if (newhead == head)
-                            head = newhead->next;
-                         else
-                         {
-                             for (thead=head;thead->next != newhead; thead = thead->next)
-                                 ; // find link before the one to be removed
+                        if (newhead && newhead->id == pnbr->nbr)
+                        {
+                            ineighbour--;
+                            if (newhead == head)
+                            {
+                                head = newhead->next;
+                            } else {
+                                for (thead=head;thead->next != newhead; thead = thead->next)
+                                    ; // find link before the one to be removed
                                  
-                             thead->next = newhead->next;
-                         } // remove link that is not head
+                                thead->next = newhead->next;
+                            } // remove link that is not head
                          
-                         free(newhead);
-                         DebugFree(sizeof(struct slink));
-                      } // A new neighbour is taken into account
-                   } // Adding a novel neighbour to list
+                            free(newhead);
+                            DebugFree(sizeof(struct slink));
+                        } // A new neighbour is taken into account
+                    } // Adding a novel neighbour to list
                 } // found a neighbour in clump which isn't the one being cut
             } // cycling through every neighbour on this clump
 
             // point to next one on list but keep clump head where it is
             clumpcurr = clumpcurr->next;
 
-          } while (clumpcurr); // if you've run out of new list then...
+        } while (clumpcurr); // if you've run out of new list then...
 
-          iocc = 0;
-          for (newhead=clumplist;newhead;newhead=newhead->next)
-          {
-              rAmount = returnAmountSpecAtPu(pu,SM,newhead->id,isp);
-              clumpamount += rAmount; // find total amount
-              iocc += (rAmount > 0);
-          }
+        iocc = 0;
+        for (newhead=clumplist;newhead;newhead=newhead->next)
+        {
+            rAmount = returnAmountSpecAtPu(pu,SM,newhead->id,isp);
+            clumpamount += rAmount; // find total amount
+            iocc += (rAmount > 0);
+        }
           
-          *totalamount += PartialPen4(isp,clumpamount,spec,clumptype);
-          if (PartialPen4(isp,clumpamount,spec,clumptype))
+        *totalamount += PartialPen4(isp,clumpamount,spec,clumptype);
+        if (PartialPen4(isp,clumpamount,spec,clumptype))
              *totalocc += iocc;
 
-          if (imode)
-             for (newhead=clumplist;newhead;newhead=newhead->next)
-             {
-                 newpclump = (struct sclumps *)malloc(sizeof(struct sclumps));
-                 newpclump->clumpid = newhead->id;
-                 newpclump->amount = clumpamount;
-                 newpclump->next = spclump;
-                 spclump = newpclump;
-             } // stick this clump into my clump list for separation purposes
+        if (imode)
+            for (newhead=clumplist;newhead;newhead=newhead->next)
+            {
+                newpclump = (struct sclumps *)malloc(sizeof(struct sclumps));
+                newpclump->clumpid = newhead->id;
+                newpclump->amount = clumpamount;
+                newpclump->next = spclump;
+                spclump = newpclump;
+            } // stick this clump into my clump list for separation purposes
 
-             // clean up all lists
-             while (clumplist)
-             {
-                   clumpcurr = clumplist;
-                   clumplist = clumplist->next;
-                   free(clumpcurr);
-                   DebugFree(sizeof(struct slink));
-             } // clean up clumplist
+            // clean up all lists
+            while (clumplist)
+            {
+                clumpcurr = clumplist;
+                clumplist = clumplist->next;
+                free(clumpcurr);
+                DebugFree(sizeof(struct slink));
+            } // clean up clumplist
     } // Continue clump formation whilst there are members in the list
 
     if (imode)
     {
-       *iseparation = CountSeparation(isp,spclump,pu,SM,spec,0);
-       while (spclump)
-       {
-             newpclump = spclump;
-             spclump = spclump ->next;
-             free(newpclump);
-             DebugFree(sizeof(struct sclumps));
-       } /* clean up separation clump list */
-    }
-    else
+        *iseparation = CountSeparation(isp,spclump,pu,SM,spec,0);
+        while (spclump)
+        {
+            newpclump = spclump;
+            spclump = spclump ->next;
+            free(newpclump);
+            DebugFree(sizeof(struct sclumps));
+        } /* clean up separation clump list */
+    } else {
         *iseparation = spec[isp].sepnum;
+    }
 
     while (head)
     {
@@ -262,185 +260,184 @@ int ClumpCut(int isp,struct spustuff pu[],
 void ClearClumps(int spno,struct sspecies spec[],struct spustuff pu[],
                  struct spu SM[])
 {
-     int i;
-     struct sclumps *pclump;
+    int i;
+    struct sclumps *pclump;
 
-     for (i=0;i<spno;i++)
-     {
+    for (i=0;i<spno;i++)
+    {
         while (spec[i].head)
         {
-              ClearClump(i,spec[i].head,pu,SM);
-              pclump = spec[i].head;
-              spec[i].head = spec[i].head->next;
-              free(pclump);
+            ClearClump(i,spec[i].head,pu,SM);
+            pclump = spec[i].head;
+            spec[i].head = spec[i].head->next;
+            free(pclump);
         }  // Remove each clump
         
         spec[i].clumps = 0;
-     } // Clear clump for each species
+    } // Clear clump for each species
 } // Clear Clumps
 
 // Add New Clump
 struct sclumps *AddNewClump(int isp,int ipu,struct sspecies spec[],struct spustuff pu[],struct spu SM[])
 {
-       int iclumpno = 0;
-       struct sclumps *pclump,*pnewclump;
-       struct sclumppu *pnewclumppu;
-       double rAmount;
+    int iclumpno = 0;
+    struct sclumps *pclump,*pnewclump;
+    struct sclumppu *pnewclumppu;
+    double rAmount;
 
-       // find good clump number
-       pclump = spec[isp].head;
-       if (!pclump)
-          iclumpno = 1;
+    // find good clump number
+    pclump = spec[isp].head;
+    if (!pclump)
+        iclumpno = 1;
     
-       while (!iclumpno)
-       {
-             if (!pclump->next)
-             {
-                iclumpno = pclump->clumpid+1;
-                break;
-             } // I've found the end of the list
+    while (!iclumpno)
+    {
+        if (!pclump->next)
+        {
+            iclumpno = pclump->clumpid+1;
+            break;
+        } // I've found the end of the list
              
-             if (pclump->next->clumpid - pclump->clumpid > 1)
-             {
-                iclumpno = pclump->clumpid+1;
-                continue;
-             } // Looking for good number
+        if (pclump->next->clumpid - pclump->clumpid > 1)
+        {
+            iclumpno = pclump->clumpid+1;
+            continue;
+        } // Looking for good number
              
-             pclump = pclump->next;
-       } // Find first available clump number
+        pclump = pclump->next;
+    } // Find first available clump number
 
-       setClumpSpecAtPu(pu,SM,ipu,isp,iclumpno);
-       pnewclump = (struct sclumps *) malloc(sizeof(struct sclumps));
-       pnewclump->clumpid = iclumpno;
-       if (spec[isp].head)
-       {
-          pnewclump->next = pclump->next;
-          pclump->next = pnewclump;
-       } // Stick clump into correct location
-       else
-       {
-           spec[isp].head = pnewclump;
-           pnewclump->next = NULL;
-       } // First clump on the block
+    setClumpSpecAtPu(pu,SM,ipu,isp,iclumpno);
+    pnewclump = (struct sclumps *) malloc(sizeof(struct sclumps));
+    pnewclump->clumpid = iclumpno;
+    if (spec[isp].head)
+    {
+        pnewclump->next = pclump->next;
+        pclump->next = pnewclump;
+    } // Stick clump into correct location
+    else
+    {
+        spec[isp].head = pnewclump;
+        pnewclump->next = NULL;
+    } // First clump on the block
     
-       // Add first clumppu to this new clump
-       pnewclumppu = (struct sclumppu *) malloc(sizeof(struct sclumppu));
-       pnewclumppu->puid = ipu;
-       pnewclumppu->next = NULL;
-       pnewclump->head = pnewclumppu;
-       rAmount = returnAmountSpecAtPu(pu,SM,ipu,isp);
-       pnewclump->amount = rAmount;
-       pnewclump->occs = (rAmount > 0);
+    // Add first clumppu to this new clump
+    pnewclumppu = (struct sclumppu *) malloc(sizeof(struct sclumppu));
+    pnewclumppu->puid = ipu;
+    pnewclumppu->next = NULL;
+    pnewclump->head = pnewclumppu;
+    rAmount = returnAmountSpecAtPu(pu,SM,ipu,isp);
+    pnewclump->amount = rAmount;
+    pnewclump->occs = (rAmount > 0);
 
-       spec[isp].clumps++;
+    spec[isp].clumps++;
 
-       return(pnewclump);
-
-}  // Add New Clump
+    return(pnewclump);
+} // AddNewClump
 
 // ADD NEW PU
 // Add New Planning Unit for a given Species
 void AddNewPU(int ipu,int isp,struct sconnections connections[],struct sspecies spec[],struct spustuff pu[],
               struct spu SM[],int clumptype)
 {
-     int ineighbours = 0;
-     int iclumpno, iClump;
-     struct sneighbour *pnbr;
-     struct sclumps *pclump, *pnewclump, *ptempclump;
-     struct sclumppu *pnewclumppu;
-     double ftemp, rAmount;
+    int ineighbours = 0;
+    int iclumpno, iClump;
+    struct sneighbour *pnbr;
+    struct sclumps *pclump, *pnewclump, *ptempclump;
+    struct sclumppu *pnewclumppu;
+    double ftemp, rAmount;
 
-     pnbr = connections[ipu].first;
-     while (pnbr)
-     {
-           // Check all the neighbours to see if any are already in clumps */
-           iClump = rtnClumpSpecAtPu(pu,SM,pnbr->nbr,isp);
-           if (iClump > 0)
-           {
-              // Neighbour that is part of clump
-              ineighbours++;
-              if (ineighbours == 1)
-              {
-                 // Join to the first clump that is also a neighbour
-                 iclumpno = iClump;
-                 for (pclump = spec[isp].head; pclump->clumpid != iclumpno;pclump = pclump->next)
-                     ;
+    pnbr = connections[ipu].first;
+    while (pnbr)
+    {
+        // Check all the neighbours to see if any are already in clumps */
+        iClump = rtnClumpSpecAtPu(pu,SM,pnbr->nbr,isp);
+        if (iClump > 0)
+        {
+            // Neighbour that is part of clump
+            ineighbours++;
+            if (ineighbours == 1)
+            {
+                // Join to the first clump that is also a neighbour
+                iclumpno = iClump;
+                for (pclump = spec[isp].head; pclump->clumpid != iclumpno;pclump = pclump->next)
+                    ;
                      
-                 pnewclumppu = (struct sclumppu *) malloc(sizeof(struct sclumppu));
-                 pnewclumppu->puid = ipu;
-                 pnewclumppu->next = pclump->head;
-                 setClumpSpecAtPu(pu,SM,pnewclumppu->puid,isp,iclumpno);
-                 pclump->head = pnewclumppu;
+                pnewclumppu = (struct sclumppu *) malloc(sizeof(struct sclumppu));
+                pnewclumppu->puid = ipu;
+                pnewclumppu->next = pclump->head;
+                setClumpSpecAtPu(pu,SM,pnewclumppu->puid,isp,iclumpno);
+                pclump->head = pnewclumppu;
 
-                 // Remove old value for this clump
-                 ftemp = PartialPen4(isp,pclump->amount,spec,clumptype);
-                 spec[isp].amount -= ftemp;
-                 spec[isp].occurrence -= pclump->occs *(ftemp > 0);
-                 rAmount = returnAmountSpecAtPu(pu,SM,ipu,isp);
-                 pclump->occs += (rAmount > 0);
-                 pclump->amount += rAmount;
-              } // Adding the pu to the clump
-              else
-              {
-                  // pclump points to the good clump
-                  if (pclump->clumpid != iClump)
-                  {
-                     // Check if this is a different clump
-                     // Join this new clump to the old one
-                     for (pnewclump= spec[isp].head; pnewclump->clumpid != iClump;pnewclump = pnewclump->next)
-                         ;  // point pnewclump to the joining clump
+                // Remove old value for this clump
+                ftemp = PartialPen4(isp,pclump->amount,spec,clumptype);
+                spec[isp].amount -= ftemp;
+                spec[isp].occurrence -= pclump->occs *(ftemp > 0);
+                rAmount = returnAmountSpecAtPu(pu,SM,ipu,isp);
+                pclump->occs += (rAmount > 0);
+                pclump->amount += rAmount;
+            } // Adding the pu to the clump
+            else
+            {
+                // pclump points to the good clump
+                if (pclump->clumpid != iClump)
+                {
+                    // Check if this is a different clump
+                    // Join this new clump to the old one
+                    for (pnewclump= spec[isp].head; pnewclump->clumpid != iClump;pnewclump = pnewclump->next)
+                        ;  // point pnewclump to the joining clump
                          
-                     // Run through joining clump and tell all pu's their new number
-                     for (pnewclumppu = pnewclump->head;pnewclumppu->next;pnewclumppu=pnewclumppu->next)
-                         setClumpSpecAtPu(pu,SM,pnewclumppu->puid,isp,pclump->clumpid);
+                    // Run through joining clump and tell all pu's their new number
+                    for (pnewclumppu = pnewclump->head;pnewclumppu->next;pnewclumppu=pnewclumppu->next)
+                        setClumpSpecAtPu(pu,SM,pnewclumppu->puid,isp,pclump->clumpid);
                          
-                     setClumpSpecAtPu(pu,SM,pnewclumppu->puid,isp,pclump->clumpid);
+                    setClumpSpecAtPu(pu,SM,pnewclumppu->puid,isp,pclump->clumpid);
                      
-                     // cut out this clump and join it to pclump
-                     pnewclumppu->next = pclump->head;
-                     pclump->head = pnewclump->head;
-                     pclump->amount += pnewclump->amount;
-                     pclump->occs += pnewclump->occs;
-                     ftemp = PartialPen4(isp,pnewclump->amount,spec,clumptype);
-                     spec[isp].amount -= ftemp;
-                     spec[isp].occurrence -= pnewclump->occs * (ftemp > 0);
+                    // cut out this clump and join it to pclump
+                    pnewclumppu->next = pclump->head;
+                    pclump->head = pnewclump->head;
+                    pclump->amount += pnewclump->amount;
+                    pclump->occs += pnewclump->occs;
+                    ftemp = PartialPen4(isp,pnewclump->amount,spec,clumptype);
+                    spec[isp].amount -= ftemp;
+                    spec[isp].occurrence -= pnewclump->occs * (ftemp > 0);
 
-                     // Remove clump head and free memory
-                     if (pnewclump == spec[isp].head)
+                    // Remove clump head and free memory
+                    if (pnewclump == spec[isp].head)
                         spec[isp].head = pnewclump->next;
-                     else
-                     {
-                         for (ptempclump = spec[isp].head;ptempclump->next != pnewclump;ptempclump = ptempclump->next)
-                             ; // Find clump just before redundant clump
+                    else
+                    {
+                        for (ptempclump = spec[isp].head;ptempclump->next != pnewclump;ptempclump = ptempclump->next)
+                            ; // Find clump just before redundant clump
                              
-                         ptempclump->next = pnewclump->next;
-                     }
+                        ptempclump->next = pnewclump->next;
+                    }
 
-                     free(pnewclump);
-                     DebugFree(sizeof(struct sclumps));
+                    free(pnewclump);
+                    DebugFree(sizeof(struct sclumps));
 
-                  } // Join the two clumps together
-              } // Found another neighbour
-           }
-           pnbr = pnbr->next;
-     } // cycling through all the neighbours
+                } // Join the two clumps together
+            } // Found another neighbour
+        }
+        pnbr = pnbr->next;
+    } // cycling through all the neighbours
 
-     // Adding a New clump
-     if (!ineighbours)
-     {
+    // Adding a New clump
+    if (!ineighbours)
+    {
         AddNewClump(isp,ipu,spec,pu,SM);
         ftemp = PartialPen4(isp,rAmount,spec,clumptype);
         spec[isp].amount += ftemp;
         spec[isp].occurrence += (ftemp>0);
-     } // Adding a new clump
+    } // Adding a new clump
 
-     // Correcting Amount if new clump not added
-     if (ineighbours)
-     {
+    // Correcting Amount if new clump not added
+    if (ineighbours)
+    {
         ftemp = PartialPen4(isp,pclump->amount,spec,clumptype);
         spec[isp].amount += ftemp;
         spec[isp].occurrence += pclump->occs * (ftemp > 0);
-     }
+    }
 } // Add New Pu
 
 /************** REM PU ****************************************/
