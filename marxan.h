@@ -1,11 +1,10 @@
-// declare types
+// declare structures, types, and some variables of type
 // predefine functions that are called before they're defined
 
 #define DebugFree(x)
 #ifndef mainheaderfile
 #define mainheaderfile
 
-    int *bestyet;
     double delta;
 
     // type definitions for sparse matrix optimisations data structures
@@ -116,7 +115,7 @@
     {
       int puid;
       struct sclumppu *next;
-    }; /* PU in clump node for clump structure */
+    };
 
     struct sclumps
     {
@@ -219,7 +218,7 @@
     {
         int id;
         struct slink *next;
-    }; /* slink struct */
+    };
 
     typedef struct iimp
     {
@@ -257,9 +256,6 @@ double computeSpeciesPlanningUnitPenalty(int ipu,int isp,struct sspecies spec[],
 void doChange(int ipu,int puno,int *R,struct scost *reserve,struct scost change,
               struct spustuff pu[],struct spu SM[],struct sspecies spec[],struct sconnections connections[],
               int imode,int clumptype);
-//void DoQuantumChange(int puno,int R[],struct scost *reserve,struct scost change,
-//                     struct spustuff pu[],struct spu SM[],struct sspecies spec[],struct sconnections connections[],
-//                     int clumptype,int iFluctuationCount,int *PUChosen);
 
 int computeRepresentationMISSLEVEL(int spno,struct sspecies spec[],double misslevel,double *shortfall,double *rMinimumProportionMet);
 void displayValueForPUs(int puno, int spno,int R[],struct scost reserve,

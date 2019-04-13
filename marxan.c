@@ -48,7 +48,6 @@ int iOptimisationCalcPenalties = 1;
 int verbosity = 0;
 int savelog;
 int asymmetricconnectivity = 0;
-int marxanisslave = 0;
 char sVersionString[80] = "Marxan v 3.0.0";
 // version 2.3 introduced multiple connectivity files and their associated weighting file
 // version 2.4.3 introduced 1D and 2D probability
@@ -70,6 +69,18 @@ int iQADECAYTYPE = 0;
 int fProb2D = 0, fProb1D = 0, fUserPenalties = 0;
 int fOptimiseConnectivityIn = 0;
 
+// number of the best solution
+int bestRun = 1;
+// score of the best solution
+double bestScore;
+// R vector of planning unit status for the current solution
+int *R;
+// R vector of planning unit status for the best solution
+int *bestR;
+// is marxan being called by another program?
+int marxanIsSlave = 0;
+
+// load the required function definition modules
 #include "input.c"
 #include "output.c"
 #include "clumping.c"
@@ -79,29 +90,22 @@ int fOptimiseConnectivityIn = 0;
 // runs the loop for each "solution" marxan is generating
 void executeRunLoop(long int repeats,int puno,int spno,double cm,int aggexist,double prop,int clumptype,double misslevel,
                     char savename[],double costthresh,double tpf1,double tpf2,int heurotype,int runopts,
-                    int itimptype,int *iBestRun,int sumsoln[],int marxanisslave)
+                    int itimptype,int sumsoln[])
 {
-    long int irun;
-    int **R2D;
+    long int i, j;
     char tempname2[500];
     int ipu, tid, nthreads;
-    double rBestScore;
     
-    // NOTE: we have to do something tricky with sumsoln
-    // Remember the R for each run in a 2d matrix.
-    // Figure out which is best run after threads terminate.
-    // Add them to get sumsoln after threads terminate.
-    R2D = (int **) calloc(repeats,sizeof(int *));
-    for (irun = 1;irun <= repeats;irun++)
-        R2D[irun-1] = (int *) calloc(puno,sizeof(int));
+    R = (int *) calloc(puno,sizeof(int));
+    bestR = (int *) calloc(puno,sizeof(int));
 
-    // *******  The larger repetition loop ********
-    for (irun = 1;irun <= repeats;irun++)
+    // for each repeat run
+    for (i = 1;i <= repeats;i++)
     {
-        appendTraceFile("start run loop run %ld\n",irun);
+        appendTraceFile("start run loop run %ld\n",i);
 
         displayProgress1("\n");
-        displayProgress("Run %ld ",irun);
+        displayProgress("Run %ld ",i);
 
         if (runoptions.ThermalAnnealingOn)
         {
@@ -109,19 +113,19 @@ void executeRunLoop(long int repeats,int puno,int spno,double cm,int aggexist,do
            {
               if (anneal.type == 2 )
               {
-                 appendTraceFile("before initialiseConnollyAnnealing run %i\n",irun);
+                 appendTraceFile("before initialiseConnollyAnnealing run %i\n",i);
 
-                 initialiseConnollyAnnealing(puno,spno,pu,connections,spec,SM,cm,&anneal,aggexist,R2D[irun-1],prop,clumptype,irun);
+                 initialiseConnollyAnnealing(puno,spno,pu,connections,spec,SM,cm,&anneal,aggexist,R,prop,clumptype,i);
 
-                 appendTraceFile("after initialiseConnollyAnnealing run %i\n",irun);
+                 appendTraceFile("after initialiseConnollyAnnealing run %i\n",i);
               }
               if (anneal.type == 3)
               {
-                 appendTraceFile("before initialiseAdaptiveAnnealing run %i\n",irun);
+                 appendTraceFile("before initialiseAdaptiveAnnealing run %i\n",i);
 
-                 initialiseAdaptiveAnnealing(puno,spno,prop,R2D[irun-1],pu,connections,SM,cm,spec,aggexist,&anneal,clumptype);
+                 initialiseAdaptiveAnnealing(puno,spno,prop,R,pu,connections,SM,cm,spec,aggexist,&anneal,clumptype);
 
-                 appendTraceFile("after initialiseAdaptiveAnnealing run %i\n",irun);
+                 appendTraceFile("after initialiseAdaptiveAnnealing run %i\n",i);
               }
 
               displayProgress1("  Using Calculated Tinit = %.4f Tcool = %.8f \n",
@@ -135,25 +139,25 @@ void executeRunLoop(long int repeats,int puno,int spno,double cm,int aggexist,do
            anneal.temp = anneal.Tinit;
         }  // Annealing Setup
 
-        appendTraceFile("before computeReserveValue run %i\n",irun);
+        appendTraceFile("before computeReserveValue run %i\n",i);
 
         displayProgress1("  Creating the initial reserve \n");
         
-        initialiseReserve(puno,prop,R2D[irun-1]);  // Create Initial Reserve
+        initialiseReserve(puno,prop,R);  // Create Initial Reserve
        
-        addReserve(puno,pu,R2D[irun-1]);
+        addReserve(puno,pu,R);
 
         if (aggexist)
            ClearClumps(spno,spec,pu,SM);
 
-        computeReserveValue(puno,spno,R2D[irun-1],pu,connections,SM,cm,spec,aggexist,&reserve,clumptype);
+        computeReserveValue(puno,spno,R,pu,connections,SM,cm,spec,aggexist,&reserve,clumptype);
 
-        appendTraceFile("after computeReserveValue run %i\n",irun);
+        appendTraceFile("after computeReserveValue run %i\n",i);
 
         if (verbosity > 1)
         {
            displayProgress1("\n  Init:");
-           displayValueForPUs(puno,spno,R2D[irun-1],reserve,spec,misslevel);
+           displayValueForPUs(puno,spno,R,reserve,spec,misslevel);
         }
         if (verbosity > 5)
         {
@@ -162,90 +166,90 @@ void executeRunLoop(long int repeats,int puno,int spno,double cm,int aggexist,do
 
         if (runoptions.ThermalAnnealingOn)
         {
-           appendTraceFile("before thermalAnnealing run %i\n",irun);
+           appendTraceFile("before thermalAnnealing run %i\n",i);
 
-           thermalAnnealing(spno,puno,connections,R2D[irun-1],cm,spec,pu,SM,&change,&reserve,
-                            repeats,irun,savename,misslevel,
+           thermalAnnealing(spno,puno,connections,R,cm,spec,pu,SM,&change,&reserve,
+                            repeats,i,savename,misslevel,
                             aggexist,costthresh,tpf1,tpf2,clumptype);
 
-           appendTraceFile("after thermalAnnealing run %i\n",irun);
+           appendTraceFile("after thermalAnnealing run %i\n",i);
         }  // End of Thermal Annealing On
 
         if (runoptions.QuantumAnnealingOn)
         {
-           appendTraceFile("before quantumAnnealing run %i\n",irun);
+           appendTraceFile("before quantumAnnealing run %i\n",i);
 
-           quantumAnnealing(spno,puno,connections,R2D[irun-1],cm,spec,pu,SM,&change,&reserve,
-                            repeats,irun,savename,misslevel,
+           quantumAnnealing(spno,puno,connections,R,cm,spec,pu,SM,&change,&reserve,
+                            repeats,i,savename,misslevel,
                             aggexist,costthresh,tpf1,tpf2,clumptype);
 
-           appendTraceFile("after quantumAnnealing run %i\n",irun);
+           appendTraceFile("after quantumAnnealing run %i\n",i);
         }  // End of Quantum Annealing On
 
         if (runoptions.HeuristicOn)
         {
-           appendTraceFile("before Heuristics run %i\n",irun);
+           appendTraceFile("before Heuristics run %i\n",i);
 
-           Heuristics(spno,puno,pu,connections,R2D[irun-1],cm,spec,SM,&reserve,
+           Heuristics(spno,puno,pu,connections,R,cm,spec,SM,&reserve,
                       costthresh,tpf1,tpf2,heurotype,clumptype);
 
            if (verbosity > 1 && (runopts == 2 || runopts == 5))
            {
               displayProgress1("  Heuristic:");
-              displayValueForPUs(puno,spno,R2D[irun-1],reserve,spec,misslevel);
+              displayValueForPUs(puno,spno,R,reserve,spec,misslevel);
            }
 
-           appendTraceFile("after Heuristics run %i\n",irun);
+           appendTraceFile("after Heuristics run %i\n",i);
         }    // Activate Greedy
 
         if (runoptions.ItImpOn)
         {
-           appendTraceFile("before iterativeImprovement run %i\n",irun);
+           appendTraceFile("before iterativeImprovement run %i\n",i);
 
-           iterativeImprovement(puno,spno,pu,connections,spec,SM,R2D[irun-1],cm,
-                                &reserve,&change,costthresh,tpf1,tpf2,clumptype,irun,savename);
+           iterativeImprovement(puno,spno,pu,connections,spec,SM,R,cm,
+                                &reserve,&change,costthresh,tpf1,tpf2,clumptype,i,savename);
 
            if (itimptype == 3)
-              iterativeImprovement(puno,spno,pu,connections,spec,SM,R2D[irun-1],cm,
-                                   &reserve,&change,costthresh,tpf1,tpf2,clumptype,irun,savename);
+              iterativeImprovement(puno,spno,pu,connections,spec,SM,R,cm,
+                                   &reserve,&change,costthresh,tpf1,tpf2,clumptype,i,savename);
 
-           appendTraceFile("after iterativeImprovement run %i\n",irun);
+           appendTraceFile("after iterativeImprovement run %i\n",i);
 
            if (aggexist)
               ClearClumps(spno,spec,pu,SM);
 
            if (verbosity > 1)
            {
-              computeReserveValue(puno,spno,R2D[irun-1],pu,connections,SM,cm,spec,aggexist,&reserve,clumptype);
+              computeReserveValue(puno,spno,R,pu,connections,SM,cm,spec,aggexist,&reserve,clumptype);
               displayProgress1("  Iterative Improvement:");
-              displayValueForPUs(puno,spno,R2D[irun-1],reserve,spec,misslevel);
+              displayValueForPUs(puno,spno,R,reserve,spec,misslevel);
            }
 
         } // Activate Iterative Improvement
 
-        appendTraceFile("before file output run %i\n",irun);
+        appendTraceFile("before file output run %i\n",i);
 
         if (fnames.saverun)
         {
            if (fnames.saverun == 3)
-              sprintf(tempname2,"%s_r%05li.csv",savename,irun%10000);
+              sprintf(tempname2,"%s_r%05li.csv",savename,i%10000);
            else
            if (fnames.saverun == 2)
-              sprintf(tempname2,"%s_r%05li.txt",savename,irun%10000);
+              sprintf(tempname2,"%s_r%05li.txt",savename,i%10000);
            else
-               sprintf(tempname2,"%s_r%05li.dat",savename,irun%10000);
-           writeSolution(puno,R2D[irun-1],pu,tempname2,fnames.saverun,fnames);
+               sprintf(tempname2,"%s_r%05li.dat",savename,i%10000);
+           writeSolution(puno,R,pu,tempname2,fnames.saverun,fnames);
         }
 
         if (fnames.savespecies && fnames.saverun)
         {
            if (fnames.savespecies == 3)
-              sprintf(tempname2,"%s_mv%05li.csv",savename,irun%10000);
+              sprintf(tempname2,"%s_mv%05li.csv",savename,i%10000);
            else
            if (fnames.savespecies == 2)
-              sprintf(tempname2,"%s_mv%05li.txt",savename,irun%10000);
+              sprintf(tempname2,"%s_mv%05li.txt",savename,i%10000);
            else
-               sprintf(tempname2,"%s_mv%05li.dat",savename,irun%10000);
+               sprintf(tempname2,"%s_mv%05li.dat",savename,i%10000);
 
            writeSpecies(spno,spec,tempname2,fnames.savespecies,misslevel);
         }
@@ -259,12 +263,37 @@ void executeRunLoop(long int repeats,int puno,int spno,double cm,int aggexist,do
               sprintf(tempname2,"%s_sum.txt",savename);
            else
                sprintf(tempname2,"%s_sum.dat",savename);
-           writeSummary(puno,spno,R2D[irun-1],spec,reserve,irun,tempname2,misslevel,fnames.savesum);
+           writeSummary(puno,spno,R,spec,reserve,i,tempname2,misslevel,fnames.savesum);
         }
         
         // compute and store objective function score for this reserve system
-        computeReserveValue(puno,spno,R2D[irun-1],pu,connections,SM,cm,spec,aggexist,&change,clumptype);
-        rBestScore = change.total;
+        computeReserveValue(puno,spno,R,pu,connections,SM,cm,spec,aggexist,&change,clumptype);
+        
+        // remember the bestScore and bestRun
+        if (i == 1)
+        {
+            // this is best run so far
+            bestScore = change.total;
+            bestRun = 1;
+            // store bestR
+            for (j = 1;j <= puno;j++)
+            {
+                bestR[j] = R[j];
+            }
+        } else {
+            if (change.total < bestScore)
+            {
+                // this is best run so far
+                bestScore = change.total;
+                bestRun = i;
+                // store bestR
+                for (j = 1;j <= puno;j++)
+                {
+                    bestR[j] = R[j];
+                }
+            }
+        }
+        printf("run: %ld best run: %u score: %f best score: %f\n",i,bestRun,change.total,bestScore);
 
         if (fnames.savesolutionsmatrix)
         {
@@ -278,7 +307,7 @@ void executeRunLoop(long int repeats,int puno,int spno,double cm,int aggexist,do
            else
                sprintf(tempname2,"%s_solutionsmatrix.dat",savename);
 
-           appendSolutionsMatrix(irun,puno,R2D[irun-1],tempname2,fnames.savesolutionsmatrix,fnames.solutionsmatrixheaders);
+           appendSolutionsMatrix(i,puno,R,tempname2,fnames.savesolutionsmatrix,fnames.solutionsmatrixheaders);
 
            appendTraceFile("after appendSolutionsMatrix savename %s\n",savename);
         }
@@ -286,18 +315,16 @@ void executeRunLoop(long int repeats,int puno,int spno,double cm,int aggexist,do
         if (aggexist)
            ClearClumps(spno,spec,pu,SM);
 
-        appendTraceFile("after file output run %i\n",irun);
-        appendTraceFile("end run %i\n",irun);
+        appendTraceFile("after file output run %i\n",i);
+        appendTraceFile("end run %i\n",i);
 
-        if (marxanisslave == 1)
-           writeSlaveSyncFileRun(irun);
+        if (marxanIsSlave == 1)
+           writeSlaveSyncFileRun(i);
 
         if (verbosity > 1)
            displayTimePassed();
-
-    } // *** the repeats  ****
-    // *******  The larger repetition loop ********
-}
+    }
+} // executeRunLoop
 
 int executeMarxan(char sInputFileName[])
 {
@@ -312,8 +339,8 @@ int executeMarxan(char sInputFileName[])
     int iseed,seedinit;
     int aggexist=0,sepexist=0;
     int *R_CalcPenalties;
-    int *sumsoln, iBestRun = 1;
-    double costthresh,tpf1,tpf2, rBestScore;
+    int *sumsoln;
+    double costthresh,tpf1,tpf2;
     long int itemp;
     int isp;
     #ifdef DEBUGTRACEFILE
@@ -395,8 +422,6 @@ int executeMarxan(char sInputFileName[])
     computeBinarySearch(puno,spno,pu,spec,&PULookup,&SPLookup);
 
     appendTraceFile("after build search arrays\n");
-
-    bestyet = (int *) calloc(puno,sizeof(int));
 
     if (fnames.savesumsoln)
        sumsoln = (int *) calloc(puno,sizeof(int));
@@ -661,7 +686,7 @@ int executeMarxan(char sInputFileName[])
                 appendTraceFile("\nMarxan end execution\n");
                 displayShutdownMessage();
 
-                if (marxanisslave == 1)
+                if (marxanIsSlave == 1)
                    slaveExit();
 
                 if (aggexist)
@@ -712,7 +737,7 @@ int executeMarxan(char sInputFileName[])
   
     executeRunLoop(repeats,puno,spno,cm,aggexist,prop,clumptype,misslevel,
                    savename,costthresh,tpf1,tpf2,heurotype,runopts,
-                   itimptype,&iBestRun,sumsoln,marxanisslave);
+                   itimptype,sumsoln);
 
     appendTraceFile("before final file output\n");
 
@@ -726,10 +751,10 @@ int executeMarxan(char sInputFileName[])
        else
            sprintf(tempname2,"%s_best.dat",savename);
 
-       writeSolution(puno,bestyet,pu,tempname2,fnames.savebest,fnames);
+       writeSolution(puno,bestR,pu,tempname2,fnames.savebest,fnames);
 
-       appendTraceFile("Best solution is run %i\n",iBestRun);
-       displayProgress1("\nBest solution is run %i\n",iBestRun);
+       appendTraceFile("Best solution is run %i\n",bestRun);
+       displayProgress1("\nBest solution is run %i\n",bestRun);
     }
 
     if (fnames.savespecies && fnames.savebest)
@@ -769,7 +794,7 @@ int executeMarxan(char sInputFileName[])
           else
               sprintf(tempname2,"%s_solutionsmatrix.dat",savename);
 
-          if (marxanisslave == 1)
+          if (marxanIsSlave == 1)
              slaveExit();
        }
 
@@ -1010,7 +1035,7 @@ void setDefaultRunOptions(int runopts, struct srunoptions *runoptions)
                      (*runoptions).ItImpOn = 0;
                      break;
      }
-} // Set Run Options
+} // setDefaultRunOptions
 
 // for pu's specified as reserved in pu.dat status, make them reserved in a pu status vector
 void addReserve(int puno,struct spustuff pu[],int *R)
@@ -1019,9 +1044,9 @@ void addReserve(int puno,struct spustuff pu[],int *R)
      for (i=0;i<puno;i++)
      {
          if (pu[i].status)
-            R[i] = pu[i].status; // Change status for status 1, or higher
+            R[i] = pu[i].status; // set planning unit status to pu.dat status
      }
-}    // ******* Add Reserve **********
+}
 
 // compute initial penalties for species with a greedy algorithm.
 // If species has spatial requirements then CalcPenaltyType4 is used instead
@@ -1029,11 +1054,8 @@ int computePenalties(int puno,int spno,struct spustuff pu[],struct sspecies spec
                      struct sconnections connections[],struct spu SM[],int PUtemp[],int aggexist,double cm,int clumptype)
 {
     int i,j,ibest,imaxtarget,itargetocc;
-    //int *PUtemp;
     double ftarget,fbest,fbestrat,fcost,ftemp, rAmount;
     int badspecies = 0,goodspecies = 0;
-
-    //PUtemp = (int *) calloc(puno,sizeof(int));
 
     addReserve(puno,pu,PUtemp); // Adds existing reserve to PUtemp
 
@@ -1149,9 +1171,6 @@ int computePenalties(int puno,int spno,struct spustuff pu[],struct sspecies spec
     if (aggexist)
         ClearClumps(spno,spec,pu,SM);
 
-    //free(PUtemp);
-    //DebugFree(puno*sizeof(int));
-
     if (goodspecies)
        displayProgress1("%i species are already adequately represented.\n",goodspecies);
     return(badspecies);
@@ -1163,11 +1182,8 @@ int computePenaltiesOptimise(int puno,int spno,struct spustuff pu[],struct sspec
                              int PUtemp[],int aggexist,double cm,int clumptype)
 {
     int i,j,ibest,imaxtarget,itargetocc,ism,ipu, iPUsToTest;
-    //int *PUtemp;
     double ftarget,fbest,fbestrat,fcost,ftemp, rAmount, r_ibest_amount;
     int badspecies = 0,goodspecies = 0;
-
-    //PUtemp = (int *) calloc(puno,sizeof(int));
 
     appendTraceFile("CalcPenaltiesOptimise start\n");
 
@@ -1214,7 +1230,6 @@ int computePenaltiesOptimise(int puno,int spno,struct spustuff pu[],struct sspec
            continue;
         } // Target met in unremovable reserve
 
-        //iPUsToTest = spec[i].richness;
         do
         {
           fbest =0; imaxtarget = 0; fbestrat = 0;
@@ -1256,9 +1271,7 @@ int computePenaltiesOptimise(int puno,int spno,struct spustuff pu[],struct sspec
              spec[i].penalty += fbest;
           } // Add pu to target
 
-          //iPUsToTest--;
-
-        } while (/*(iPUsToTest > 0)  ||*/ (fbest > 0) && (ftarget <spec[i].target|| itargetocc < spec[i].targetocc));
+        } while ((fbest > 0) && (ftarget <spec[i].target|| itargetocc < spec[i].targetocc));
         // while there is some pu's with this species to test AND a best available pu was found AND targets are not met yet
 
         if (fbest == 0) // Could not meet target using all available PUs
@@ -1290,7 +1303,7 @@ int computePenaltiesOptimise(int puno,int spno,struct spustuff pu[],struct sspec
     appendTraceFile("CalcPenaltiesOptimise end\n");
 
     return(badspecies);
-}// *** Calculate Initial Penalties ***
+} // computePenaltiesOptimise
 
 // compute cost + connectivity for a single planning unit
 double computePlanningUnitValue(int ipu,struct spustuff pu[],struct sconnections connections[],double cm)
@@ -1303,7 +1316,7 @@ double computePlanningUnitValue(int ipu,struct spustuff pu[],struct sconnections
        return(theValue);
 }
 
-/************ Change in penalty for adding single PU ******/
+// compute change in the species representation for adding or removing a single planning unit or set of planning units
 double computeChangePenalty(int ipu,int puno,struct sspecies spec[],struct spustuff pu[],struct spu SM[],
                           int R[],struct sconnections connections[],int imode,int clumptype,double *rShortfall)
 {
@@ -1512,11 +1525,6 @@ void computeReserveValue(int puno,int spno,int *R,struct spustuff pu[],
      else
          reserve->probability2D = 0;
 
-     #ifdef DEBUG_RESERVECOST
-     //rConnectivityValue = reserve->connection;
-     //appendTraceFile("total connectivity %lf\n",rConnectivityValue);
-     #endif
-
      reserve->total = reserve->cost + reserve->connection + reserve->penalty + reserve->probability1D + reserve->probability2D;
 
      #ifdef DEBUG_PROB1D
@@ -1588,8 +1596,7 @@ void computeReserveValue(int puno,int spno,int *R,struct spustuff pu[],
         free(ExpectedAmount2D);
         free(VarianceInExpectedAmount2D);
      }
-
-}  /**** value of a reserve ***/
+} // computeReserveValue
 
 // initialise a planning unit vector of status to random 1's and 0's
 void initialiseReserve(int puno,double prop, int *R)
@@ -1623,7 +1630,6 @@ void computeChangeScore(int iIteration,int ipu,int spno,int puno,struct spustuff
 
      change->cost = pu[ipu].cost*imode;    /* Cost of this PU on it's own */
      change->connection = ConnectionCost2(ipu,connections,R,imode,1,cm);
-     //change->connection = imode * ConnectionCost2(ipu,connections,R,1,0,cm);
      if (threshtype ==1)
      {
         tchangeconnection = change->connection;
@@ -1682,7 +1688,7 @@ void computeChangeScore(int iIteration,int ipu,int spno,int puno,struct spustuff
      appendDebugFile("debug_MarOpt_CheckChange.csv",debugline,fnames);
      #endif
 
-}  /*** Check Change ***/
+} // computeChangeScore
 
 // compute change in the objective function score for adding or removing a set of planning units
 void computeQuantumChangeScore(int spno,int puno,struct spustuff pu[],struct sconnections connections[],
@@ -1726,7 +1732,6 @@ void computeQuantumChangeScore(int spno,int puno,struct spustuff pu[],struct sco
 
          change->cost += pu[j].cost*imode;    /* Cost of this PU on it's own */
          change->connection += ConnectionCost2(j,connections,R,imode,1,cm);
-         //change->connection = imode * ConnectionCost2(ipu,connections,R,1,0,cm);
          if (threshtype ==1)
          {
             tchangeconnection = change->connection;
@@ -2232,9 +2237,7 @@ void initialiseAdaptiveAnnealing(int puno,int spno,double prop,int *R,
 
      appendTraceFile("Tinit %g Titns %li Tcool %g\n",(*anneal).Tinit,(*anneal).Titns,(*anneal).Tcool);
 
-} /**** Adaptive Annealing Initialisation *****/
-
-/**** Set TInitial from this as well ****/
+} // initialiseAdaptiveAnnealing
 
 // reduce annealing temperature when anneal type = 3
 void reduceTemperature(struct sanneal *anneal)
@@ -3113,11 +3116,7 @@ void iterativeImprovement(int puno,int spno,struct spustuff pu[], struct sconnec
      appendTraceFile("iterativeImprovement end\n");
 } // iterativeImprovement
 
-/*********************
- *  ran1() from numerical recipes
-     produces a random number between 0 and 1
- */
-
+// ran1() from numerical recipes: produces a random number between 0 and 1
 #define IA 16807
 #define IM 2147483647
 #define AM (1.0 / IM)
@@ -3131,14 +3130,15 @@ void iterativeImprovement(int puno,int spno,struct spustuff pu[], struct sconnec
 long RandomIY;
 long RandomIV[NTAB];
 
-// random random floating point number. not sure what this one does exactly...
+// random random floating point number
+// ran1() from numerical recipes: produces a random number between 0 and 1
 float returnRandomFloat(void)
 {
     int j;
     long k;
     float temp;
 
-    if(RandSeed1 <= 0 || !RandomIY)    /* Initialize */
+    if(RandSeed1 <= 0 || !RandomIY) // Initialize
     {
         RandSeed1 = -RandSeed1;
         for(j = NTAB+7; j >= 0; j--)
@@ -3152,7 +3152,7 @@ float returnRandomFloat(void)
         }
         RandomIY = RandomIV[0];
     }
-    k=RandSeed1/IQ;        /* The stuff we do on calls after the first */
+    k=RandSeed1/IQ; // The stuff we do on calls after the first
     RandSeed1 = IA * (RandSeed1 - k * IQ) - IR * k;
     if(RandSeed1 < 0)
     {
@@ -3176,8 +3176,6 @@ void initialiseRandomSeed(int iSeed) {
     else
         RandSeed1 = (long int)time(NULL);
     if(RandSeed1 > 0) RandSeed1 = -RandSeed1;
-
-        //return RandSeed1;
 }
 
 // return random number between 0 and parameter n-1
@@ -3214,7 +3212,7 @@ void handleOptions(int argc,char *argv[],char sInputFileName[])
                         case 'c':
                         case 'S':
                         case 's':
-                                marxanisslave = 1;
+                                marxanIsSlave = 1;
                                 break;
             default:
                 fprintf(stderr,"unknown option %s\n",argv[i]);
@@ -3244,16 +3242,16 @@ int main(int argc,char *argv[])
     else     // handle the program options
         handleOptions(argc,argv,sInputFileName);
 
-    if (executeMarxan(sInputFileName))        // Calls the main annealing unit
+    if (executeMarxan(sInputFileName)) // Calls the main annealing unit
     {
-        if (marxanisslave == 1)
+        if (marxanIsSlave == 1)
         {
            slaveExit();
         }
 
         return 1;
     }  // Abnormal Exit
-    if (marxanisslave == 1)
+    if (marxanIsSlave == 1)
     {
        slaveExit();
     }

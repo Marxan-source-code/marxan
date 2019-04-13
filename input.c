@@ -825,6 +825,7 @@ void readSparseMatrixSpOrder(int *iSMSize, struct spusporder *SM[], int puno, in
                       iInternalSMSize,iBigMatrixSize,rDensity);
 } // readSparseMatrixSpOrder
 
+// read value for a single parameter specified in input.dat parameter file
 void readInputOption(FILE *infile, char varname[], void *address, int parmtype, int crit,int present)
 // Reads a variable of parmtype in from infile. Assumes that the next line is the one that has the
 // variable in question but will wrap once to find the variable.
@@ -842,7 +843,8 @@ void readInputOption(FILE *infile, char varname[], void *address, int parmtype, 
      do
      {   /* loop through file looking for varname */
        if (fgets(buffer,255,infile) == NULL)
-           displayErrorMessage("Error reading input parameter %s.\n",varname);
+           //displayErrorMessage("Error reading input parameter %s.\n",varname)
+           ;
        check1 = 0;
        check2 = 0;
 
