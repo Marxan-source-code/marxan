@@ -304,7 +304,8 @@ void executeRunLoop(long int repeats,int puno,int spno,double cm,int aggexist,do
                 }
             }
         }
-        printf("run: %ld best run: %u score: %f best score: %f\n",i,bestRun,change.total,bestScore);
+        
+        //printf("run: %ld best run: %u score: %f best score: %f\n",i,bestRun,change.total,bestScore);
 
         if (fnames.savesolutionsmatrix)
         {
@@ -587,14 +588,14 @@ int executeMarxan(char sInputFileName[])
     // load penalties from file if they are present
     if (strcmp("NULL",fnames.penaltyname) != 0)
     {
-	    fUserPenalties = 1;
+        fUserPenalties = 1;
 
         appendTraceFile("before readPenalties\n");
 
-	    readPenalties(spec,spno,fnames,SPLookup);
+        readPenalties(spec,spno,fnames,SPLookup);
 
         appendTraceFile("after readPenalties\n");
-	}
+    }
 
     if (runoptions.CalcPenaltiesOn == 0)
     {
@@ -608,9 +609,9 @@ int executeMarxan(char sInputFileName[])
 
         // transfer loaded penalties to correct data structrure
         applyUserPenalties(spec,spno);
-	}
-	else
-	{
+    }
+    else
+    {
         // we are computing penalties
         if (strcmp("NULL",fnames.matrixspordername) == 0)
         {
@@ -722,10 +723,10 @@ int executeMarxan(char sInputFileName[])
                         createLogFile(0,NULL);  /* tidy up files */
 
                     exit(1);
-			    }
-			}
-		}
-	}
+                }
+            }
+        }
+    }
 
     if (fnames.savesolutionsmatrix)
     {

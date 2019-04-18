@@ -205,7 +205,7 @@
 
     typedef struct srunoptions
     {
-		int CalcPenaltiesOn;
+        int CalcPenaltiesOn;
         int HeuristicOn;
         int ThermalAnnealingOn;
         int QuantumAnnealingOn;
