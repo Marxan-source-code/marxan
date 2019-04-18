@@ -145,7 +145,17 @@ void executeRunLoop(long int repeats,int puno,int spno,double cm,int aggexist,do
         if (aggexist)
             ClearClumps(spno,spec,pu,SM);
 
+        if (isinf(reserve.total) != 0)
+        {
+            printf("\n executeRunLoop A infinite reserve.total >%g<\n",reserve.total);
+        }
+        
         computeReserveValue(puno,spno,R,pu,connections,SM,cm,spec,aggexist,&reserve,clumptype);
+        
+        if (isinf(reserve.total) != 0)
+        {
+            printf("\n executeRunLoop B infinite reserve.total >%g<\n",reserve.total);
+        }
 
         appendTraceFile("after computeReserveValue run %i\n",i);
 
@@ -1437,6 +1447,7 @@ double computeChangePenalty(int ipu,int puno,struct sspecies spec[],struct spust
                     rNewShortfall = spec[isp].target - rNewAmountHeld;
                 *rShortfall += rNewShortfall - rOldShortfall;
 
+                // does this species have occurrence target?
                 if (spec[isp].targetocc > 0)
                 {
                     if(spec[isp].targetocc > spec[isp].occurrence)
@@ -1507,8 +1518,6 @@ double computeChangePenalty(int ipu,int puno,struct sspecies spec[],struct spust
     }
     #endif
 
-    //printf("computeChangePenalty >%g<\n",penalty);
-
     if (isinf(penalty) != 0)
     {
         printf("computeChangePenalty infinite fractionAmount >%g<\n",penalty);
@@ -1523,7 +1532,7 @@ void computeReserveValue(int puno,int spno,int *R,struct spustuff pu[],
                          double cm, struct sspecies spec[],int aggexist,struct scost *reserve,int clumptype)
 {
     int i,j;
-    double ftemp;
+    double fractionAmount;
     double *ExpectedAmount1D, *VarianceInExpectedAmount1D,
            *ExpectedAmount2D, *VarianceInExpectedAmount2D,
            rConnectivityValue;
@@ -1537,7 +1546,7 @@ void computeReserveValue(int puno,int spno,int *R,struct spustuff pu[],
     char sProbDebugFileName[500], sProbDebugCost[100];
     #endif
 
-    // init arrays
+    // init arrays for prob 1D and 2D
     if (fProb1D == 1)
     {
         ExpectedAmount1D = (double *) calloc(spno,sizeof(double));
@@ -1568,24 +1577,32 @@ void computeReserveValue(int puno,int spno,int *R,struct spustuff pu[],
     reserve->probability2D = 0;
     if (aggexist)
         SetSpeciesClumps(puno,R,spec,pu,SM,connections,clumptype);
+        
+    // traverse species, computing penalty for each species
     for (i=0;i<spno;i++)
     {
-        ftemp = 0;
+        fractionAmount = 0;
         if (spec[i].target > spec[i].amount)
         {
-            ftemp = (spec[i].target-spec[i].amount )/ spec[i].target;
+            fractionAmount = (spec[i].target-spec[i].amount )/ spec[i].target;
 
             reserve->shortfall += spec[i].target-spec[i].amount;
         }
-        if (spec[i].targetocc > spec[i].occurrence)
+        
+        // does this species have an occurrence target?
+        if (spec[i].targetocc > 0)
         {
-            ftemp += (double) (spec[i].targetocc - spec[i].occurrence)/(double) spec[i].targetocc;
+            if (spec[i].targetocc > spec[i].occurrence)
+            {
+                fractionAmount += (double) (spec[i].targetocc - spec[i].occurrence)/(double) spec[i].targetocc;
 
-            reserve->shortfall += spec[i].targetocc-spec[i].occurrence;
+                reserve->shortfall += spec[i].targetocc-spec[i].occurrence;
+            }
+            if (spec[i].target && spec[i].targetocc)
+                fractionAmount /= 2;
         }
-        if (spec[i].target && spec[i].targetocc)
-            ftemp /= 2;
-        reserve->penalty += ftemp * spec[i].penalty * spec[i].spf;
+
+        reserve->penalty += fractionAmount * spec[i].penalty * spec[i].spf;
 
         if (spec[i].sepnum)
         {
@@ -1595,7 +1612,10 @@ void computeReserveValue(int puno,int spno,int *R,struct spustuff pu[],
         }
     }
 
+    // traverse planning units, computing planning unit metrics for the reserve
     for (j=0;j<puno;j++)
+    {
+        // if planning unit is protected
         if (R[j]==1 || R[j] == 2)
         {
             reserve->cost += pu[j].cost;
@@ -1613,17 +1633,20 @@ void computeReserveValue(int puno,int spno,int *R,struct spustuff pu[],
             if (fProb2D == 1)
                 ReturnProbabilityAmounts2D(ExpectedAmount2D,VarianceInExpectedAmount2D,j,puno,pu,SM);
         }
+    }
 
     if (fProb1D == 1)
     {
         reserve->probability1D = ComputeProbability1D(ExpectedAmount1D,VarianceInExpectedAmount1D,spno,spec);
-    }
-    else
+    } else {
         reserve->probability1D = 0;
+    }
     if (fProb2D == 1)
+    {
         reserve->probability2D = ComputeProbability2D(ExpectedAmount2D,VarianceInExpectedAmount2D,spno,spec);
-    else
+    } else {
         reserve->probability2D = 0;
+    }
 
     reserve->total = reserve->cost + reserve->connection + reserve->penalty + reserve->probability1D + reserve->probability2D;
 
@@ -1640,7 +1663,6 @@ void computeReserveValue(int puno,int spno,int *R,struct spustuff pu[],
     strcat(sProbDebugFileName,".csv");
     writeProb1DDebugTable(spno,sProbDebugFileName,
                           ExpectedAmount1D,VarianceInExpectedAmount1D,spec);
-
 
     appendTraceFile("computeReserveValue F\n");
 
@@ -1675,7 +1697,8 @@ void computeReserveValue(int puno,int spno,int *R,struct spustuff pu[],
 
     writeProb2DDetailDebugTable(sProbDebugFileName,puno,pu,SM,R);
     #endif
-    // destroy arrays
+    
+    // destroy arrays for prob 1D and 2D
     if (fProb1D == 1)
     {
         for (i=0;i<spno;i++)
@@ -1951,14 +1974,14 @@ void doChange(int ipu,int puno,int *R,struct scost *reserve,struct scost change,
     reserve->probability2D += change.probability2D;
     reserve->shortfall += change.shortfall;
 
-    if (isinf(change.penalty) != 0)
-    {
-        printf("\ndoChange infinite change.penalty >%g<\n",change.penalty);
-    }
-    if (isinf(reserve->penalty) != 0)
-    {
-        printf("\ndoChange infinite reserve->penalty >%g< change.penalty %g\n",reserve->penalty,change.penalty);
-    }
+    //if (isinf(change.penalty) != 0)
+    //{
+    //    printf("\ndoChange infinite change.penalty >%g<\n",change.penalty);
+    //}
+    //if (isinf(reserve->penalty) != 0)
+    //{
+    //    printf("\ndoChange infinite reserve->penalty >%g< change.penalty %g\n",reserve->penalty,change.penalty);
+    //}
 
     if (pu[ipu].richness)
     { // Invoke Species Change
@@ -2014,11 +2037,11 @@ void doChange(int ipu,int puno,int *R,struct scost *reserve,struct scost change,
 
     reserve->total = reserve->cost + reserve->connection + reserve->penalty + reserve->probability1D + reserve->probability2D;
 
-    if (isinf(reserve->total) != 0)
-    {
-        printf("\ndoChange infinite reserve->total >%g< cost %g connection %g penalty %g prob1D %g prob2D %g\n",
-               reserve->total,reserve->cost,reserve->connection,reserve->penalty,reserve->probability1D,reserve->probability2D);
-    }
+    //if (isinf(reserve->total) != 0)
+    //{
+    //    printf("\ndoChange infinite reserve->total >%g< cost %g connection %g penalty %g prob1D %g prob2D %g\n",
+    //           reserve->total,reserve->cost,reserve->connection,reserve->penalty,reserve->probability1D,reserve->probability2D);
+    //}
 } // doChange
 
 // change the status of a set of planning units
