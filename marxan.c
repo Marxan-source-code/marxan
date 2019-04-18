@@ -53,8 +53,8 @@ char sVersionString[80] = "Marxan v 3.0.0";
 // version 2.4.3 introduced 1D and 2D probability
 // version 3.0.0 is refactoring of code in 2019
 char sIanBallEmail[100] = "ian.ball@aad.gov.au";
-char sHughPossinghamEmail[100] = "h.possingham@uq.edu.au";
-char sMattWattsEmail[100] = "m.watts@uq.edu.au";
+char sHughPossinghamEmail[100] = "hugh.possingham@tnc.org";
+char sMattWattsEmail[100] = "matt.watts@une.edu.au";
 char sMarxanWebSite[100] = "http://marxan.net";
 char sTraceFileName[1000];
 char sApplicationPathName[1000];
