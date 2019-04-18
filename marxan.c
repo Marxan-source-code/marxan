@@ -375,7 +375,7 @@ int executeMarxan(char sInputFileName[])
     #endif
 
     #ifdef DEBUGCHANGEPEN
-    createDebugFile("debug_MarOpt_ChangePen.csv","ipu,puid,isp,spid,cost,newamount,famount\n",fnames);
+    createDebugFile("debug_MarOpt_ChangePen.csv","ipu,puid,isp,spid,penalty,target,targetocc,occurrence,sepnum,amount,newamount,fractionAmount\n",fnames);
     #endif
 
     #ifdef DEBUGCALCPENALTIES
@@ -1398,7 +1398,7 @@ double computeChangePenalty(int ipu,int puno,struct sspecies spec[],struct spust
                           int R[],struct sconnections connections[],int imode,int clumptype,double *rShortfall)
 {
     int i, ism, isp;
-    double famount, fcost= 0.0,newamount,tamount;
+    double fractionAmount, penalty,newamount,tamount;
     double rOldShortfall, rNewAmountHeld, rNewShortfall;
     #ifdef DEBUGCHANGEPEN
     char debugline[200];
@@ -1410,6 +1410,7 @@ double computeChangePenalty(int ipu,int puno,struct sspecies spec[],struct spust
     #endif
 
     *rShortfall = 0;
+    penalty = 0;
 
     if (pu[ipu].richness)
     {
@@ -1419,7 +1420,7 @@ double computeChangePenalty(int ipu,int puno,struct sspecies spec[],struct spust
             isp = SM[ism].spindex;
             if (SM[ism].amount)
             {
-                famount = 0;
+                fractionAmount = 0;
                 newamount = 0; /* Shortfall */
 
                 rOldShortfall = 0;
@@ -1427,7 +1428,7 @@ double computeChangePenalty(int ipu,int puno,struct sspecies spec[],struct spust
 
                 if (spec[isp].target > spec[isp].amount)
                 {
-                    famount = (spec[isp].target-spec[isp].amount)/spec[isp].target;
+                    fractionAmount = (spec[isp].target-spec[isp].amount)/spec[isp].target;
                     rOldShortfall = spec[isp].target - spec[isp].amount;
                 }
 
@@ -1436,15 +1437,18 @@ double computeChangePenalty(int ipu,int puno,struct sspecies spec[],struct spust
                     rNewShortfall = spec[isp].target - rNewAmountHeld;
                 *rShortfall += rNewShortfall - rOldShortfall;
 
-                if(spec[isp].targetocc > spec[isp].occurrence)
-                    famount += ((double) spec[isp].targetocc - (double) spec[isp].occurrence)/
-                               (double) spec[isp].targetocc;
+                if (spec[isp].targetocc > 0)
+                {
+                    if(spec[isp].targetocc > spec[isp].occurrence)
+                        fractionAmount += ((double) spec[isp].targetocc - (double) spec[isp].occurrence)/
+                                          (double) spec[isp].targetocc;
 
-                if (spec[isp].target && spec[isp].targetocc)
-                    famount /= 2;
+                    if (spec[isp].target && spec[isp].targetocc)
+                        fractionAmount /= 2;
+                }
 
                 if (spec[isp].sepnum)
-                    famount += SepPenalty(spec[isp].separation,spec[isp].sepnum);
+                    fractionAmount += SepPenalty(spec[isp].separation,spec[isp].sepnum);
 
                 if (spec[isp].target2)
                 {
@@ -1468,16 +1472,28 @@ double computeChangePenalty(int ipu,int puno,struct sspecies spec[],struct spust
                     #ifdef ANNEALING_TEST
                     if (ipu == (puno-1))
                     {
-                        appendTraceFile("penalty %g spf %g newamount %g famount %g target %g amount %g\n",
-                                        spec[isp].penalty,spec[isp].spf,newamount,famount,spec[isp].target,spec[isp].amount);
+                        appendTraceFile("penalty %g spf %g newamount %g fractionAmount %g target %g amount %g\n",
+                                        spec[isp].penalty,spec[isp].spf,newamount,fractionAmount,spec[isp].target,spec[isp].amount);
                     }
                     #endif
                 } /* no target2 */
-                fcost += spec[isp].penalty*spec[isp].spf*(newamount - famount);
+                
+                if (isinf(fractionAmount) != 0)
+                {
+                    printf("\ncomputeChangePenalty infinite fractionAmount >%g<\n",fractionAmount);
+                }
+                penalty += spec[isp].penalty*spec[isp].spf*(newamount - fractionAmount);
+                if (isinf(penalty) != 0)
+                {
+                    printf("\ncomputeChangePenalty infinite fractionAmount >%g<\n",penalty);
+                }
             }  /** Only worry about PUs where species occurs **/
 
             #ifdef DEBUGCHANGEPEN
-            sprintf(debugline,"%i,%i,%i,%i,%g,%g,%g\n",ipu,pu[ipu].id,isp,spec[isp].name,fcost,newamount,famount);
+            sprintf(debugline,"%i,%i,%i,%i,%g,%g,%i,%i,%i,%g,%g,%g\n",
+                              ipu,pu[ipu].id,isp,spec[isp].name,penalty,spec[isp].target,
+                              spec[isp].targetocc,spec[isp].occurrence,spec[isp].sepnum,
+                              spec[isp].amount,newamount,fractionAmount);
             appendDebugFile("debug_MarOpt_ChangePen.csv",debugline,fnames);
             #endif
         }
@@ -1486,11 +1502,19 @@ double computeChangePenalty(int ipu,int puno,struct sspecies spec[],struct spust
     #ifdef ANNEALING_TEST
     if (ipu == (puno-1))
     {
-        sprintf(debugbuffer,"computeChangePenalty end fcost %g\n",fcost);
+        sprintf(debugbuffer,"computeChangePenalty end penalty %g\n",penalty);
         appendTraceFile(debugbuffer);
     }
     #endif
-    return (fcost);
+
+    //printf("computeChangePenalty >%g<\n",penalty);
+
+    if (isinf(penalty) != 0)
+    {
+        printf("computeChangePenalty infinite fractionAmount >%g<\n",penalty);
+    }
+
+    return (penalty);
 } // computeChangePenalty
 
 // compute objective function value of a reserve system
@@ -1716,6 +1740,11 @@ void computeChangeScore(int iIteration,int ipu,int spno,int puno,struct spustuff
 
     change->penalty = computeChangePenalty(ipu,puno,spec,pu,SM,R,connections,imode,clumptype,&change->shortfall);
 
+    if (isinf(change->penalty) != 0)
+    {
+        printf("\ncomputeChangeScore infinite change->penalty >%g<\n",change->penalty);
+    }
+
     if (costthresh)
     {
         // Threshold Penalty for costs
@@ -1757,6 +1786,11 @@ void computeChangeScore(int iIteration,int ipu,int spno,int puno,struct spustuff
         change->probability2D = 0;
 
     change->total = change->cost + change->connection + change->penalty + change->threshpen + change->probability1D + change->probability2D;
+
+    if (isinf(change->total) != 0)
+    {
+        printf("\ncomputeChangeScore infinite change->total >%g<\n",change->total);
+    }
 
     #ifdef DEBUGCHECKCHANGE
     sprintf(debugline,"%i,%i,%i,%g,%g,%g,%g,%g,%g,%g\n",
@@ -1917,6 +1951,15 @@ void doChange(int ipu,int puno,int *R,struct scost *reserve,struct scost change,
     reserve->probability2D += change.probability2D;
     reserve->shortfall += change.shortfall;
 
+    if (isinf(change.penalty) != 0)
+    {
+        printf("\ndoChange infinite change.penalty >%g<\n",change.penalty);
+    }
+    if (isinf(reserve->penalty) != 0)
+    {
+        printf("\ndoChange infinite reserve->penalty >%g< change.penalty %g\n",reserve->penalty,change.penalty);
+    }
+
     if (pu[ipu].richness)
     { // Invoke Species Change
         for (i=0;i<pu[ipu].richness;i++)
@@ -1970,6 +2013,12 @@ void doChange(int ipu,int puno,int *R,struct scost *reserve,struct scost change,
     }
 
     reserve->total = reserve->cost + reserve->connection + reserve->penalty + reserve->probability1D + reserve->probability2D;
+
+    if (isinf(reserve->total) != 0)
+    {
+        printf("\ndoChange infinite reserve->total >%g< cost %g connection %g penalty %g prob1D %g prob2D %g\n",
+               reserve->total,reserve->cost,reserve->connection,reserve->penalty,reserve->probability1D,reserve->probability2D);
+    }
 } // doChange
 
 // change the status of a set of planning units
