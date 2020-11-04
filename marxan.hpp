@@ -2,6 +2,7 @@
 
 #include <csetjmp>
 #include <cstdarg>
+#include <map>
 #include <random>
 #include <string>
 #include <vector>
@@ -48,14 +49,8 @@ namespace marxan {
     extern double rProbabilityWeighting;
 
     // type definitions for sparse matrix optimisations data structures
-    typedef struct binsearch
-    {
-        int name;
-        int index;
-    } binsearch;
-
-    extern vector<binsearch> PULookup;
-    extern vector<binsearch> SPLookup;
+    extern map<int, int> PULookup;
+    extern map<int, int> SPLookup;
 
     typedef struct spu
     {
@@ -300,11 +295,11 @@ void initialiseConnollyAnnealing(int puno,int spno,vector<spustuff> &pu, vector<
 void initialiseAdaptiveAnnealing(int puno,int spno,double prop,vector<int> &R,vector<spustuff> &pu,vector<sconnections> &connections,
                                  vector<spu> &SM,double cm,vector<sspecies> &spec,int aggexist,sanneal &anneal,int clumptype, int thread);
 void thermalAnnealing(int spno, int puno, vector<sconnections> &connections,vector<int> &R, double cm,
-                      vector<sspecies> spec, vector<spustuff> &pu, vector<spu> &SM, scost &reserve,
+                      vector<sspecies>& spec, vector<spustuff> &pu, vector<spu> &SM, scost &reserve,
                       long int repeats,int irun,string savename,double misslevel,
                       int aggexist,double costthresh, double tpf1, double tpf2,int clumptype, sanneal &anneal, int thread);
 void quantumAnnealing(int spno, int puno, vector<sconnections> &connections,vector<int> &R, double cm,
-                      vector<sspecies> spec, vector<spustuff> &pu, vector<spu> &SM, scost &change, scost &reserve,
+                      vector<sspecies>& spec, vector<spustuff> &pu, vector<spu> &SM, scost &change, scost &reserve,
                       long int repeats,int irun,string savename,double misslevel,
                       int aggexist,double costthresh, double tpf1, double tpf2,int clumptype, sanneal &anneal, int thread);
 #endif
@@ -319,9 +314,9 @@ void applyUserPenalties(vector<sspecies> &spec,int spno);
 
 void writeSparseMatrix(int iSMno,int puno, vector<spustuff> &pu, vector<sspecies> &spec, vector<spu> &SM,sfname fnames);
 void computeBinarySearch(int puno, int spno, vector<spustuff> &pu, vector<sspecies> &spec,
-                         vector<binsearch> &PULookup, vector<binsearch> &SPLookup);
-int binarySearchPuIndex(int puno,int name, vector<binsearch> &PULookup);
-int binarySearchSpecIndex(int spno,int name, vector<binsearch> &SPLookup);
+                         map<int,int> &PULookup, map<int,int> &SPLookup);
+int binarySearchPuIndex(int puno,int name, map<int,int> &PULookup);
+int binarySearchSpecIndex(int spno,int name, map<int,int> &SPLookup);
 int returnIndexSpecAtPu(vector<spustuff> &pu, vector<spu> &SM, int iPUIndex, int iSpecIndex);
 double returnAmountSpecAtPu(vector<spustuff> &pu, vector<spu> &SM, int iPUIndex, int iSpecIndex);
 void appendTraceFile(string sMess,...);
@@ -336,20 +331,20 @@ void iterativeImprovement(int puno,int spno,vector<spustuff> &pu, vector<sconnec
 
 // input reading
 int readConnections(int& puno, vector<sconnections>& connections, vector<spustuff>& pu,
-                    vector<binsearch>& PULookup, sfname& fnames);
+                    map<int,int>& PULookup, sfname& fnames);
 void readInputOptions(double &cm,double &prop,sanneal &anneal,
                       int &iseed,
                       long int &repeats, string& savename, sfname &fname, string filename,
                       int &runopts,double &misslevel,int &heurotype,int &clumptype,
                       int &itimptype, int &verb,
                       double &costthresh,double &tpf1,double &tpf2);
-                      void readPenalties(vector<sspecies> &spec,int spno,sfname& fnames,vector<binsearch> &SPLookup);
+                      void readPenalties(vector<sspecies> &spec,int spno,sfname& fnames,map<int,int> &SPLookup);
 int readPlanningUnits(int& puno, vector<spustuff>& pu, sfname& fnames);
 void readSparseMatrix(int &iSMSize, vector<spu> &SM, int puno, int spno, vector<spustuff> &pu,
-                      vector<binsearch> &PULookup,vector<binsearch> &SPLookup,
+                      map<int,int> &PULookup,map<int,int> &SPLookup,
                       sfname& fnames);
 void readSparseMatrixSpOrder(int &iSMSize, vector<spusporder> &SM, int puno, int spno,
-                             vector<binsearch> &PULookup,vector<binsearch> &SPLookup, vector<sspecies> &spec,
+                             map<int,int> &PULookup,map<int,int> &SPLookup, vector<sspecies> &spec,
                              sfname &fnames);
 int readSpecies(int &spno, vector<sspecies>& spec, sfname& fnames);
 int readSpeciesBlockDefinition(int& gspno, vector<sgenspec>& gspec, sfname& fnames);
@@ -375,8 +370,8 @@ void createSolutionsMatrix(int puno,vector<spustuff> &pu, string savename_ism,in
 void createTraceFile(void);
 void displayStartupMessage(void);
 void writeAsymmetricConnectionFile(int puno, vector<sconnections> connections, vector<spustuff> pu, sfname fnames);
-void writeBinarySearchArrays(string sName,sfname &fnames, int puno, int spno, vector<binsearch> &PULookup,
-                             vector<binsearch> &SPLookup);
+void writeBinarySearchArrays(string sName,sfname &fnames, int puno, int spno, map<int,int> &PULookup,
+                             map<int,int> &SPLookup);
 void writePenalty(int spno, vector<sspecies>& spec, string savename,int iOutputType);
 void writePenaltyPlanningUnits(int puno, vector<spustuff> &pu, vector<int> &Rtemp, string savename,int iOutputType);
 void writePu(int puno, vector<spustuff>& pu, string savename);

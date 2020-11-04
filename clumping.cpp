@@ -1430,38 +1430,38 @@ namespace marxan {
       }
       else
       {
-         for(sneighbour& p: connections[ipu].first) // treatment for symmetric connectivity
+         for (sneighbour &p : connections[ipu].first) // treatment for symmetric connectivity
          {
             if (fOptimiseConnectivityIn == 1)
-            {  // optimise for "Connectivity In"
-                  if (R[p.nbr] == 1 || R[p.nbr] == 2)
-                  {
-                     rDelta = imode*p.cost;
-                     fcost += rDelta;
-                  }
-                  else
-                  {
-                     rDelta = imode*imode2*p.cost*-1;
-                     fcost += rDelta;
-                  }
+            { // optimise for "Connectivity In"
+               if (R[p.nbr] == 1 || R[p.nbr] == 2)
+               {
+                  rDelta = imode * p.cost;
+                  fcost += rDelta;
+               }
+               else
+               {
+                  rDelta = imode * imode2 * p.cost * -1;
+                  fcost += rDelta;
+               }
             }
             else
-            {   // optimise for "Connectivity Edge"
-                  if (R[p.nbr] == 1 || R[p.nbr] == 2)
-                  {
-                     rDelta = imode*imode2*p.cost*-1;
-                     fcost += rDelta;
-                  }
-                  else
-                  {
-                     rDelta = imode*p.cost;
-                     fcost += rDelta;
-                  }
+            { // optimise for "Connectivity Edge"
+               if (R[p.nbr] == 1 || R[p.nbr] == 2)
+               {
+                  rDelta = imode * imode2 * p.cost * -1;
+                  fcost += rDelta;
+               }
+               else
+               {
+                  rDelta = imode * p.cost;
+                  fcost += rDelta;
+               }
             }
          }
       }
 
-      #ifdef DEBUG_CONNECTIONCOST2
+#ifdef DEBUG_CONNECTIONCOST2
       if (asymmetricconnectivity)
          if (imode2)
          {

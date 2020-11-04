@@ -241,9 +241,10 @@ void writeProb2DDetailDebugTable(string savename,int puno,vector<spustuff> pu,ve
 }
 
 // debug output for binary search arrays
-void writeBinarySearchArrays(string sName,sfname &fnames, int puno, int spno, vector<binsearch> &PULookup,
-                             vector<binsearch> &SPLookup) 
+void writeBinarySearchArrays(string sName,sfname &fnames, int puno, int spno, map<int,int> &PULookup,
+                             map<int,int> &SPLookup) 
 {
+   /*
    FILE *pufp, *specfp;
    int i;
    string writename = fnames.inputdir + sName + "pu.csv";
@@ -268,7 +269,9 @@ void writeBinarySearchArrays(string sName,sfname &fnames, int puno, int spno, ve
       fprintf(specfp,"%d,%d\n",SPLookup[i].name,SPLookup[i].index);
    }
    fclose(specfp);
+   */
 }
+
 
 // display startup message: the program title and authors
 void displayStartupMessage(void)
@@ -1381,10 +1384,12 @@ void copyFile(string sInputFile, string sOutputFile)
    }
 }
 
-// display statistics for a configuration of planning unit
+// Display statistics for a configuration of planning unit
+// This returns a full formatted string that can be printed
 void displayValueForPUs(int puno, int spno, vector<int>& R, scost& reserve,
                         vector<sspecies>& spec, double misslevel)
 {
+   string displayValue;
    int i, isp = 0;
    double connectiontemp = 0, shortfall, rMPM;
 
@@ -1408,7 +1413,7 @@ void displayValueForPUs(int puno, int spno, vector<int>& R, scost& reserve,
 
    if (isinf(reserve.total) != 0)
    {
-      printf("\ndisplayValueForPUs infinite reserve.total >%g<\n",reserve.total);
+      displayValue += "\ndisplayValueForPUs infinite reserve.total >" + to_string(reserve.total) + "<\n";
    }
    if (isinf(reserve.penalty) != 0)
    {

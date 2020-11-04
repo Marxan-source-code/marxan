@@ -432,7 +432,7 @@ int readSpeciesBlockDefinition(int& gspno, vector<sgenspec>& gspec, sfname& fnam
 // read connections file: read bound.dat (boundaries) or connections.dat (connections)
 // boundaries are a subset of asymmetric connections
 int readConnections(int& puno, vector<sconnections>& connections, vector<spustuff>& pu,
-                    vector<binsearch>& PULookup, sfname& fnames)
+                    map<int,int>& PULookup, sfname& fnames)
 {
     FILE *fp;
     int id1,id2;
@@ -558,7 +558,7 @@ int readConnections(int& puno, vector<sconnections>& connections, vector<spustuf
 
 // functions for Matt's Big O notation optimisation
 void readSparseMatrix(int &iSMSize, vector<spu> &SM, int puno, int spno, vector<spustuff> &pu,
-                      vector<binsearch> &PULookup,vector<binsearch> &SPLookup,
+                      map<int,int> &PULookup,map<int,int> &SPLookup,
                       sfname& fnames) {
     
     FILE *fp;
@@ -650,7 +650,7 @@ void readSparseMatrix(int &iSMSize, vector<spu> &SM, int puno, int spno, vector<
                      iInternalSMSize,iBigMatrixSize,rDensity);
 } // readSparseMatrix
 
-void readPenalties(vector<sspecies> &spec,int spno,sfname& fnames,vector<binsearch> &SPLookup) {
+void readPenalties(vector<sspecies> &spec,int spno,sfname& fnames,map<int,int> &SPLookup) {
     FILE *fp;
     string readname;
     char *sVarVal,sLine[500];
@@ -686,7 +686,7 @@ void readPenalties(vector<sspecies> &spec,int spno,sfname& fnames,vector<binsear
 
 // read the planning unit versus species sparse matrix: ordered by species
 void readSparseMatrixSpOrder(int &iSMSize, vector<spusporder> &SM, int puno, int spno,
-                             vector<binsearch> &PULookup,vector<binsearch> &SPLookup, vector<sspecies> &spec,
+                             map<int,int> &PULookup,map<int,int> &SPLookup, vector<sspecies> &spec,
                              sfname &fnames) {
     FILE *fp;
     string readname;

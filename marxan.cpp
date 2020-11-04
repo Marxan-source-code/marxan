@@ -66,7 +66,7 @@ sfname fnames;
 vector<spu> SMGlobal;
 vector<spusporder> SMsporder;
 vector<spustuff> pu;
-vector<binsearch> PULookup, SPLookup;
+map<int, int> PULookup, SPLookup;
 vector<sspecies> specGlobal, bestSpec;
 mt19937 rngEngine;
 srunoptions runoptions;
@@ -94,6 +94,7 @@ void executeRunLoop(int iSparseMatrixFileLength, long int repeats,int puno,int s
                     string savename,double costthresh,double tpf1,double tpf2,int heurotype,int runopts,
                     int itimptype,vector<int> sumsoln)
 {
+    bool multithreaded = true; // TODO make configurable.
     bestR.resize(puno);
     bestScore = DBL_MAX;
     bestSpec.resize(spno); // best species config
@@ -108,7 +109,7 @@ void executeRunLoop(int iSparseMatrixFileLength, long int repeats,int puno,int s
 
     // for each repeat run
     printf("OMP MAX THREADS %d\n", omp_get_max_threads());
-    //#pragma omp parallel for num_threads(1)
+    #pragma omp parallel for
     for (int i = 1; i <= repeats; i++)
     {
         // Create run specific structures
@@ -119,11 +120,9 @@ void executeRunLoop(int iSparseMatrixFileLength, long int repeats,int puno,int s
         scost change = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
         vector<int> R(puno);
-        vector<sspecies> spec = specGlobal;
+        vector<sspecies> spec = specGlobal; // make local copy of original spec
 
         appendTraceFile("start run loop run %ld\n", i);
-        displayProgress1("\n");
-        displayProgress("Run %ld ", i);
 
         if (runoptions.ThermalAnnealingOn)
         {
@@ -131,11 +130,8 @@ void executeRunLoop(int iSparseMatrixFileLength, long int repeats,int puno,int s
             if (anneal.type == 2)
             {
                 appendTraceFile("before initialiseConnollyAnnealing run %i\n", i);
-                printf("Init connolly %ld\n", i);
 
                 initialiseConnollyAnnealing(puno, spno, pu, connections, spec, SMGlobal, cm, anneal, aggexist, R, prop, clumptype, i, thread);
-
-                printf("Finish connolly %ld\n", i);
 
                 appendTraceFile("after initialiseConnollyAnnealing run %i\n", i);
             }
@@ -154,13 +150,11 @@ void executeRunLoop(int iSparseMatrixFileLength, long int repeats,int puno,int s
 
             anneal.temp = anneal.Tinit;
         }
-        printf("Anneal global %i %i %i %f %f %f %f %d %f %f %f\n", anneal.Titns, anneal.iterations, anneal.Tlen, anneal.Tinit, anneal.Tcool, anneal.temp, anneal.tempold, anneal.type, anneal.sigma, anneal.sum, anneal.sum2);
 
         appendTraceFile("before computeReserveValue run %i\n", i);
 
-        displayProgress1("  Creating the initial reserve \n");
-        initialiseReserve(puno, prop, R); // Create Initial Reserve
-        addReserve(puno, pu, R);
+        //initialiseReserve(puno, prop, R); // Create Initial Reserve
+        //addReserve(puno, pu, R);
 
         if (aggexist)
             ClearClumps(spno, spec, pu, SMGlobal);
@@ -276,17 +270,22 @@ void executeRunLoop(int iSparseMatrixFileLength, long int repeats,int puno,int s
         computeReserveValue(puno, spno, R, pu, connections, SMGlobal, cm, spec, aggexist, change, clumptype, thread);
 
         // remember the bestScore and bestRun
-        omp_set_lock(&bestR_write_lock);
         if (change.total < bestScore)
         {
-            // this is best run so far
-            bestScore = change.total;
-            bestRun = i;
-            // store bestR
-            bestR = R;
+            omp_set_lock(&bestR_write_lock);
+            // After locking, do another check in case bestScore has changed
+            if (change.total < bestScore) {
+                // this is best run so far
+                bestScore = change.total;
+                bestRun = i;
+                // store bestR
+                bestR = R;
+
+                displayProgress1("  New best found: ");
+                displayValueForPUs(puno, spno, R, change, spec, misslevel);
+            }
+            omp_unset_lock(&bestR_write_lock);
         }
-        printf("run: %ld best run: %u score: %f best score: %f\n", i, bestRun, change.total, bestScore);
-        omp_unset_lock(&bestR_write_lock);
 
         if (fnames.savesolutionsmatrix)
         {
@@ -564,7 +563,7 @@ int executeMarxan(string sInputFileName)
     else
     {
         // we are computing penalties
-        if (!fnames.matrixspordername.empty())
+        if (fnames.matrixspordername.empty())
         {
             appendTraceFile("before CalcPenalties\n");
 
@@ -1821,7 +1820,6 @@ double computeSpeciesPlanningUnitPenalty(int ipu,int isp,vector<sspecies> &spec,
 
 // determines if the change value for changing a single planning unit status is good
 // does the change stochastically fall below the current acceptance probability?
-// TODO - move out or supply a dist
 int isGoodChange(scost& change,double temp, uniform_real_distribution<double>& float_range)
 {
     return (exp(-change.total/temp)> float_range(rngEngine)) ? 1 : 0;
@@ -2306,7 +2304,7 @@ void reduceTemperature(sanneal& anneal)
 
 // run simulated thermal annealing selection algorithm
 void thermalAnnealing(int spno, int puno, vector<sconnections> &connections,vector<int> &R, double cm,
-                      vector<sspecies> spec, vector<spustuff> &pu, vector<spu> &SM, scost &reserve,
+                      vector<sspecies>& spec, vector<spustuff> &pu, vector<spu> &SM, scost &reserve,
                       long int repeats,int irun,string savename,double misslevel,
                       int aggexist,double costthresh, double tpf1, double tpf2,int clumptype, sanneal &anneal, int thread)
 {
@@ -2384,10 +2382,11 @@ void thermalAnnealing(int spno, int puno, vector<sconnections> &connections,vect
 
     for (itime = 1;itime<=anneal.iterations;itime++)
     {
-        //printf("irun %d ipu %ld itime %d spno %d puno %d\n", irun, ipu, itime, spno, puno);
-        
-        // Choose random pu
+        // Choose random pu. If PU is set > 1 then that pu is fixed and cannot be changed.
         ipu = int_range(rngEngine);
+        while (R[ipu] > 1) {
+            ipu = int_range(rngEngine);
+        }
 
         itemp = R[ipu] == 1 ? -1 : 1;  /* Add or Remove PU ? */
         computeChangeScore(itime,ipu,spno,puno,pu,connections,spec,SM,R,cm,itemp, change,reserve,
@@ -2515,7 +2514,7 @@ void thermalAnnealing(int spno, int puno, vector<sconnections> &connections,vect
 } // thermalAnnealing
 
 void quantumAnnealing(int spno, int puno, vector<sconnections> &connections,vector<int> &R, double cm,
-                      vector<sspecies> spec, vector<spustuff> &pu, vector<spu> &SM, scost &change, scost &reserve,
+                      vector<sspecies>& spec, vector<spustuff> &pu, vector<spu> &SM, scost &change, scost &reserve,
                       long int repeats,int irun,string savename,double misslevel,
                       int aggexist,double costthresh, double tpf1, double tpf2,int clumptype, sanneal &anneal, int thread)
 {
@@ -2732,129 +2731,41 @@ void quantumAnnealing(int spno, int puno, vector<sconnections> &connections,vect
     appendTraceFile("quantumAnnealing end iterations %ld tests %li\n",iIterations,iTests);
 } // quantumAnnealing
 
-// Big O notation: optimisation functions by Matt Watts
-// TODO - looks like a heap, maybe remove and use an actual heap.
-// helps to do a heap sort
-void siftDownBinarySearch(vector<binsearch>& numbers, int root, int bottom, int array_size)
-{
-    int done, maxChild;
-    binsearch temp;
-
-    done = 0;
-    while ((root*2 <= bottom) && (!done))
-    {
-        if (root*2 < array_size)
-        {
-            if (root*2 == bottom)
-            {
-                maxChild = root * 2;
-            } else {
-                if (numbers[root * 2].name > numbers[root * 2 + 1].name)
-                {
-                    maxChild = root * 2;
-                } else {
-                    maxChild = root * 2 + 1;
-                }
-            }
-
-            if (numbers[root].name < numbers[maxChild].name)
-            {
-                temp = numbers[root];
-                numbers[root] = numbers[maxChild];
-                numbers[maxChild] = temp;
-                root = maxChild;
-            } else {
-                done = 1;
-            }
-        } else {
-            done = 1;
-        }
-    }
-}
-
-// sort a datastructure with heap sort
-void heapSortBinarySearch(vector<binsearch>& numbers, int array_size)
-{
-    int i;
-    binsearch temp;
-
-    for (i = (array_size / 2)-1; i >= 0; i--)
-        siftDownBinarySearch(numbers, i, array_size, array_size);
-
-    for (i = array_size-1; i >= 1; i--)
-    {
-        temp = numbers[0];
-        numbers[0] = numbers[i];
-        numbers[i] = temp;
-        siftDownBinarySearch(numbers, 0, i-1, array_size);
-    }
-}
-
 // compute binary search arrays for looking up pu's and species fast
 // TODO adbai refactor
 void computeBinarySearch(int puno, int spno, vector<spustuff> &pu, vector<sspecies> &spec,
-                         vector<binsearch> &PULookup, vector<binsearch> &SPLookup)
+                         map<int,int> &PULookup, map<int,int> &SPLookup)
 {
     int i;
 
     /* create the lookup arrays for planning unit and species names */
-    PULookup.resize(puno);
-    SPLookup.resize(spno);
-
     /* populate the lookup arrays with planning unit and species names*/
     for (i=0;i<puno;i++)
     {
-        PULookup[i].name = pu[i].id;
-        PULookup[i].index = i;
+        PULookup[pu[i].id] = i;
     }
     for (i=0;i<spno;i++)
     {
-        SPLookup[i].name = spec[i].name;
-        SPLookup[i].index = i;
+        SPLookup[spec[i].name] = i;
     }
 
-    if (verbosity > 3)
-        writeBinarySearchArrays("before",fnames,puno,spno,PULookup,SPLookup);
+    //if (verbosity > 3)
+    //    writeBinarySearchArrays("before",fnames,puno,spno,PULookup,SPLookup);
 
-    /* sort the lookup arrays by name */
-    heapSortBinarySearch(PULookup,puno);
-    heapSortBinarySearch(SPLookup,spno);
-
-    if (verbosity > 3)
-        writeBinarySearchArrays("after",fnames,puno,spno,PULookup,SPLookup);
+    //if (verbosity > 3)
+    //    writeBinarySearchArrays("after",fnames,puno,spno,PULookup,SPLookup);
 }
 
 // use binary search to find a PU index given it's id
-int binarySearchPuIndex(int id,int name, vector<binsearch>& PULookup)
+int binarySearchPuIndex(int id,int name, map<int,int>& PULookup)
 {
-    /* use a binary search to find the index of planning unit "name" */
-    int iTop, iBottom, iCentre, iCount;
-
-    iTop = 0;
-    iBottom = id-1;
-    iCentre = iTop + floor(id / 2);
-
-    while ((iTop <= iBottom) && (PULookup[iCentre].name != name))
-    {
-        if (name < PULookup[iCentre].name)
-        {
-            iBottom = iCentre - 1;
-            iCount = iBottom - iTop + 1;
-            iCentre = iTop + floor(iCount / 2);
-        } else {
-            iTop = iCentre + 1;
-            iCount = iBottom - iTop + 1;
-            iCentre = iTop + floor(iCount / 2);
-        }
-    }
-    return(PULookup[iCentre].index);
+    return(PULookup[name]);
 }
 
 // use binary search to find a species index given it's id
-int binarySearchSpecIndex(int spno,int name, vector<binsearch>& SPLookup)
+int binarySearchSpecIndex(int spno,int name, map<int,int>& SPLookup)
 {
-    // same function just different name
-    return binarySearchPuIndex(spno, name, SPLookup);
+    return(SPLookup[name]);
 }
 
 // marxan is running as a secondary process and has finished. create a sync file so the calling software will know marxan has finished creating the output files
@@ -2875,7 +2786,7 @@ void applyUserPenalties(vector<sspecies> &spec,int spno)
 
 // TODO adbai - consider refactor
 // helps to do a heap sort
-void siftDownIterativeImprovement(vector<iimp> numbers, int root, int bottom, int array_size)
+void siftDownIterativeImprovement(vector<iimp>& numbers, int root, int bottom, int array_size)
 {
     int done, maxChild;
     iimp temp;
@@ -2911,7 +2822,7 @@ void siftDownIterativeImprovement(vector<iimp> numbers, int root, int bottom, in
 }
 
 // sort a datastructure with heap sort
-void heapSortIterativeImprovement(vector<iimp> numbers, int array_size)
+void heapSortIterativeImprovement(vector<iimp>& numbers, int array_size)
 {
     int i;
     iimp temp;
