@@ -417,6 +417,9 @@ int SepDealList(vector<int> &head, vector<sseplist> &Dist, vector<spustuff> &pu,
 double SepPenalty(int ival,int itarget);
 void SetSpeciesClumps(int puno,vector<int> &R,vector<sspecies> &spec,vector<spustuff> &pu,
                      vector<spu> &SM,vector<sconnections> &connections,int clumptype, int thread);
+void SpeciesAmounts(int spno,int puno, vector<sspecies>& spec, vector<spustuff>& pu, vector<spu>& SM,
+                    vector<int>& R,int clumptype);
+void SpeciesAmounts4(int isp,vector<sspecies> &spec,int clumptype);
 
 void Heuristics(int spno,int puno,vector<spustuff> &pu,vector<sconnections> &connections,
         vector<int> &R, double cm, vector<sspecies> &spec, vector<spu> &SM, scost &reserve,

@@ -153,8 +153,9 @@ void executeRunLoop(int iSparseMatrixFileLength, long int repeats,int puno,int s
 
         appendTraceFile("before computeReserveValue run %i\n", i);
 
-        //initialiseReserve(puno, prop, R); // Create Initial Reserve
-        //addReserve(puno, pu, R);
+        initialiseReserve(puno, prop, R); // Create Initial Reserve
+        addReserve(puno, pu, R);
+        SpeciesAmounts(spno,puno,spec,pu,SMGlobal,R,clumptype); // Re-added this from v2.4 because spec amounts need to be updated
 
         if (aggexist)
             ClearClumps(spno, spec, pu, SMGlobal);
@@ -783,6 +784,39 @@ void computeSpecProp(int spno, vector<sspecies> &spec, int puno, vector<spustuff
         }
     }
 }
+
+void SpeciesAmounts(int spno,int puno, vector<sspecies>& spec, vector<spustuff>& pu, vector<spu>& SM,
+                    vector<int>& R,int clumptype)
+{
+    int i, ism, isp, ipu;
+
+    for (isp = 0; isp < spno; isp++)
+    {
+        spec[isp].amount = 0;
+        spec[isp].occurrence = 0;
+        if (spec[isp].target2)
+            SpeciesAmounts4(isp, spec, clumptype);
+
+        spec[isp].expected1D = 0;
+        spec[isp].expected2D = 0;
+        spec[isp].variance1D = 0;
+        spec[isp].variance2D = 0;
+    }
+
+    for (ipu = 0; ipu < puno; ipu++)
+        if (pu[ipu].richness)
+            if (R[ipu] == 1 || R[ipu] == 2)
+                for (i = 0; i < pu[ipu].richness; i++)
+                {
+                    ism = pu[ipu].offset + i;
+                    isp = SM[ism].spindex;
+                    if (spec[isp].target2 == 0)
+                    {
+                        spec[isp].amount += SM[ism].amount;
+                        spec[isp].occurrence++;
+                    }
+                }
+} /*** Species Amounts ***/
 
 // apply settings from the block defintion file for species
 void setBlockDefinitions(int gspno,int spno,int puno, vector<sgenspec> &gspec, vector<sspecies> &spec, vector<spustuff> &PU, vector<spu> &SM)
