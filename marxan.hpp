@@ -4,6 +4,7 @@
 #include <cstdarg>
 #include <map>
 #include <random>
+#include <sstream>
 #include <string>
 #include <vector>
 
@@ -281,7 +282,7 @@ void doChange(int ipu,int puno,vector<int> &R, scost &reserve, scost &change,
               int imode,int clumptype, int thread);
 
 int computeRepresentationMISSLEVEL(int spno,vector<sspecies> &spec,double misslevel,double &shortfall,double &rMinimumProportionMet);
-void displayValueForPUs(int puno, int spno,vector<int> &R, scost &reserve,
+stringstream displayValueForPUs(int puno, int spno,vector<int> &R, scost &reserve,
                         vector<sspecies> &spec,double misslevel);
 void TimePassed(void);
 
@@ -364,6 +365,8 @@ void displayShutdownMessage(void);
 void displayUsage(string programName);
 
 void appendSolutionsMatrix(int iRun,int puno, vector<int> R, string savename,int iOutputType, int iIncludeHeaders);
+string computeSummary(int puno,int spno, vector<int> R, vector<sspecies> spec, scost reserve,
+                   int itn, double misslevel, int imode);
 void computeTotalAreas(int puno,int spno, vector<spustuff> pu, vector<sspecies> spec, vector<spu> SM);
 void createLogFile(int my_savelog, string my_savelogname);
 void createSolutionsMatrix(int puno,vector<spustuff> &pu, string savename_ism,int iOutputType,int iIncludeHeaders);
@@ -386,6 +389,7 @@ void writeSecondarySyncFileRun(int iSyncRun);
 void writeSolution(int puno, vector<int>& R, vector<spustuff>& pu, string savename,int imode, sfname& fnames);
 void writeSpec(int spno, vector<sspecies>& spec, string savename);
 void writeSpecies(int spno, vector<sspecies> spec, string savename,int imode,double misslevel);
+void writeSummary(string savename, vector<string> summaries, int imode);
 void writeSumSoln(int puno, vector<int> sumsoln, vector<spustuff> pu, string savename, int imode);
 void writeTotalAreas(int puno,int spno, vector<spustuff> pu, vector<sspecies> spec, vector<spu> SM, string savename,int iOutputType);
 void writeWeightedConnectivityFile(sfname& fnames);

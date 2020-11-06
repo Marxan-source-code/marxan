@@ -35,20 +35,20 @@ map<int, string> heurotypeMap = {
 };
 
 // Helper function to return delimiter and file pointer for a file.
-pair<string, FILE*> GetFileAndDelimiter(string filename, int delimiterMode) {
+pair<char, FILE*> GetFileAndDelimiter(string filename, int delimiterMode) {
    FILE *fp;
-   string sDelimiter;
+   char sDelimiter;
 
    fp = fopen(filename.c_str(),"w");
    if (!fp)
       displayErrorMessage("Cannot save output to %s \n",filename);
 
    if (delimiterMode > 1)
-      sDelimiter = ",";
+      sDelimiter = ',';
    else
-      sDelimiter = "\t";
+      sDelimiter = '\t';
 
-   return pair<string, FILE*>(sDelimiter, fp);
+   return pair<char, FILE*>(sDelimiter, fp);
 }
 
 // debug output for probability 1D
@@ -239,39 +239,6 @@ void writeProb2DDetailDebugTable(string savename,int puno,vector<spustuff> pu,ve
 
    fclose(fp);
 }
-
-// debug output for binary search arrays
-void writeBinarySearchArrays(string sName,sfname &fnames, int puno, int spno, map<int,int> &PULookup,
-                             map<int,int> &SPLookup) 
-{
-   /*
-   FILE *pufp, *specfp;
-   int i;
-   string writename = fnames.inputdir + sName + "pu.csv";
-
-   if ((pufp = fopen(writename.c_str(),"w"))==NULL)
-      displayErrorMessage("cannot create BinarySearchArrays pu file %s\n",writename);
-
-   fputs("name,index\n",pufp);
-   for (i=0;i<puno;i++)
-   {
-      fprintf(pufp,"%d,%d\n",PULookup[i].name,PULookup[i].index);
-   }
-   fclose(pufp);
-
-   writename = fnames.inputdir + sName + "spec.csv";
-   if ((specfp = fopen(writename.c_str(),"w"))==NULL)
-      displayErrorMessage("cannot create BinarySearchArrays spec file %s\n",writename);
-
-   fputs("name,index\n",specfp);
-   for (i=0;i<spno;i++)
-   {
-      fprintf(specfp,"%d,%d\n",SPLookup[i].name,SPLookup[i].index);
-   }
-   fclose(specfp);
-   */
-}
-
 
 // display startup message: the program title and authors
 void displayStartupMessage(void)
@@ -604,30 +571,36 @@ void writeSparseMatrix(int iSMno,int puno, vector<spustuff> PU, vector<sspecies>
 }
 
 // write a summary file
-//  imode = 1   Output Summary Stats only
-//  imode = 2   Output Everything
-// TODO ADBAI make threadsafe
-void writeSummary(int puno,int spno, vector<int> R, vector<sspecies> spec, scost reserve,
-                   int itn, string savename,double misslevel, int imode)
+void writeSummary(string savename, vector<string> summaries, int imode)
 {
-   FILE *fp;  // Imode = 1, REST output, Imode = 2, Arcview output
+   pair<char, FILE*> fileInfo = GetFileAndDelimiter(savename, imode);
+   FILE *fp = fileInfo.second; // Imode = 1, REST output, Imode = 2, Arcview output
+   char sDelimiter = fileInfo.first;
+
+   fprintf(fp,"\"Run_Number\"%c\"Score\"%c\"Cost\"%c\"Planning_Units\"%c\"Connectivity\"%c\"Connectivity_Total\"%c\"Connectivity_In\"%c\"Connectivity_Edge\"%c\"Connectivity_Out\"%c\"Connectivity_In_Fraction\"%c\"Penalty\"",
+               sDelimiter,sDelimiter,sDelimiter,sDelimiter,sDelimiter,sDelimiter,sDelimiter,sDelimiter,sDelimiter,sDelimiter);
+   if (fProb1D == 1)
+      fprintf(fp,"%c\"Probability1D\"",sDelimiter);
+   if (fProb2D == 1)
+      fprintf(fp,"%c\"Probability2D\"",sDelimiter);
+   fprintf(fp,"%c\"Shortfall\"%c\"Missing_Values\"%c\"MPM\"\n",sDelimiter,sDelimiter,sDelimiter);
+   
+   for (string& line: summaries) {
+      fprintf(fp, line.c_str());
+   }
+
+   fclose(fp);
+} // writeSummary
+
+// caculate and format summary text for 
+string computeSummary(int puno,int spno, vector<int> R, vector<sspecies> spec, scost reserve,
+                   int itn, double misslevel, int imode)
+{
+   stringstream ss;
+   char del = imode > 1 ? ',' : '\t';
    int ino=0,isp=0;
    double shortfall,connectiontemp,rMPM, rConnectivityFraction,
          rConnectivityTotal = 0,rConnectivityIn = 0,rConnectivityEdge = 0,rConnectivityOut = 0;
-   string sDelimiter;
-
-   if (itn==1)
-      fp = fopen(savename.c_str(),"w");
-   else
-      fp = fopen(savename.c_str(),"a");
-
-   if (imode > 1)
-      sDelimiter = ",";
-   else
-      sDelimiter = "\t";
-
-   if (!fp)
-      displayErrorMessage("Cannot save output to %s \n",savename);
 
    // Ouput the Summary Statistics
    for (int i=0;i<=puno-1;i++)
@@ -637,7 +610,7 @@ void writeSummary(int puno,int spno, vector<int> R, vector<sspecies> spec, scost
    isp = computeRepresentationMISSLEVEL(spno,spec,misslevel,shortfall,rMPM);
 
    #ifdef DEBUG_COUNTMISSING
-   appendTraceFile("writeSummary shortfall %g\n",shortfall);
+   appendTraceFile("computeSummary shortfall %g\n",shortfall);
    #endif
 
    computeConnectivityIndices(rConnectivityTotal,rConnectivityIn,rConnectivityEdge,rConnectivityOut,
@@ -655,30 +628,19 @@ void writeSummary(int puno,int spno, vector<int> R, vector<sspecies> spec, scost
          connectiontemp += ConnectionCost2(i,connections,R,1,0,1);
       } // Find True (non modified) connection
    }
-   if (itn==1)
-   {
-      fprintf(fp,"\"Run_Number\"%s\"Score\"%s\"Cost\"%s\"Planning_Units\"%s\"Connectivity\"%s\"Connectivity_Total\"%s\"Connectivity_In\"%s\"Connectivity_Edge\"%s\"Connectivity_Out\"%s\"Connectivity_In_Fraction\"%s\"Penalty\"",
-                  sDelimiter,sDelimiter,sDelimiter,sDelimiter,sDelimiter,sDelimiter,sDelimiter,sDelimiter,sDelimiter,sDelimiter);
-      if (fProb1D == 1)
-         fprintf(fp,"%s\"Probability1D\"",sDelimiter);
-      if (fProb2D == 1)
-         fprintf(fp,"%s\"Probability2D\"",sDelimiter);
-      fprintf(fp,"%s\"Shortfall\"%s\"Missing_Values\"%s\"MPM\"\n",sDelimiter,sDelimiter,sDelimiter);
-   }
-   fprintf(fp,"%i%s%f%s%f%s%i%s%f%s%f%s%f%s%f%s%f%s%f%s%f",
-            itn,sDelimiter,reserve.total,sDelimiter,reserve.cost,sDelimiter,ino,sDelimiter,
-            connectiontemp,sDelimiter,rConnectivityTotal,sDelimiter,rConnectivityIn,sDelimiter,rConnectivityEdge,sDelimiter,
-            rConnectivityOut,sDelimiter,rConnectivityFraction,sDelimiter,reserve.penalty);
+
+   ss << itn << del << reserve.total << del << reserve.cost << del << ino << del << 
+      connectiontemp << del << rConnectivityTotal << del << rConnectivityIn << del << rConnectivityEdge << del << 
+      rConnectivityOut << del << rConnectivityFraction << del << reserve.penalty;
+
    if (fProb1D == 1)
-      fprintf(fp,"%s%f",sDelimiter,reserve.probability1D);
+      ss << del << reserve.probability1D;
    if (fProb2D == 1)
-      fprintf(fp,"%s%f",sDelimiter,reserve.probability2D);
-   fprintf(fp,"%s%f%s%i%s%f\n",sDelimiter,shortfall,sDelimiter,isp,sDelimiter,rMPM);
-   fclose(fp);
+      ss << del << reserve.probability2D;
+   ss << del << shortfall << del << isp << del << rMPM << "\n";
 
-   return;
-} // writeSummary
-
+   return ss.str();
+} // computeSummary
 
 // write the contents of the spec data structure.
 // used to validate if the input spec file has been read as intended.
@@ -718,15 +680,15 @@ void writePu(int puno, vector<spustuff>& pu, string savename)
 // write the penalty calculated for each species
 void writePenalty(int spno, vector<sspecies>& spec, string savename,int iOutputType)
 {
-   pair<string, FILE*> fileInfo = GetFileAndDelimiter(savename, iOutputType);
+   pair<char, FILE*> fileInfo = GetFileAndDelimiter(savename, iOutputType);
    FILE *fp = fileInfo.second; // Imode = 1, REST output, Imode = 2, Arcview output
-   string sDelimiter = fileInfo.first;
+   char sDelimiter = fileInfo.first;
 
-   fprintf(fp,"spid%spenalty\n",sDelimiter);
+   fprintf(fp,"spid%cpenalty\n",sDelimiter);
 
    // Ouput the Summary Statistics
    for (int i=0;i<spno;i++)
-      fprintf(fp,"%i%s%g\n",spec[i].name,sDelimiter,spec[i].penalty);
+      fprintf(fp,"%i%c%g\n",spec[i].name,sDelimiter,spec[i].penalty);
 
    fclose(fp);
 }
@@ -734,15 +696,15 @@ void writePenalty(int spno, vector<sspecies>& spec, string savename,int iOutputT
 // write the set of planning units used to calculate penalty
 void writePenaltyPlanningUnits(int puno, vector<spustuff> &pu, vector<int> &Rtemp, string savename,int iOutputType)
 {
-   pair<string, FILE*> fileInfo = GetFileAndDelimiter(savename, iOutputType);
+   pair<char, FILE*> fileInfo = GetFileAndDelimiter(savename, iOutputType);
    FILE *fp = fileInfo.second; // Imode = 1, REST output, Imode = 2, Arcview output
-   string sDelimiter = fileInfo.first;
+   char sDelimiter = fileInfo.first;
 
-   fprintf(fp,"puid%sR\n",sDelimiter);
+   fprintf(fp,"puid%cR\n",sDelimiter);
 
    // Ouput the Summary Statistics
    for (int i=0;i<puno;i++)
-      fprintf(fp,"%i%s%i\n",pu[i].id,sDelimiter,Rtemp[i]);
+      fprintf(fp,"%i%c%i\n",pu[i].id,sDelimiter,Rtemp[i]);
 
    fclose(fp);
 }
@@ -750,16 +712,16 @@ void writePenaltyPlanningUnits(int puno, vector<spustuff> &pu, vector<int> &Rtem
 // create a solutions matrix file
 void createSolutionsMatrix(int puno,vector<spustuff> &pu, string savename_ism,int iOutputType,int iIncludeHeaders)
 {
-   pair<string, FILE*> fileInfo = GetFileAndDelimiter(savename_ism, iOutputType);
+   pair<char, FILE*> fileInfo = GetFileAndDelimiter(savename_ism, iOutputType);
    FILE *fp = fileInfo.second;
-   string sDelimiter = fileInfo.first;
+   char sDelimiter = fileInfo.first;
 
    if (iIncludeHeaders == 1)
    {
       fprintf(fp,"SolutionsMatrix");
 
       for (int i=(puno-1);i>(-1);i--)
-         fprintf(fp,"%sP%i",sDelimiter,pu[i].id);
+         fprintf(fp,"%cP%i",sDelimiter,pu[i].id);
 
       fprintf(fp,"\n");
    }
@@ -770,9 +732,9 @@ void createSolutionsMatrix(int puno,vector<spustuff> &pu, string savename_ism,in
 // append an entry to a solutions matrix file
 void appendSolutionsMatrix(int iRun,int puno, vector<int> R, string savename,int iOutputType, int iIncludeHeaders)
 {
-   pair<string, FILE*> fileInfo = GetFileAndDelimiter(savename, iOutputType);
+   pair<char, FILE*> fileInfo = GetFileAndDelimiter(savename, iOutputType);
    FILE *fp = fileInfo.second;
-   string sDelimiter = fileInfo.first;
+   char sDelimiter = fileInfo.first;
    int i, iStatus;
 
    if (iIncludeHeaders == 1)
@@ -783,7 +745,7 @@ void appendSolutionsMatrix(int iRun,int puno, vector<int> R, string savename,int
    for (i=(puno-1);i>(-1);i--)
    {
       if (i < (puno-1))
-         fprintf(fp,"%s",sDelimiter);
+         fprintf(fp,"%c",sDelimiter);
 
       iStatus = R[i];
       if (R[i] == 3)
@@ -799,7 +761,6 @@ void appendSolutionsMatrix(int iRun,int puno, vector<int> R, string savename,int
 }
 
 // create a solution file: output_r0001.csv, output_best.csv
-// TODO ADBAI - make threadsafe
 void writeSolution(int puno, vector<int>& R, vector<spustuff>& pu, string savename,int imode, sfname& fnames)
 {
    int i;
@@ -807,7 +768,7 @@ void writeSolution(int puno, vector<int>& R, vector<spustuff>& pu, string savena
 
    if (imode == 3)
    {
-      fprintf(fp,"PUID,%s\n",fnames.bestfieldname);
+      fprintf(fp,"PUID,%s\n",fnames.bestfieldname.c_str());
    } else {
       if (imode == 2)
          fprintf(fp,"\"planning_unit\",\"solution\"\n");
@@ -906,18 +867,18 @@ void writeSpecies(int spno, vector<sspecies> spec, string savename,int imode,dou
    string temp = "";
    double rMPM, rTestMPM, rRawP, rShortfallPenalty;
 
-   pair<string, FILE*> fileInfo = GetFileAndDelimiter(savename, imode);
+   pair<char, FILE*> fileInfo = GetFileAndDelimiter(savename, imode);
    FILE *fp = fileInfo.second; // Imode = 1, Tab Delimitted Text output, Imode = 2, Arcview output
-   string sDelimiter = fileInfo.first;
+   char sDelimiter = fileInfo.first;
 
-   fprintf(fp,"\"Conservation Feature\"%s\"Feature Name\"%s\"Target\"%s",sDelimiter,sDelimiter,sDelimiter);
-   fprintf(fp,"\"Amount Held\"%s\"Occurrence Target \"%s\"Occurrences Held\"%s",sDelimiter,sDelimiter,sDelimiter);
-   fprintf(fp,"\"Separation Target \"%s\"Separation Achieved\"%s\"Target Met\"%s\"MPM\"",sDelimiter,sDelimiter,sDelimiter);
+   fprintf(fp,"\"Conservation Feature\"%c\"Feature Name\"%c\"Target\"%c",sDelimiter,sDelimiter,sDelimiter);
+   fprintf(fp,"\"Amount Held\"%c\"Occurrence Target \"%c\"Occurrences Held\"%c",sDelimiter,sDelimiter,sDelimiter);
+   fprintf(fp,"\"Separation Target \"%c\"Separation Achieved\"%c\"Target Met\"%c\"MPM\"",sDelimiter,sDelimiter,sDelimiter);
 
    if (fProb1D == 1)
-      fprintf(fp,"%sptarget1d%sEA1D%sVIEA1D%sZ1D%srawP1D%sheavisideSF1D%sshortfallP1D%sP1D",sDelimiter,sDelimiter,sDelimiter,sDelimiter,sDelimiter,sDelimiter,sDelimiter,sDelimiter);
+      fprintf(fp,"%cptarget1d%cEA1D%cVIEA1D%cZ1D%crawP1D%cheavisideSF1D%cshortfallP1D%cP1D",sDelimiter,sDelimiter,sDelimiter,sDelimiter,sDelimiter,sDelimiter,sDelimiter,sDelimiter);
    if (fProb2D == 1)
-      fprintf(fp,"%sptarget2d%sEA2D%sVIEA2D%sZ2D%srawP2D%sheavisideSF2D%sshortfallP2D%sP2D",sDelimiter,sDelimiter,sDelimiter,sDelimiter,sDelimiter,sDelimiter,sDelimiter,sDelimiter);
+      fprintf(fp,"%cptarget2d%cEA2D%cVIEA2D%cZ2D%crawP2D%cheavisideSF2D%cshortfallP2D%cP2D",sDelimiter,sDelimiter,sDelimiter,sDelimiter,sDelimiter,sDelimiter,sDelimiter,sDelimiter);
 
    fprintf(fp,"\n");
 
@@ -925,10 +886,10 @@ void writeSpecies(int spno, vector<sspecies> spec, string savename,int imode,dou
    {
       rMPM = 1;
 
-      fprintf(fp,"%i%s%s%s",spec[isp].name,sDelimiter,spec[isp].sname,sDelimiter);
-      fprintf(fp,"%lf%s%lf%s%i%s%i%s",spec[isp].target,sDelimiter,spec[isp].amount,sDelimiter,
+      fprintf(fp,"%i%c%s%c",spec[isp].name,sDelimiter,spec[isp].sname.c_str(),sDelimiter);
+      fprintf(fp,"%lf%c%lf%c%i%c%i%c",spec[isp].target,sDelimiter,spec[isp].amount,sDelimiter,
                   spec[isp].targetocc,sDelimiter,spec[isp].occurrence,sDelimiter);
-      fprintf(fp,"%i%s%i",spec[isp].sepnum,sDelimiter,spec[isp].separation);
+      fprintf(fp,"%i%c%i",spec[isp].sepnum,sDelimiter,spec[isp].separation);
 
       if (spec[isp].target)
       {
@@ -956,8 +917,8 @@ void writeSpecies(int spno, vector<sspecies> spec, string savename,int imode,dou
          if (spec[isp].separation/spec[isp].sepnum < misslevel)
             temp = "no";
       }
-      fprintf(fp,"%s%s",sDelimiter,temp);
-      fprintf(fp,"%s%lf",sDelimiter,rMPM);
+      fprintf(fp,"%c%s",sDelimiter,temp.c_str());
+      fprintf(fp,"%c%lf",sDelimiter,rMPM);
 
       if (fProb1D == 1)
       {
@@ -982,7 +943,7 @@ void writeSpecies(int spno, vector<sspecies> spec, string savename,int imode,dou
                rShortfallPenalty = 0;
 
          // "ptarget1d EA1D VIEA1D Z1D rawP1D heavisideSF1D shortfallP1D P1D"
-         fprintf(fp,"%s%lf%s%lf%s%lf%s%lf%s%lf%s%i%s%lf%s%lf",
+         fprintf(fp,"%c%lf%c%lf%c%lf%c%lf%c%lf%c%i%c%lf%c%lf",
                      sDelimiter,spec[isp].ptarget1d,
                      sDelimiter,spec[isp].expected1D,
                      sDelimiter,spec[isp].variance1D,
@@ -1015,7 +976,7 @@ void writeSpecies(int spno, vector<sspecies> spec, string savename,int imode,dou
                rShortfallPenalty = 0;
 
          // "ptarget2d EA2D VIEA2D Z2D rawP1D heavisideSF1D shortfallP1D P2D"
-         fprintf(fp,"%s%lf%s%lf%s%lf%s%lf%s%lf%s%i%s%lf%s%lf",
+         fprintf(fp,"%c%lf%c%lf%c%lf%c%lf%c%lf%c%i%c%lf%c%lf",
                      sDelimiter,spec[isp].ptarget2d,
                      sDelimiter,spec[isp].expected2D,
                      sDelimiter,spec[isp].variance2D,
@@ -1035,9 +996,9 @@ void writeSpecies(int spno, vector<sspecies> spec, string savename,int imode,dou
 // write summed solution file output_ssoln.csv
 void writeSumSoln(int puno, vector<int> sumsoln, vector<spustuff> pu, string savename, int imode)
 {
-   pair<string, FILE*> fileInfo = GetFileAndDelimiter(savename, imode);
+   pair<char, FILE*> fileInfo = GetFileAndDelimiter(savename, imode);
    FILE *fp = fileInfo.second; // Imode = 1, REST output, Imode = 2, Arcview output
-   string sDelimiter = fileInfo.first;
+   char sDelimiter = fileInfo.first;
 
    if (imode > 1)
    {
@@ -1045,7 +1006,7 @@ void writeSumSoln(int puno, vector<int> sumsoln, vector<spustuff> pu, string sav
    }
 
    for (int i=0;i<puno;i++)
-      fprintf(fp,"%i%s%i\n",pu[i].id,sDelimiter,sumsoln[i]);
+      fprintf(fp,"%i%c%i\n",pu[i].id,sDelimiter,sumsoln[i]);
 
    fclose(fp);
 }
@@ -1053,14 +1014,14 @@ void writeSumSoln(int puno, vector<int> sumsoln, vector<spustuff> pu, string sav
 // write planning unit richness to a file output_richness.csv
 void writeRichness(int puno, vector<spustuff>& pu, string savename,int iOutputType)
 {
-   pair<string, FILE*> fileInfo = GetFileAndDelimiter(savename, iOutputType);
+   pair<char, FILE*> fileInfo = GetFileAndDelimiter(savename, iOutputType);
    FILE *fp = fileInfo.second;
-   string sDelimiter = fileInfo.first;
+   char sDelimiter = fileInfo.first;
 
-    fprintf(fp,"puid%srichness\n",sDelimiter);
+    fprintf(fp,"puid%crichness\n",sDelimiter);
 
     for (int i=0;i<puno;i++)
-        fprintf(fp,"%i%s%i\n",pu[i].id,sDelimiter,pu[i].richness);
+        fprintf(fp,"%i%c%i\n",pu[i].id,sDelimiter,pu[i].richness);
 
     fclose(fp);
 }
@@ -1126,9 +1087,9 @@ void writeTotalAreas(int puno,int spno, vector<spustuff> pu, vector<sspecies> sp
    vector<int> TotalOccurrences(spno, 0), TO_2(spno, 0), TO_3(spno, 0);
    vector<double> TotalAreas(spno, 0), TA_2(spno, 0), TA_3(spno, 0);
 
-   pair<string, FILE*> fileInfo = GetFileAndDelimiter(savename, iOutputType);
+   pair<char, FILE*> fileInfo = GetFileAndDelimiter(savename, iOutputType);
    FILE *TotalAreasFile = fileInfo.second;
-   string sDelimiter = fileInfo.first;
+   char sDelimiter = fileInfo.first;
 
    for (int i=0;i<spno;i++)
    {
@@ -1164,10 +1125,10 @@ void writeTotalAreas(int puno,int spno, vector<spustuff> pu, vector<sspecies> sp
       }
    }
 
-   fprintf(TotalAreasFile,"spname%stotalarea%sreservedarea%sexcludedarea%stargetarea%stotalocc%sreservedocc%sexcludedocc%stargetocc\n",
+   fprintf(TotalAreasFile,"spname%ctotalarea%creservedarea%cexcludedarea%ctargetarea%ctotalocc%creservedocc%cexcludedocc%ctargetocc\n",
                         sDelimiter,sDelimiter,sDelimiter,sDelimiter,sDelimiter,sDelimiter,sDelimiter,sDelimiter);
    for (int i=0;i<spno;i++)
-      fprintf(TotalAreasFile,"%i%s%g%s%g%s%g%s%g%s%i%s%i%s%i%s%i\n",
+      fprintf(TotalAreasFile,"%i%c%g%c%g%c%g%c%g%c%i%c%i%c%i%c%i\n",
                               spec[i].name,sDelimiter,TotalAreas[i],sDelimiter,TA_2[i],sDelimiter,TA_3[i],sDelimiter,
                               spec[i].target,sDelimiter,TotalOccurrences[i],sDelimiter,TO_2[i],sDelimiter,TO_3[i],sDelimiter,spec[i].targetocc);
    fclose(TotalAreasFile);
@@ -1386,10 +1347,10 @@ void copyFile(string sInputFile, string sOutputFile)
 
 // Display statistics for a configuration of planning unit
 // This returns a full formatted string that can be printed
-void displayValueForPUs(int puno, int spno, vector<int>& R, scost& reserve,
+stringstream displayValueForPUs(int puno, int spno, vector<int>& R, scost& reserve,
                         vector<sspecies>& spec, double misslevel)
 {
-   string displayValue;
+   stringstream displayValue;
    int i, isp = 0;
    double connectiontemp = 0, shortfall, rMPM;
 
@@ -1411,28 +1372,19 @@ void displayValueForPUs(int puno, int spno, vector<int>& R, scost& reserve,
    appendTraceFile("PrintResVal missing %i connectiontemp %g\n",isp,connectiontemp);
    #endif
 
-   if (isinf(reserve.total) != 0)
-   {
-      displayValue += "\ndisplayValueForPUs infinite reserve.total >" + to_string(reserve.total) + "<\n";
-   }
-   if (isinf(reserve.penalty) != 0)
-   {
-      printf("\ndisplayValueForPUs infinite reserve.penalty >%g<\n",reserve.penalty);
-   }
-
-   displayProgress("Value %.1f Cost %.1f PUs %i Connection %.1f Missing %i Shortfall %.2f Penalty %.1f MPM %.1f\n",
-                  reserve.total,reserve.cost,reserve.pus,connectiontemp,isp,shortfall,reserve.penalty,rMPM);
+   displayValue << "Value " << reserve.total << " Cost " << reserve.cost << " PUs " << reserve.pus << " Connection " << connectiontemp << " ";
+   displayValue << "Missing " << isp << " Shortfall " << shortfall << " Penalty " << reserve.penalty << " MPM "  << rMPM << "\n";
 
    if (fProb1D == 1)
-      displayProgress(" Probability1D %.1f",reserve.probability1D);
+      displayValue << " Probability1D " << reserve.probability1D << "\n";
    if (fProb2D == 1)
-      displayProgress(" Probability2D %.1f",reserve.probability2D);
-
-   displayProgress("\n");
+      displayValue << " Probability2D " << reserve.probability2D << "\n";
 
    #ifdef DEBUG_PRINTRESVALPROB
    appendTraceFile("displayValueForPUs end\n");
    #endif
+
+   return displayValue;
 }
 
 // display usage information for the marxan executable

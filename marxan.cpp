@@ -29,6 +29,7 @@
 #include <chrono>
 #include <ctime>
 #include <cfloat>
+#include <iostream>
 #include <omp.h>
 
 // load the required function definition modules
@@ -94,7 +95,8 @@ void executeRunLoop(int iSparseMatrixFileLength, long int repeats,int puno,int s
                     string savename,double costthresh,double tpf1,double tpf2,int heurotype,int runopts,
                     int itimptype,vector<int> sumsoln)
 {
-    bool multithreaded = true; // TODO make configurable.
+    string bestRunString;
+    vector<string> summaries(repeats); // stores individual summaries for each run
     bestR.resize(puno);
     bestScore = DBL_MAX;
     bestSpec.resize(spno); // best species config
@@ -108,13 +110,14 @@ void executeRunLoop(int iSparseMatrixFileLength, long int repeats,int puno,int s
     omp_init_lock(&solution_matrix_append_lock);
 
     // for each repeat run
-    printf("OMP MAX THREADS %d\n", omp_get_max_threads());
+    printf("Running multithreaded over number of threads: %d\n", omp_get_max_threads());
     #pragma omp parallel for
     for (int i = 1; i <= repeats; i++)
     {
         // Create run specific structures
         int thread = omp_get_thread_num();
         string tempname2;
+        stringstream runConsoleOutput; // stores the console message for the run. This is needed for more organized printing output due to multithreading.
         sanneal anneal = anneal_global;
         scost reserve = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
         scost change = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
@@ -145,9 +148,7 @@ void executeRunLoop(int iSparseMatrixFileLength, long int repeats,int puno,int s
                 appendTraceFile("after initialiseAdaptiveAnnealing run %i\n", i);
             }
 
-            displayProgress1("  Using Calculated Tinit = %.4f Tcool = %.8f \n",
-                             anneal.Tinit, anneal.Tcool);
-
+            if (verbosity > 1) runConsoleOutput << "Run " << i << ": Using Calculated Tinit = " << anneal.Tinit << " Tcool = " << anneal.Tcool << "\n";
             anneal.temp = anneal.Tinit;
         }
 
@@ -155,29 +156,17 @@ void executeRunLoop(int iSparseMatrixFileLength, long int repeats,int puno,int s
 
         initialiseReserve(puno, prop, R); // Create Initial Reserve
         addReserve(puno, pu, R);
-        SpeciesAmounts(spno,puno,spec,pu,SMGlobal,R,clumptype); // Re-added this from v2.4 because spec amounts need to be updated
+        SpeciesAmounts(spno,puno,spec,pu,SMGlobal,R,clumptype); // Re-added this from v2.4 because spec amounts need to be refreshed when initializing
 
         if (aggexist)
             ClearClumps(spno, spec, pu, SMGlobal);
-
-        if (isinf(reserve.total) != 0)
-        {
-            printf("\n executeRunLoop A infinite reserve.total >%g<\n", reserve.total);
-        }
-
-        computeReserveValue(puno, spno, R, pu, connections, SMGlobal, cm, spec, aggexist, reserve, clumptype, thread);
-
-        if (isinf(reserve.total) != 0)
-        {
-            printf("\n executeRunLoop B infinite reserve.total >%g<\n", reserve.total);
-        }
 
         appendTraceFile("after computeReserveValue run %i\n", i);
 
         if (verbosity > 1)
         {
-            displayProgress1("\n  Init:");
-            displayValueForPUs(puno, spno, R, reserve, spec, misslevel);
+            computeReserveValue(puno, spno, R, pu, connections, SMGlobal, cm, spec, aggexist, reserve, clumptype, thread);
+            runConsoleOutput << "Run " << i << " Init: " << displayValueForPUs(puno, spno, R, reserve, spec, misslevel).str();
         }
         if (verbosity > 5)
         {
@@ -192,6 +181,12 @@ void executeRunLoop(int iSparseMatrixFileLength, long int repeats,int puno,int s
                              repeats, i, savename, misslevel,
                              aggexist, costthresh, tpf1, tpf2, clumptype, anneal, thread);
 
+            if (verbosity > 1)
+            {
+                computeReserveValue(puno,spno,R,pu,connections,SMGlobal,cm,spec,aggexist,reserve,clumptype, thread);
+                runConsoleOutput << "Run " << i << " ThermalAnnealing: " << displayValueForPUs(puno,spno,R,reserve,spec,misslevel).str();
+            }
+
             appendTraceFile("after thermalAnnealing run %i\n", i);
         }
 
@@ -202,6 +197,13 @@ void executeRunLoop(int iSparseMatrixFileLength, long int repeats,int puno,int s
             quantumAnnealing(spno, puno, connections, R, cm, spec, pu, SMGlobal, change, reserve,
                              repeats, i, savename, misslevel,
                              aggexist, costthresh, tpf1, tpf2, clumptype, anneal, thread);
+
+            if (verbosity >1)
+            {
+                computeReserveValue(puno,spno,R,pu,connections,SMGlobal,cm,spec,aggexist,reserve,clumptype, thread);
+                runConsoleOutput << "Run " << i << "  QuantumAnnealing: " << displayValueForPUs(puno,spno,R,reserve,spec,misslevel).str();
+
+            }
 
             appendTraceFile("after quantumAnnealing run %i\n", i);
         }
@@ -215,8 +217,8 @@ void executeRunLoop(int iSparseMatrixFileLength, long int repeats,int puno,int s
 
             if (verbosity > 1 && (runopts == 2 || runopts == 5))
             {
-                displayProgress1("  Heuristic:");
-                displayValueForPUs(puno, spno, R, reserve, spec, misslevel);
+                computeReserveValue(puno,spno,R,pu,connections,SMGlobal,cm,spec,aggexist,reserve,clumptype, thread);
+                runConsoleOutput << "Run " << i << "  Heuristic: " << displayValueForPUs(puno, spno, R, reserve, spec, misslevel).str();
             }
 
             appendTraceFile("after Heuristics run %i\n", i);
@@ -241,8 +243,7 @@ void executeRunLoop(int iSparseMatrixFileLength, long int repeats,int puno,int s
             if (verbosity > 1)
             {
                 computeReserveValue(puno, spno, R, pu, connections, SMGlobal, cm, spec, aggexist, reserve, clumptype, thread);
-                displayProgress1("  Iterative Improvement:");
-                displayValueForPUs(puno, spno, R, reserve, spec, misslevel);
+                runConsoleOutput << "Run " << i << " Iterative Improvement: " << displayValueForPUs(puno, spno, R, reserve, spec, misslevel).str();
             }
 
         } // Activate Iterative Improvement
@@ -262,10 +263,12 @@ void executeRunLoop(int iSparseMatrixFileLength, long int repeats,int puno,int s
         }
 
         if (fnames.savesum)
-        {
-            tempname2 = savename + "_sum" + fileNumber + getFileNameSuffix(fnames.savesum);
-            //writeSummary(puno,spno,R,spec,reserve,i,tempname2,misslevel,fnames.savesum);
+        {   // summaries get stored and aggregated to prevent race conditions.
+            summaries[i-1] = computeSummary(puno,spno,R,spec,reserve,i,misslevel,fnames.savesum);
         }
+
+        // Print results from run.
+        displayProgress1(runConsoleOutput.str());
 
         // compute and store objective function score for this reserve system
         computeReserveValue(puno, spno, R, pu, connections, SMGlobal, cm, spec, aggexist, change, clumptype, thread);
@@ -281,9 +284,7 @@ void executeRunLoop(int iSparseMatrixFileLength, long int repeats,int puno,int s
                 bestRun = i;
                 // store bestR
                 bestR = R;
-
-                displayProgress1("  New best found: ");
-                displayValueForPUs(puno, spno, R, change, spec, misslevel);
+                bestRunString = runConsoleOutput.str();
             }
             omp_unset_lock(&bestR_write_lock);
         }
@@ -313,7 +314,13 @@ void executeRunLoop(int iSparseMatrixFileLength, long int repeats,int puno,int s
             displayTimePassed();
     }
 
-    printf("best run: %u best score: %f\n", bestRun, bestScore);
+    // Write all summaries for each run.
+    if (fnames.savesum)
+    {
+        string tempname2 = savename + "_sum" + getFileNameSuffix(fnames.savesum);
+        writeSummary(tempname2, summaries, fnames.saverun);
+    }
+    cout << "Best run: " << bestRun << " Best score: " << bestScore << "\n" << bestRunString;
 } // executeRunLoop
 
 int executeMarxan(string sInputFileName)
@@ -2518,22 +2525,6 @@ void thermalAnnealing(int spno, int puno, vector<sconnections> &connections,vect
     } /* Run Through Annealing */
 
     /** Post Processing  **********/
-    if (verbosity > 1)
-    {
-        computeReserveValue(puno,spno,R,pu,connections,SM,cm,spec,aggexist,reserve,clumptype, thread);
-        displayProgress1("  thermalAnnealing:");
-
-        #ifdef DEBUG_PRINTRESVALPROB
-        appendTraceFile("before displayValueForPUs thermalAnnealing:\n");
-        #endif
-
-        displayValueForPUs(puno,spno,R,reserve,spec,misslevel);
-
-        #ifdef DEBUG_PRINTRESVALPROB
-        appendTraceFile("after displayValueForPUs thermalAnnealing:\n");
-        #endif
-    }
-
     if (aggexist)
         ClearClumps(spno,spec,pu,SM);
 
@@ -2733,22 +2724,6 @@ void quantumAnnealing(int spno, int puno, vector<sconnections> &connections,vect
     } /* Run Through Annealing */
 
     /** Post Processing  **********/
-    if (verbosity >1)
-    {
-        computeReserveValue(puno,spno,R,pu,connections,SM,cm,spec,aggexist,reserve,clumptype, thread);
-        displayProgress1("  quantumAnnealing:");
-
-        #ifdef DEBUG_PRINTRESVALPROB
-        appendTraceFile("before displayValueForPUs quantumAnnealing:\n");
-        #endif
-
-        displayValueForPUs(puno,spno,R,reserve,spec,misslevel);
-
-        #ifdef DEBUG_PRINTRESVALPROB
-        appendTraceFile("after displayValueForPUs quantumAnnealing:\n");
-        #endif
-    }
-
     if (aggexist)
         ClearClumps(spno,spec,pu,SM);
 
