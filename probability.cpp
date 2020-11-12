@@ -1,7 +1,8 @@
 
-#include "marxan.hpp"
+#include <cmath> 
 
-// functions relating to species clumping
+#include "computation.hpp"
+#include "marxan.hpp"
 
 namespace marxan {
 
@@ -12,7 +13,6 @@ void ComputeP_AllPUsSelected_1D(string &savename,int puno,int spno,vector<spustu
    FILE *fp;
    int i,j,iHeavisideStepFunction,ism,isp;
    double rProbability, rRawP, rSumProbability = 0, rShortfallPenalty, rZScore;
-   char debugbuffer[200];
 
    // create the output file
    fp = fopen(savename.c_str(),"w");
@@ -41,27 +41,8 @@ void ComputeP_AllPUsSelected_1D(string &savename,int puno,int spno,vector<spustu
    // compute probability for each feature
    for (i=0;i<spno;i++)
    {
-      if (VarianceInExpectedAmount1D[i] > 0)
-         rZScore = (spec[i].target - ExpectedAmount1D[i]) / sqrt(VarianceInExpectedAmount1D[i]);
-      else
-         rZScore = 4;
-
-      if (rZScore >= 0)
-         rRawP = probZUT(rZScore);
-      else
-         rRawP = 1 - probZUT(-1 * rZScore);
-
-      if (spec[i].ptarget1d > rRawP)
-         iHeavisideStepFunction = 1;
-      else
-         iHeavisideStepFunction = 0;
-
-      if (spec[i].ptarget1d > 0)
-         rShortfallPenalty = (spec[i].ptarget1d - rRawP) / spec[i].ptarget1d;
-      else
-         rShortfallPenalty = 0;
-
-      rProbability = iHeavisideStepFunction * rShortfallPenalty;
+      computeProbMeasures(VarianceInExpectedAmount1D[i], spec[i].target, spec[i].ptarget1d, ExpectedAmount1D[i],
+         rZScore, rRawP, iHeavisideStepFunction, rShortfallPenalty, rProbability);
 
       rSumProbability += rProbability;
 
@@ -83,7 +64,6 @@ void ComputeP_AllPUsSelected_2D(string &savename,int puno,int spno,vector<spustu
    FILE *fp;
    int i,j,iHeavisideStepFunction,ism,isp;
    double rProbability, rRawP, rSumProbability = 0, rShortfallPenalty, rZScore;
-   char debugbuffer[200];
 
    // create the output file
    fp = fopen(savename.c_str(),"w");
@@ -112,27 +92,8 @@ void ComputeP_AllPUsSelected_2D(string &savename,int puno,int spno,vector<spustu
    // compute probability for each feature
    for (i=0;i<spno;i++)
    {
-      if (VarianceInExpectedAmount2D[i] > 0)
-         rZScore = (spec[i].target - ExpectedAmount2D[i]) / sqrt(VarianceInExpectedAmount2D[i]);
-      else
-         rZScore = 4;
-
-      if (rZScore >= 0)
-         rRawP = probZUT(rZScore);
-      else
-         rRawP = 1 - probZUT(-1 * rZScore);
-
-      if (spec[i].ptarget2d > rRawP)
-         iHeavisideStepFunction = 1;
-      else
-         iHeavisideStepFunction = 0;
-
-      if (spec[i].ptarget2d > 0)
-         rShortfallPenalty = (spec[i].ptarget2d - rRawP) / spec[i].ptarget2d;
-      else
-         rShortfallPenalty = 0;
-
-      rProbability = iHeavisideStepFunction * rShortfallPenalty;
+      computeProbMeasures(VarianceInExpectedAmount2D[i], spec[i].target, spec[i].ptarget2d, ExpectedAmount2D[i],
+         rZScore, rRawP, iHeavisideStepFunction, rShortfallPenalty, rProbability);
 
       rSumProbability += rProbability;
 
@@ -145,6 +106,7 @@ void ComputeP_AllPUsSelected_2D(string &savename,int puno,int spno,vector<spustu
    fclose(fp);
 
    #ifdef DEBUGTRACEFILE
+   char debugbuffer[200];
    sprintf(debugbuffer,"ComputeP_AllPUsSelected_2D SumP %f SumP * PW %f\n",rSumProbability,rSumProbability * rProbabilityWeighting);
    appendTraceFile(debugbuffer);
    #endif
@@ -156,18 +118,15 @@ double ChangeProbability1D(int iIteration, int ipu, int spno,int puno,vector<ssp
    int i, ism, isp, iNewHeavisideStepFunction, iOrigHeavisideStepFunction;
    double rNewExpected, rNewVariance, rOriginalZScore;
    double rNewZScore, rProbOriginal, rProbNew, rSumProbability = 0;
-   double rDeltaExpected, rDeltaVariance, rNewShortfallPenalty, rOrigShortfallPenalty;
+   double rDeltaExpected, rDeltaVariance, rNewShortfallPenalty, rOrigShortfallPenalty, rProbOld;
 
    #ifdef DEBUG_PROB1D
-   char sDebugFileName[300], sIteration[20];
+   string sDebugFileName;
    if (iIteration < 10)
    {
       sprintf(sIteration,"%i",iIteration);
-      strcpy(sDebugFileName,fnames.outputdir);
-      strcat(sDebugFileName,"output_ChangeProbability1DDebug_");
-      strcat(sDebugFileName,sIteration);
-      strcat(sDebugFileName,".csv");
-      writeChangeProbability1DDebugTable(sDebugFileName,iIteration,ipu,spno,spec,pu,SM,imode);
+      sDebugFileName = fnames.outputdir + "output_ChangeProbability1DDebug_" + to_string(iIteration) + ".csv";
+      writeChangeProbability1DDebugTable(sDebugFileName.c_str(),iIteration,ipu,spno,spec,pu,SM,imode);
    }
    #endif
 
@@ -185,52 +144,20 @@ double ChangeProbability1D(int iIteration, int ipu, int spno,int puno,vector<ssp
 
             rDeltaVariance = imode * SM[ism].amount * SM[ism].amount * pu[ipu].prob * (1 - pu[ipu].prob);
             rNewVariance = spec[isp].variance1D + rDeltaVariance;
-
-            if (rNewVariance > 0)
-               rNewZScore = (spec[isp].target - rNewExpected) / sqrt(rNewVariance);
-            else
-               rNewZScore = 4;
+            
+            // Get pr measures for new state
+            computeProbMeasures(rNewVariance, spec[isp].target, spec[isp].ptarget1d, rNewExpected,
+               rNewZScore, rProbNew, iNewHeavisideStepFunction, rNewShortfallPenalty, rProbNew);
 
             spec[isp].Zscore1D = rNewZScore;
-
-            if (rNewZScore >= 0)
-               rProbNew = probZUT(rNewZScore);
-            else
-               rProbNew = 1 - probZUT(-1 * rNewZScore);
-
             spec[isp].probability1D = rProbNew;
 
-            if (spec[isp].variance1D > 0)
-               rOriginalZScore = (spec[isp].target - spec[isp].expected1D) / sqrt(spec[isp].variance1D);
-            else
-               rOriginalZScore = 4;
-
-            if (rOriginalZScore >= 0)
-               rProbOriginal = probZUT(rOriginalZScore);
-            else
-               rProbOriginal = 1 - probZUT(-1 * rOriginalZScore);
-
-            if (spec[i].ptarget1d > rProbNew)
-               iNewHeavisideStepFunction = 1;
-            else
-               iNewHeavisideStepFunction = 0;
-
-            if (spec[i].ptarget1d > rProbOriginal)
-               iOrigHeavisideStepFunction = 1;
-            else
-               iOrigHeavisideStepFunction = 0;
-
-            if (spec[i].ptarget1d > 0)
-            {
-               rNewShortfallPenalty = (spec[i].ptarget1d - rProbNew) / spec[i].ptarget1d;
-               rOrigShortfallPenalty = (spec[i].ptarget1d - rProbOriginal) / spec[i].ptarget1d;
-            } else {
-               rNewShortfallPenalty = 0;
-               rOrigShortfallPenalty = 0;
-            }
+            // Get pr measures for old state
+            computeProbMeasures(spec[isp].variance1D, spec[isp].target, spec[isp].ptarget1d, spec[isp].expected1D,
+               rOriginalZScore, rProbOriginal, iOrigHeavisideStepFunction, rOrigShortfallPenalty, rProbOld);
 
             // change in probability
-            rSumProbability += (iNewHeavisideStepFunction * rNewShortfallPenalty) - (iOrigHeavisideStepFunction * rOrigShortfallPenalty);
+            rSumProbability += rProbNew - rProbOld;
          }
       }
    }
@@ -244,18 +171,14 @@ double ChangeProbability2D(int iIteration, int ipu, int spno,int puno,vector<ssp
    int i, ism, isp, iNewHeavisideStepFunction, iOrigHeavisideStepFunction;
    double rNewExpected, rNewVariance, rOriginalZScore;
    double rProb, rNewZScore, rProbOriginal, rProbNew, rSumProbability = 0;
-   double rDeltaExpected, rDeltaVariance, rNewShortfallPenalty, rOrigShortfallPenalty;
+   double rDeltaExpected, rDeltaVariance, rNewShortfallPenalty, rOrigShortfallPenalty, rProbOld;
 
    #ifdef DEBUG_PROB2D
-   char sDebugFileName[300], sIteration[20];
+   string sDebugFileName;
    if (iIteration < 10)
    {
-      sprintf(sIteration,"%i",iIteration);
-      strcpy(sDebugFileName,fnames.outputdir);
-      strcat(sDebugFileName,"output_ChangeProbability2DDebug_");
-      strcat(sDebugFileName,sIteration);
-      strcat(sDebugFileName,"_.csv");
-      writeChangeProbability2DDebugTable(sDebugFileName,iIteration,ipu,spno,spec,pu,SM,imode);
+      sDebugFileName = fnames.outputdir + "output_ChangeProbability2DDebug_" + to_string(iIteration) + ".csv";
+      writeChangeProbability2DDebugTable(sDebugFileName.c_str(),iIteration,ipu,spno,spec,pu,SM,imode);
    }
    #endif
 
@@ -276,51 +199,19 @@ double ChangeProbability2D(int iIteration, int ipu, int spno,int puno,vector<ssp
             rDeltaVariance = imode * SM[ism].amount * SM[ism].amount * rProb * (1 - rProb);
             rNewVariance = spec[isp].variance2D + rDeltaVariance;
 
-            if (rNewVariance > 0)
-               rNewZScore = (spec[isp].target - rNewExpected) / sqrt(rNewVariance);
-            else
-               rNewZScore = 4;
+            // Get pr measures for new state
+            computeProbMeasures(rNewVariance, spec[isp].target, spec[isp].ptarget2d, rNewExpected,
+               rNewZScore, rProbNew, iNewHeavisideStepFunction, rNewShortfallPenalty, rProbNew);
 
             spec[isp].Zscore2D = rNewZScore;
-
-            if (rNewZScore >= 0)
-               rProbNew = probZUT(rNewZScore);
-            else
-               rProbNew = 1 - probZUT(-1 * rNewZScore);
-
             spec[isp].probability2D = rProbNew;
 
-            if (spec[isp].variance2D > 0)
-               rOriginalZScore = (spec[isp].target - spec[isp].expected2D) / sqrt(spec[isp].variance2D);
-            else
-               rOriginalZScore = 4;
-
-            if (rOriginalZScore >= 0)
-               rProbOriginal = probZUT(rOriginalZScore);
-            else
-               rProbOriginal = 1 - probZUT(-1 * rOriginalZScore);
-
-            if (spec[i].ptarget2d > rProbNew)
-               iNewHeavisideStepFunction = 1;
-            else
-               iNewHeavisideStepFunction = 0;
-
-            if (spec[i].ptarget2d > rProbOriginal)
-               iOrigHeavisideStepFunction = 1;
-            else
-               iOrigHeavisideStepFunction = 0;
-
-            if (spec[i].ptarget2d > 0)
-            {
-               rNewShortfallPenalty = (spec[i].ptarget2d - rProbNew) / spec[i].ptarget2d;
-               rOrigShortfallPenalty = (spec[i].ptarget2d - rProbOriginal) / spec[i].ptarget2d;
-            } else {
-               rNewShortfallPenalty = 0;
-               rOrigShortfallPenalty = 0;
-            }
+            // Get pr measures for old state
+            computeProbMeasures(spec[isp].variance2D, spec[isp].target, spec[isp].ptarget2d, spec[isp].expected2D,
+               rOriginalZScore, rProbOriginal, iOrigHeavisideStepFunction, rOrigShortfallPenalty, rProbOld);
 
             // change in probability
-            rSumProbability += (iNewHeavisideStepFunction * rNewShortfallPenalty) - (iOrigHeavisideStepFunction * rOrigShortfallPenalty);
+            rSumProbability += rProbNew - rProbOld;
          }
       }
    }
@@ -332,42 +223,13 @@ double ChangeProbability2D(int iIteration, int ipu, int spno,int puno,vector<ssp
 void ReturnProbabilityAmounts1D(vector<double> &ExpectedAmount1D, vector<double> &VarianceInExpectedAmount1D,int ipu,
                                 int puno,vector<spustuff> &pu,vector<spu> &SM)
 {
-   int i, ism, isp;
-
-   if (pu[ipu].richness)
-   {
-      for (i=0;i<pu[ipu].richness;i++)
-      {
-         ism = pu[ipu].offset + i;
-         isp = SM[ism].spindex;
-         if (SM[ism].amount)
-         {
-            ExpectedAmount1D[isp] += SM[ism].amount * (1 - pu[ipu].prob);
-            VarianceInExpectedAmount1D[isp] += SM[ism].amount * SM[ism].amount * pu[ipu].prob * (1 - pu[ipu].prob);
-         }
-      }
-   }
+   computeExpectedAndVariance(ipu, pu, SM, VarianceInExpectedAmount1D, ExpectedAmount1D);
 }
 
 void ReturnProbabilityAmounts2D(vector<double> &ExpectedAmount2D,vector<double> &VarianceInExpectedAmount2D,int ipu,
                                 int puno,vector<spustuff> &pu,vector<spu> &SM)
 {
-   int i, ism, isp;
-
-   if (pu[ipu].richness)
-   {
-      for (i=0;i<pu[ipu].richness;i++)
-      {
-         ism = pu[ipu].offset + i;
-         isp = SM[ism].spindex;
-         if (SM[ism].amount)
-         {
-               ExpectedAmount2D[isp] += SM[ism].amount * SM[ism].prob;
-
-               VarianceInExpectedAmount2D[isp] += SM[ism].amount * SM[ism].amount * SM[ism].prob * (1 - SM[ism].prob);
-         }
-      }
-   }
+   computeExpectedAndVariance(ipu, pu, SM, VarianceInExpectedAmount2D, ExpectedAmount2D);
 }
 
 double ComputeProbability1D(vector<double> &ExpectedAmount1D, vector<double> &VarianceInExpectedAmount1D,
@@ -381,27 +243,8 @@ double ComputeProbability1D(vector<double> &ExpectedAmount1D, vector<double> &Va
 
    for (i=0;i<spno;i++)
    {
-      if (VarianceInExpectedAmount1D[i] > 0)
-         spec[i].Zscore1D = (spec[i].target - ExpectedAmount1D[i]) / sqrt(VarianceInExpectedAmount1D[i]);
-      else
-         spec[i].Zscore1D = 4;
-
-      if (spec[i].Zscore1D >= 0)
-         rProbability = probZUT(spec[i].Zscore1D);
-      else
-         rProbability = 1 - probZUT(-1 * spec[i].Zscore1D);
-
-      if (spec[i].ptarget1d > rProbability)
-         iHeavisideStepFunction = 1;
-      else
-         iHeavisideStepFunction = 0;
-
-      if (spec[i].ptarget1d > 0)
-         rShortfallPenalty = (spec[i].ptarget1d - rProbability) / spec[i].ptarget1d;
-      else
-         rShortfallPenalty = 0;
-
-      spec[i].probability1D = iHeavisideStepFunction * rShortfallPenalty;
+      computeProbMeasures(VarianceInExpectedAmount1D[i], spec[i].target, spec[i].ptarget1d, ExpectedAmount1D[i],
+               spec[i].Zscore1D, rProbability, iHeavisideStepFunction, rShortfallPenalty, spec[i].probability1D);
 
       rSumProbability += spec[i].probability1D;
 
@@ -426,27 +269,8 @@ double ComputeProbability2D(vector<double> &ExpectedAmount2D, vector<double> &Va
 
    for (i=0;i<spno;i++)
    {
-      if (VarianceInExpectedAmount2D[i] > 0)
-         spec[i].Zscore2D = (spec[i].target - ExpectedAmount2D[i]) / sqrt(VarianceInExpectedAmount2D[i]);
-      else
-         spec[i].Zscore2D = 4;
-
-      if (spec[i].Zscore2D >= 0)
-         rProbability = probZUT(spec[i].Zscore2D);
-      else
-         rProbability = 1 - probZUT(-1 * spec[i].Zscore2D);
-
-      if (spec[i].ptarget2d > rProbability)
-         iHeavisideStepFunction = 1;
-      else
-         iHeavisideStepFunction = 0;
-
-      if (spec[i].ptarget2d > 0)
-         rShortfallPenalty = (spec[i].ptarget2d - rProbability) / spec[i].ptarget2d;
-      else
-         rShortfallPenalty = 0;
-
-      spec[i].probability2D = iHeavisideStepFunction * rShortfallPenalty;
+      computeProbMeasures(VarianceInExpectedAmount2D[i], spec[i].target, spec[i].ptarget2d, ExpectedAmount2D[i],
+               spec[i].Zscore2D, rProbability, iHeavisideStepFunction, rShortfallPenalty, spec[i].probability2D);
 
       rSumProbability += spec[i].probability2D;
 
@@ -459,61 +283,6 @@ double ComputeProbability2D(vector<double> &ExpectedAmount2D, vector<double> &Va
    appendTraceFile("ComputeProbability2D sump %lf\n",rSumProbability);
 
    return rSumProbability * rProbabilityWeighting;
-}
-
-double probZUT(double z)
-/*
-Probability that a standard normal random variable has value >= z
-(i.e. the area under the standard normal curve for Z in [z,+inf]
-
-Originally adapted by Gary Perlman from a polynomial approximation in:
-Ibbetson D, Algorithm 209
-Collected Algorithms of the CACM 1963 p. 616
-Adapted (returns upper tail instead of lower tail)
-
-This function is not copyrighted
-*/
-{
-    double Z_MAX = 5;
-    double y, x, w;
-       
-    if (z == 0.0)
-    {
-        x = 0.0;
-    } else {
-        y = 0.5 * fabs (z);
-        if (y >= (Z_MAX * 0.5))
-        {
-              x = 1.0;
-        } else {
-            if (y < 1.0)
-            {
-                w = y*y;
-                x = ((((((((0.000124818987 * w
-                      -0.001075204047) * w +0.005198775019) * w
-                      -0.019198292004) * w +0.059054035642) * w
-                      -0.151968751364) * w +0.319152932694) * w
-                      -0.531923007300) * w +0.797884560593) * y * 2.0;
-            } else {
-                y -= 2.0;
-                x = (((((((((((((-0.000045255659 * y
-                       +0.000152529290) * y -0.000019538132) * y
-                       -0.000676904986) * y +0.001390604284) * y
-                       -0.000794620820) * y -0.002034254874) * y
-                       +0.006549791214) * y -0.010557625006) * y
-                       +0.011630447319) * y -0.009279453341) * y
-                       +0.005353579108) * y -0.002141268741) * y
-                       +0.000535310849) * y +0.999936657524;
-            }
-        }
-    }
-       
-    return (z < 0.0 ? ((x + 1.0) * 0.5) : ((1.0 - x) * 0.5));
-}
-
-double probZLT(double z)
-{
-    return 1.0 - probZUT(z);
 }
 
 } // marxan

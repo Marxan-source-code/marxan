@@ -10,10 +10,9 @@
 
 // declare structures, types, and some variables of type
 // predefine functions that are called before they're defined
+// Contains structures and functions that are used in more than 1 file.
 
 #define DebugFree(x)
-#ifndef mainheaderfile
-#define mainheaderfile
 
 namespace marxan {
     using namespace std;
@@ -137,7 +136,7 @@ namespace marxan {
 
     extern vector<sspecies> specGlobal, bestSpec;
 
-    /* Connectivity Structure. Fixed connectivity number. Should replace with link list! */
+    /* Connectivity Structure. Fixed connectivity number.*/
     typedef struct sneighbour
     {
         int nbr;
@@ -246,16 +245,7 @@ namespace marxan {
 
     extern srunoptions runoptions;
 
-    typedef struct iimp
-    {
-        double randomfloat;
-        int puindex;
-    } iimp;
-
-void addReserve(int puno,vector<spustuff> &pu, vector<int> &R);
-void computeSpecProp(int spno, vector<sspecies> &spec, int puno, vector<spustuff> &pu, vector<spu> &SM);
 void setBlockDefinitions(int gspno,int spno,int puno, vector<sgenspec> &gspec, vector<sspecies> &spec, vector<spustuff> &PU, vector<spu> &SM);
-void setDefaultTargets(int spno, vector<sspecies> &spec);
 void setDefaultRunOptions(int runopts, srunoptions &runoptions);
 int computePenalties(int puno,int spno, vector<spustuff> &pu, vector<sspecies> &spec,
                      vector<sconnections> &connections, vector<spu> &SM, vector<int> &PUtemp, int aggexist, double cm, int clumptype, int thread);
@@ -263,30 +253,22 @@ int computePenaltiesOptimise(int puno,int spno, vector<spustuff> &pu, vector<ssp
                              vector<sconnections> &connections, vector<spu> &SM, vector<spusporder> &SMsp,
                              vector<int> &PUtemp, int aggexist, double cm, int clumptype, int thread);
 
-double computePlanningUnitValue(int ipu, vector<spustuff> &pu, vector<sconnections> &connections, double cm);
 double ConnectionCost2(int ipu, vector<sconnections> &connections, vector<int> &R, int imode, int imode2, double cm);
-void computeConnectivityIndices(double &rConnectivityTotal, double &rConnectivityIn,
-                                double &rConnectivityEdge, double &rConnectivityOut,
-                                int puno, vector<int> &R, vector<sconnections> &connections);
 void computeReserveValue(int puno,int spno, vector<int> &R, vector<spustuff> &pu,
                          vector<sconnections> &connections, vector<spu> &SM,
                          double cm, vector<sspecies> &spec, int aggexist, scost &reserve,int clumptype, int thread);
-void initialiseReserve(int puno,double prop, vector<int> &R);
 void computeChangeScore(int iIteration,int ipu,int spno,int puno,vector<spustuff> &pu, vector<sconnections> &connections,
                         vector<sspecies> &spec, vector<spu> &SM, vector<int> &R, double cm, int imode,
                         scost &change, scost &reserve,double costthresh,double tpf1, double tpf2,
                         double timeprop,int clumptype, int thread);
-double computeSpeciesPlanningUnitPenalty(int ipu,int isp,vector<sspecies> &spec,vector<spustuff> &pu, vector<spu> &SM,int imode);
 void doChange(int ipu,int puno,vector<int> &R, scost &reserve, scost &change,
               vector<spustuff> &pu,vector<spu> &SM,vector<sspecies> &spec,vector<sconnections> &connections,
               int imode,int clumptype, int thread);
 
-int computeRepresentationMISSLEVEL(int spno,vector<sspecies> &spec,double misslevel,double &shortfall,double &rMinimumProportionMet);
 stringstream displayValueForPUs(int puno, int spno,vector<int> &R, scost &reserve,
                         vector<sspecies> &spec,double misslevel);
 void TimePassed(void);
 
-#endif
 #ifndef annealingheader
 #define annealingheader
 
@@ -314,12 +296,6 @@ int NameToSPID(int spno,int name,vector<sspecies> &spec);
 void applyUserPenalties(vector<sspecies> &spec,int spno);
 
 void writeSparseMatrix(int iSMno,int puno, vector<spustuff> &pu, vector<sspecies> &spec, vector<spu> &SM,sfname fnames);
-void computeBinarySearch(int puno, int spno, vector<spustuff> &pu, vector<sspecies> &spec,
-                         map<int,int> &PULookup, map<int,int> &SPLookup);
-int binarySearchPuIndex(int puno,int name, map<int,int> &PULookup);
-int binarySearchSpecIndex(int spno,int name, map<int,int> &SPLookup);
-int returnIndexSpecAtPu(vector<spustuff> &pu, vector<spu> &SM, int iPUIndex, int iSpecIndex);
-double returnAmountSpecAtPu(vector<spustuff> &pu, vector<spu> &SM, int iPUIndex, int iSpecIndex);
 void appendTraceFile(string sMess,...);
 
 void secondaryExit(void);
@@ -364,21 +340,19 @@ void displayProgress3(string sMess,...);
 void displayShutdownMessage(void);
 void displayUsage(string programName);
 
-void appendSolutionsMatrix(int iRun,int puno, vector<int> R, string savename,int iOutputType, int iIncludeHeaders);
-string computeSummary(int puno,int spno, vector<int> R, vector<sspecies> spec, scost reserve,
+void appendSolutionsMatrix(int iRun,int puno, vector<int>& R, string savename,int iOutputType, int iIncludeHeaders);
+string computeSummary(int puno,int spno, vector<int>& R, vector<sspecies>& spec, scost& reserve,
                    int itn, double misslevel, int imode);
-void computeTotalAreas(int puno,int spno, vector<spustuff> pu, vector<sspecies> spec, vector<spu> SM);
+void computeTotalAreas(int puno,int spno, vector<spustuff>& pu, vector<sspecies>& spec, vector<spu>& SM);
 void createLogFile(int my_savelog, string my_savelogname);
 void createSolutionsMatrix(int puno,vector<spustuff> &pu, string savename_ism,int iOutputType,int iIncludeHeaders);
 void createTraceFile(void);
 void displayStartupMessage(void);
 void writeAsymmetricConnectionFile(int puno, vector<sconnections> connections, vector<spustuff> pu, sfname fnames);
-void writeBinarySearchArrays(string sName,sfname &fnames, int puno, int spno, map<int,int> &PULookup,
-                             map<int,int> &SPLookup);
 void writePenalty(int spno, vector<sspecies>& spec, string savename,int iOutputType);
 void writePenaltyPlanningUnits(int puno, vector<spustuff> &pu, vector<int> &Rtemp, string savename,int iOutputType);
 void writePu(int puno, vector<spustuff>& pu, string savename);
-void writeR(int iMessage, string sMessage,int puno, vector<int> R, vector<spustuff> pu, sfname& fnames);
+void writeR(int iMessage, string sMessage,int puno, vector<int>& R, vector<spustuff>& pu, sfname& fnames);
 void writeRichness(int puno, vector<spustuff>& pu, string savename,int iOutputType);
 void writeScenario(int puno,int spno,double prop,double cm,
                     sanneal& anneal,int seedinit,long int repeats,int clumptype,
@@ -388,10 +362,10 @@ void writeSecondarySyncFile(void);
 void writeSecondarySyncFileRun(int iSyncRun);
 void writeSolution(int puno, vector<int>& R, vector<spustuff>& pu, string savename,int imode, sfname& fnames);
 void writeSpec(int spno, vector<sspecies>& spec, string savename);
-void writeSpecies(int spno, vector<sspecies> spec, string savename,int imode,double misslevel);
-void writeSummary(string savename, vector<string> summaries, int imode);
-void writeSumSoln(int puno, vector<int> sumsoln, vector<spustuff> pu, string savename, int imode);
-void writeTotalAreas(int puno,int spno, vector<spustuff> pu, vector<sspecies> spec, vector<spu> SM, string savename,int iOutputType);
+void writeSpecies(int spno, vector<sspecies>& spec, string savename,int imode,double misslevel);
+void writeSummary(string savename, vector<string>& summaries, int imode);
+void writeSumSoln(int puno, vector<int>& sumsoln, vector<spustuff>& pu, string savename, int imode);
+void writeTotalAreas(int puno,int spno, vector<spustuff>& pu, vector<sspecies>& spec, vector<spu>& SM, string savename,int iOutputType);
 void writeWeightedConnectivityFile(sfname& fnames);
 
 typedef struct sseplist{
@@ -406,7 +380,6 @@ void RemPu(int ipu, int isp,vector<sconnections> &connections, vector<sspecies> 
          vector<spu> &SM,int clumptype, int thread);
 int CalcPenaltyType4(int isp,int puno, vector<spu> &SM,vector<sconnections> &connections,
       vector<sspecies> &spec,vector<spustuff> &pu,double cm,int clumptype, int thread);
-double ConnectionCost1(int ipu, vector<spustuff> &pu, vector<sconnections> &connections, double cm);
 int CountSeparation(int isp, vector<sclumps> &newno,
    vector<spustuff> &pu,vector<spu> &SM,vector<sspecies> &spec,int imode, int thread);
 int CountSeparation2(int isp,int ipu, vector<sclumps> &newno,int puno,vector<int> &R,
@@ -418,7 +391,6 @@ double NewPenalty4(int ipu,int isp,int puno,vector<sspecies> &spec,vector<spustu
 double PartialPen4(int isp,double amount, vector<sspecies> &spec,int clumptype);
 int SepDealList(vector<int> &head, vector<sseplist> &Dist, vector<spustuff> &pu,
       vector<sspecies> &spec,int first,int sepnum,double targetdist,int isp);
-double SepPenalty(int ival,int itarget);
 void SetSpeciesClumps(int puno,vector<int> &R,vector<sspecies> &spec,vector<spustuff> &pu,
                      vector<spu> &SM,vector<sconnections> &connections,int clumptype, int thread);
 void SpeciesAmounts(int spno,int puno, vector<sspecies>& spec, vector<spustuff>& pu, vector<spu>& SM,
@@ -437,7 +409,6 @@ double ComputeProbability1D(vector<double> &ExpectedAmount1D, vector<double> &Va
                             int spno,vector<sspecies> &spec);
 double ComputeProbability2D(vector<double> &ExpectedAmount2D, vector<double> &VarianceInExpectedAmount2D,
                             int spno,vector<sspecies> &spec);
-double probZUT(double z);
 void ReturnProbabilityAmounts1D(vector<double> &ExpectedAmount1D, vector<double> &VarianceInExpectedAmount1D,int ipu,
                                 int puno,vector<spustuff> &pu,vector<spu> &SM);
 void ReturnProbabilityAmounts2D(vector<double> &ExpectedAmount2D,vector<double> &VarianceInExpectedAmount2D,int ipu,

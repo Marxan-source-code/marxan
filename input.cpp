@@ -67,14 +67,11 @@ vector<string> GetFieldNames(string readname, string fname, FILE*& fp, int& ivar
 int readPlanningUnits(int& puno, vector<spustuff>& pu, sfname& fnames)
 {
     FILE *fp;
-    struct pustruct{int id;double cost; int status; double xloc; double yloc; double prob;};
     string readname;
     char sLine[600];
     vector<string> varlist = {"id","cost","status","xloc","yloc","prob"};
-    int ivars,i = 0,j;
+    int ivars,i = 0;
     char* sVarVal;
-    spustuff putemp;
-    vector<spustuff> spuhead;
 
     readname = fnames.inputdir + fnames.puname;
 
@@ -91,12 +88,17 @@ int readPlanningUnits(int& puno, vector<spustuff>& pu, sfname& fnames)
     while (fgets(sLine,500-1,fp))
     {
         i++;
+        spustuff putemp;
         putemp.id = -1; /* Set defaults for any missing values */
         putemp.cost = 1;
         putemp.status = 0;
         putemp.xloc = -1;
         putemp.yloc = -1;
         putemp.prob = 0;
+        putemp.richness = 0;
+        putemp.offset = 0;
+        putemp.probrichness = 0;
+        putemp.proboffset = 0;
 
         for (string temp : head)
         {
@@ -134,15 +136,8 @@ int readPlanningUnits(int& puno, vector<spustuff>& pu, sfname& fnames)
 
         if (putemp.id == -1)
             displayErrorMessage("ERROR: Missing planning unit id for line %d. \n",i);
-        /* Stick everything from putemp into link list */
-        spustuff newspulink;
-        newspulink.id = putemp.id;
-        newspulink.status = putemp.status;
-        newspulink.cost = putemp.cost;
-        newspulink.xloc = putemp.xloc;
-        newspulink.yloc = putemp.yloc;
-        newspulink.prob = putemp.prob;
-        spuhead.push_back(newspulink);
+
+        pu.push_back(putemp);
 
     } /* while still lines in data file */
 
@@ -150,26 +145,11 @@ int readPlanningUnits(int& puno, vector<spustuff>& pu, sfname& fnames)
 
     /* Create array to store the information */
     puno = i;
-    pu.resize(puno);
 
     #ifdef MEMDEBUG
     iMemoryUsed += (*puno) * sizeof(struct spustuff);
     displayProgress1("memory used %i\n",iMemoryUsed);
     #endif
-
-    for (i=puno-1;i>=0;i--)
-    {
-        pu[i].id = spuhead[i].id;
-        pu[i].cost = spuhead[i].cost;
-        pu[i].status = spuhead[i].status;
-        pu[i].xloc = spuhead[i].xloc;
-        pu[i].yloc = spuhead[i].yloc;
-        pu[i].prob = spuhead[i].prob;
-        pu[i].richness = 0;
-        pu[i].offset = 0;
-        pu[i].probrichness = 0;
-        pu[i].proboffset = 0;
-    }
 
     if (iProbFieldPresent == 1)
     {
@@ -184,10 +164,7 @@ int readSpecies(int &spno, vector<sspecies>& spec, sfname& fnames)
 {
     FILE *fp;
     int n=0;
-    sspecies spectemp;
-    vector<sspecies> speciesList;
     string readname;
-    string speciesname;
     char sLine[500];
     vector<string> varlist = {"id","type","target","spf",
                          "target2","sepdistance","sepnum","name",
@@ -205,6 +182,7 @@ int readSpecies(int &spno, vector<sspecies>& spec, sfname& fnames)
     {
         n++;
         // Clear important species stats
+        sspecies spectemp;
         spectemp.name = -1;
         spectemp.target = -1;
         spectemp.type = -1;
@@ -217,6 +195,11 @@ int readSpecies(int &spno, vector<sspecies>& spec, sfname& fnames)
         spectemp.ptarget1d = -1;
         spectemp.ptarget2d = -1;
         spectemp.rUserPenalty = -1;
+        spectemp.richness = 0;
+        spectemp.probability1D = 0;
+        spectemp.probability2D = 0;
+        spectemp.Zscore1D = 0;
+        spectemp.Zscore2D = 0;
 
         for (string temp : snhead)
         {
@@ -273,54 +256,11 @@ int readSpecies(int &spno, vector<sspecies>& spec, sfname& fnames)
             }
         } // looking for ivar different input variables
         
-        sspecies stemp;
-        stemp.name = spectemp.name;
-        stemp.target = spectemp.target;
-        stemp.prop = spectemp.prop;
-        stemp.spf = spectemp.spf;
-        stemp.type = spectemp.type;
-        stemp.targetocc = spectemp.targetocc;
-        stemp.rUserPenalty = spectemp.rUserPenalty;
-        stemp.target2 = spectemp.target2;
-        stemp.sepdistance = spectemp.sepdistance;
-        stemp.sepnum = spectemp.sepnum;
-        stemp.sname = speciesname;
-        stemp.ptarget1d = spectemp.ptarget1d;
-        stemp.ptarget2d = spectemp.ptarget2d;
-
-        speciesList.push_back(stemp);
+        spec.push_back(spectemp);
     } // Scanning through each line of file
 
     fclose(fp);
-
-    // Now do as Name.dat in forming species array
     spno = n;
-    spec.resize(n);
-
-    // put each link into namelist and free it
-    n = 0;
-    for (sspecies head: speciesList)
-    {
-        spec[n].name = head.name;
-        spec[n].type = head.type;
-        spec[n].target = head.target;
-        spec[n].prop = head.prop;
-        spec[n].spf = head.spf;
-        spec[n].target2 = head.target2;
-        spec[n].targetocc = head.targetocc;
-        spec[n].sepdistance = head.sepdistance;
-        spec[n].rUserPenalty = head.rUserPenalty;
-        spec[n].sepnum = head.sepnum;
-        spec[n].richness = 0;
-        spec[n].probability1D = 0;
-        spec[n].probability2D = 0;
-        spec[n].Zscore1D = 0;
-        spec[n].Zscore2D = 0;
-        spec[n].ptarget1d = head.ptarget1d;
-        spec[n].ptarget2d = head.ptarget2d;
-        n++;
-    }
-
     return(n);
 }  // readSpecies
 
@@ -335,8 +275,6 @@ int readSpeciesBlockDefinition(int& gspno, vector<sgenspec>& gspec, sfname& fnam
                         "sepnum","sepdistance","prop","spf"};
     int ivars,i=0;
     char* sVarVal;
-    sgenspec gstemp;
-    vector<sgenspec> sgenList;
 
     /* Find and Open File */
     readname = fnames.inputdir + fnames.blockdefname;
@@ -345,6 +283,7 @@ int readSpeciesBlockDefinition(int& gspno, vector<sgenspec>& gspec, sfname& fnam
     /* While there are still lines left feed information into temporary link list */
     while (fgets(sLine,500-1,fp)) {
         i++;
+        sgenspec gstemp;
         gstemp.type = -1; /* Set defaults for any missing values */
         gstemp.targetocc = -1;
         gstemp.target = -1;
@@ -394,38 +333,13 @@ int readSpeciesBlockDefinition(int& gspno, vector<sgenspec>& gspec, sfname& fnam
         if (gstemp.type== -1)
             displayErrorMessage("ERROR: Missing Gen Species type for line %d. \n",i);
 
-        /* Stick everything from gstemp into link list */
-        sgenspec stemp;
-        stemp.type = gstemp.type;
-        stemp.targetocc = gstemp.targetocc;
-        stemp.target = gstemp.target;
-        stemp.target2 = gstemp.target2;
-        stemp.sepnum = gstemp.sepnum;
-        stemp.sepdistance = gstemp.sepdistance;
-        stemp.prop = gstemp.prop;
-        sgenList.push_back(stemp);
+        gspec.push_back(gstemp);
 
     } /* while still lines in data file */
 
     fclose(fp);
 
-    /* Now do as Name.dat in forming species array */
     gspno = i;
-    gspec.resize(gspno);
-
-    /* put each link into namelist and free it */
-    i = 0;
-    for (sgenspec stemp: sgenList) {
-        gspec[i].type = stemp.type;
-        gspec[i].targetocc = stemp.targetocc;
-        gspec[i].target = stemp.target;
-        gspec[i].target2 = stemp.target2;
-        gspec[i].sepnum = stemp.sepnum;
-        gspec[i].sepdistance = stemp.sepdistance;
-        gspec[i].prop = stemp.prop;
-        i++;
-    }
-
     return(i);
 } // readSpeciesBlockDefinition
 
@@ -466,8 +380,8 @@ int readConnections(int& puno, vector<sconnections>& connections, vector<spustuf
         sVarVal = strtok(NULL, " ,;:^*\"/\t\'\\\n");
         sscanf(sVarVal, "%lf", &fcost);
 
-        id1 = binarySearchPuIndex(puno, id1, PULookup);
-        id2 = binarySearchPuIndex(puno, id2, PULookup);
+        id1 = PULookup[id1];
+        id2 = PULookup[id2];
 
         if (id1 == id2)
         { // irremovable connection
@@ -600,8 +514,7 @@ void readSparseMatrix(int &iSMSize, vector<spu> &SM, int puno, int spno, vector<
     // init with zero values
     for (i=0;i<iInternalSMSize;i++)
     {
-        if (fgets(sLine,500-1,fp) == NULL)
-            displayErrorMessage("Error reading sparse matrix.\n");
+        fgets(sLine,500-1,fp);
 
         sVarVal = strtok(sLine," ,;:^*\"/\t\'\\\n");
         sscanf(sVarVal,"%d",&_spid);
@@ -625,8 +538,8 @@ void readSparseMatrix(int &iSMSize, vector<spu> &SM, int puno, int spno, vector<
 
         iLastPUID = _puid;
 
-        _puid = binarySearchPuIndex(puno,_puid,PULookup);
-        _spid = binarySearchSpecIndex(spno,_spid,SPLookup);
+        _puid = PULookup[_puid];
+        _spid = SPLookup[_spid];
 
         /* increment richness for planning unit containing this feature */
         pu[_puid].richness += 1;
@@ -674,8 +587,7 @@ void readPenalties(vector<sspecies> &spec,int spno,sfname& fnames,map<int,int> &
         sVarVal = strtok(NULL," ,;:^*\"/\t\'\\\n");
         sscanf(sVarVal,"%lf",&rPenalty);
 
-        i = binarySearchSpecIndex(spno,iSPID,SPLookup);
-
+        i = SPLookup[iSPID];
         spec[i].rUserPenalty = rPenalty;
 
         appendTraceFile("readPenalties spname %i user penalty %g\n",spec[i].name,rPenalty);
@@ -717,8 +629,7 @@ void readSparseMatrixSpOrder(int &iSMSize, vector<spusporder> &SM, int puno, int
     // init with zero values
     for (i=0;i<iInternalSMSize;i++)
     {
-        if (fgets(sLine,500-1,fp) == NULL)
-            displayErrorMessage("Error reading sparse matrix sporder.\n");
+        fgets(sLine,500-1,fp);
 
         sVarVal = strtok(sLine," ,;:^*\"/\t\'\\\n");
         sscanf(sVarVal,"%d",&_spid);
@@ -736,8 +647,8 @@ void readSparseMatrixSpOrder(int &iSMSize, vector<spusporder> &SM, int puno, int
 
         iLastSPID = _spid;
 
-        _puid = binarySearchPuIndex(puno,_puid,PULookup);
-        spid = binarySearchSpecIndex(spno,_spid,SPLookup);
+        _puid = PULookup[_puid];
+        spid = SPLookup[_spid];
 
         // increment richness for planning unit containing this feature
         spec[spid].richness += 1;
@@ -820,7 +731,6 @@ void readInputOptions(double &cm,double &prop,sanneal &anneal,
     vector<string> fileLines;
     double version;
     int present;
-    char stemp[500];
     #ifdef DEBUGTRACEFILE
     char debugbuffer[200];
     #endif
@@ -852,8 +762,8 @@ void readInputOptions(double &cm,double &prop,sanneal &anneal,
         displayErrorMessage("input file %s not found\nAborting Program.\n\n",filename.c_str());
     }
 
-    std::string line;
-    while (std::getline(fp, line))
+    string line;
+    while (getline(fp, line))
     {
         // Store non empty lines
         if(line.size() > 0)

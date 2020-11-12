@@ -1,6 +1,7 @@
 
 #include "marxan.hpp"
 #include "utils.hpp"
+#include "computation.hpp"
 
 // functions that read from input files
 namespace marxan {
@@ -258,7 +259,7 @@ double Irreplaceability(int ipu,int isp, vector<double> &Rare,vector<spustuff> &
     buffer = Rare[isp] < spec[isp].target ? 0 : Rare[isp] - spec[isp].target;
     if (spec[isp].amount > spec[isp].target)
         return (0);
-    effamount = returnAmountSpecAtPu(pu, SM, ipu, isp);
+    effamount = returnAmountSpecAtPu(pu[ipu], SM, isp).second;
 
     return (buffer < effamount ? 1 : effamount / buffer);
 }

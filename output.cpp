@@ -1,9 +1,10 @@
 
 #include <cstring>
 #include <ctime>
+#include <fstream>
 #include <map>
 
-#include "marxan.hpp"
+#include "computation.hpp"
 
 namespace marxan {
 
@@ -35,11 +36,11 @@ map<int, string> heurotypeMap = {
 };
 
 // Helper function to return delimiter and file pointer for a file.
-pair<char, FILE*> GetFileAndDelimiter(string filename, int delimiterMode) {
+pair<char, FILE*> GetFileAndDelimiter(string filename, int delimiterMode, bool append = false) {
    FILE *fp;
    char sDelimiter;
 
-   fp = fopen(filename.c_str(),"w");
+   fp = append ? fopen(filename.c_str(),"a") : fopen(filename.c_str(),"w");
    if (!fp)
       displayErrorMessage("Cannot save output to %s \n",filename);
 
@@ -64,27 +65,8 @@ void writeProb1DDebugTable(int spno,string savename, vector<double> ExpectedAmou
 
    for (i=spno-1;i>=0;i--)
    {
-      if (VarianceInExpectedAmount1D[i] > 0)
-         rZ = (spec[i].target - ExpectedAmount1D[i]) / sqrt(VarianceInExpectedAmount1D[i]);
-      else
-         rZ = 4;
-
-      if (rZ >= 0)
-         rRawP = probZUT(rZ);
-      else
-         rRawP = 1 - probZUT(-1 * rZ);
-
-      if (spec[i].ptarget1d > rRawP)
-         iHeavisideStepFunction = 1;
-      else
-         iHeavisideStepFunction = 0;
-
-      if (spec[i].ptarget1d > 0)
-         rShortfallPenalty = (spec[i].ptarget1d - rRawP) / spec[i].ptarget1d;
-      else
-         rShortfallPenalty = 0;
-
-      rP = iHeavisideStepFunction * rShortfallPenalty;
+      computeProbMeasures(VarianceInExpectedAmount1D[i], spec[i].target, spec[i].ptarget1d, ExpectedAmount1D[i], 
+         rZ, rRawP, iHeavisideStepFunction, rShortfallPenalty, rP);
 
       fprintf(fp,"%i,%f,%f,%f,%f,%f,%i,%f,%f\n",spec[i].name,ExpectedAmount1D[i],VarianceInExpectedAmount1D[i],rZ,rRawP,spec[i].ptarget1d,iHeavisideStepFunction,rShortfallPenalty,rP);
    }
@@ -105,27 +87,8 @@ void writeProb2DDebugTable(int spno,string savename, vector<double> ExpectedAmou
 
    for (i=spno-1;i>=0;i--)
    {
-      if (VarianceInExpectedAmount2D[i] > 0)
-         rZ = (spec[i].target - ExpectedAmount2D[i]) / sqrt(VarianceInExpectedAmount2D[i]);
-      else
-         rZ = 4;
-
-      if (rZ >= 0)
-         rRawP = probZUT(rZ);
-      else
-         rRawP = 1 - probZUT(-1 * rZ);
-
-      if (spec[i].ptarget2d > rRawP)
-         iHeavisideStepFunction = 1;
-      else
-         iHeavisideStepFunction = 0;
-
-      if (spec[i].ptarget2d > 0)
-         rShortfallPenalty = (spec[i].ptarget2d - rRawP) / spec[i].ptarget2d;
-      else
-         rShortfallPenalty = 0;
-
-      rP = iHeavisideStepFunction * rShortfallPenalty;
+      computeProbMeasures(VarianceInExpectedAmount2D[i], spec[i].target, spec[i].ptarget2d, ExpectedAmount2D[i], 
+         rZ, rRawP, iHeavisideStepFunction, rShortfallPenalty, rP);
 
       fprintf(fp,"%i,%f,%f,%f,%f,%f,%f,%i,%f,%f\n",
                   spec[i].name,spec[i].amount,ExpectedAmount2D[i],VarianceInExpectedAmount2D[i],rZ,rRawP,spec[i].ptarget2d,iHeavisideStepFunction,rShortfallPenalty,rP);
@@ -570,8 +533,20 @@ void writeSparseMatrix(int iSMno,int puno, vector<spustuff> PU, vector<sspecies>
    fclose(fp);
 }
 
+double computeTotalConnection2(int puno, vector<int>& R, vector<sconnections>& connections) {
+    double connectiontemp = 0.0;
+    for (int i = 0; i < puno; i++)
+    {
+        if (R[i] == 1 || R[i] == 2)
+        {
+            connectiontemp += ConnectionCost2(i, connections, R, 1, 0, 1);
+        }
+    }
+    return connectiontemp;
+}
+
 // write a summary file
-void writeSummary(string savename, vector<string> summaries, int imode)
+void writeSummary(string savename, vector<string>& summaries, int imode)
 {
    pair<char, FILE*> fileInfo = GetFileAndDelimiter(savename, imode);
    FILE *fp = fileInfo.second; // Imode = 1, REST output, Imode = 2, Arcview output
@@ -592,8 +567,8 @@ void writeSummary(string savename, vector<string> summaries, int imode)
    fclose(fp);
 } // writeSummary
 
-// caculate and format summary text for 
-string computeSummary(int puno,int spno, vector<int> R, vector<sspecies> spec, scost reserve,
+// caculate and format summary text for a run
+string computeSummary(int puno,int spno, vector<int>& R, vector<sspecies>& spec, scost& reserve,
                    int itn, double misslevel, int imode)
 {
    stringstream ss;
@@ -621,13 +596,7 @@ string computeSummary(int puno,int spno, vector<int> R, vector<sspecies> spec, s
    else
       rConnectivityFraction = 0;
 
-   for (int i=0,connectiontemp = 0;i<puno;i++)
-   {
-      if (R[i]==1 || R[i] == 2)
-      {
-         connectiontemp += ConnectionCost2(i,connections,R,1,0,1);
-      } // Find True (non modified) connection
-   }
+   connectiontemp = computeTotalConnection2(puno, R, connections);
 
    ss << itn << del << reserve.total << del << reserve.cost << del << ino << del << 
       connectiontemp << del << rConnectivityTotal << del << rConnectivityIn << del << rConnectivityEdge << del << 
@@ -730,9 +699,9 @@ void createSolutionsMatrix(int puno,vector<spustuff> &pu, string savename_ism,in
 }
 
 // append an entry to a solutions matrix file
-void appendSolutionsMatrix(int iRun,int puno, vector<int> R, string savename,int iOutputType, int iIncludeHeaders)
+void appendSolutionsMatrix(int iRun,int puno, vector<int>& R, string savename,int iOutputType, int iIncludeHeaders)
 {
-   pair<char, FILE*> fileInfo = GetFileAndDelimiter(savename, iOutputType);
+   pair<char, FILE*> fileInfo = GetFileAndDelimiter(savename, iOutputType, true);
    FILE *fp = fileInfo.second;
    char sDelimiter = fileInfo.first;
    int i, iStatus;
@@ -780,7 +749,7 @@ void writeSolution(int puno, vector<int>& R, vector<spustuff>& pu, string savena
       {
          fprintf(fp,"%i",pu[i].id);
          if (imode > 1)
-               fprintf(fp,",1");
+            fprintf(fp,",1");
          fprintf(fp,"\n");
       } else {
          fprintf(fp,"%i,0\n",pu[i].id);
@@ -807,10 +776,9 @@ void writeScenario(int puno,int spno,double prop,double cm,
    fprintf(fp,"Connection modifier %.2f\n\n",cm);
 
    // print clump type
-   fprintf(fp,"%s\n",clumptypeMap[clumptype]);
+   fprintf(fp,"%s\n",clumptypeMap[clumptype].c_str());
 
-   /* Use character array here and set up the name of the algorithm used */
-   fprintf(fp,"Algorithm Used :%s\n", runoptsMap[runopts]);
+   fprintf(fp,"Algorithm Used :%s\n", runoptsMap[runopts].c_str());
 
    if (runopts == 0 || runopts == 3 || runopts == 5)
    {
@@ -821,7 +789,7 @@ void writeScenario(int puno,int spno,double prop,double cm,
          temp = heurotypeMap[heurotype];
       }
 
-      fprintf(fp,"Heuristic type : %s\n",temp);
+      fprintf(fp,"Heuristic type : %s\n",temp.c_str());
    } else {
       fprintf(fp,"No Heuristic used \n");
    }
@@ -861,11 +829,11 @@ void writeScenario(int puno,int spno,double prop,double cm,
 } // writeScenario
 
 // write a species file - the missing values file: output_mv1.csv output_mvbest.csv
-void writeSpecies(int spno, vector<sspecies> spec, string savename,int imode,double misslevel)
+void writeSpecies(int spno, vector<sspecies>& spec, string savename,int imode,double misslevel)
 {
    int isp, iHeavisideStepFunction;
    string temp = "";
-   double rMPM, rTestMPM, rRawP, rShortfallPenalty;
+   double rMPM, rTestMPM, rRawP, rShortfallPenalty, placeholder;
 
    pair<char, FILE*> fileInfo = GetFileAndDelimiter(savename, imode);
    FILE *fp = fileInfo.second; // Imode = 1, Tab Delimitted Text output, Imode = 2, Arcview output
@@ -922,25 +890,8 @@ void writeSpecies(int spno, vector<sspecies> spec, string savename,int imode,dou
 
       if (fProb1D == 1)
       {
-         if (spec[isp].variance1D > 0)
-               spec[isp].Zscore1D = (spec[isp].target - spec[isp].expected1D) / sqrt(spec[isp].variance1D);
-         else
-               spec[isp].Zscore1D = 4;
-
-         if (spec[isp].Zscore1D >= 0)
-               rRawP = probZUT(spec[isp].Zscore1D);
-         else
-               rRawP = 1 - probZUT(-1 * spec[isp].Zscore1D);
-
-         if (spec[isp].ptarget1d > rRawP)
-               iHeavisideStepFunction = 1;
-         else
-               iHeavisideStepFunction = 0;
-
-         if (spec[isp].ptarget1d > 0)
-               rShortfallPenalty = (spec[isp].ptarget1d - rRawP) / spec[isp].ptarget1d;
-         else
-               rShortfallPenalty = 0;
+         computeProbMeasures(spec[isp].variance1D, spec[isp].target, spec[isp].ptarget1d, spec[isp].expected1D, 
+         spec[isp].Zscore1D, rRawP, iHeavisideStepFunction, rShortfallPenalty, placeholder);
 
          // "ptarget1d EA1D VIEA1D Z1D rawP1D heavisideSF1D shortfallP1D P1D"
          fprintf(fp,"%c%lf%c%lf%c%lf%c%lf%c%lf%c%i%c%lf%c%lf",
@@ -955,25 +906,8 @@ void writeSpecies(int spno, vector<sspecies> spec, string savename,int imode,dou
       }
       if (fProb2D == 1)
       {
-         if (spec[isp].variance2D > 0)
-               spec[isp].Zscore2D = (spec[isp].target - spec[isp].expected2D) / sqrt(spec[isp].variance2D);
-         else
-               spec[isp].Zscore2D = 4;
-
-         if (spec[isp].Zscore2D >= 0)
-               rRawP = probZUT(spec[isp].Zscore2D);
-         else
-               rRawP = 1 - probZUT(-1 * spec[isp].Zscore2D);
-
-         if (spec[isp].ptarget2d > rRawP)
-               iHeavisideStepFunction = 1;
-         else
-               iHeavisideStepFunction = 0;
-
-         if (spec[isp].ptarget2d > 0)
-               rShortfallPenalty = (spec[isp].ptarget2d - rRawP) / spec[isp].ptarget2d;
-         else
-               rShortfallPenalty = 0;
+         computeProbMeasures(spec[isp].variance2D, spec[isp].target, spec[isp].ptarget2d, spec[isp].expected2D, 
+         spec[isp].Zscore2D, rRawP, iHeavisideStepFunction, rShortfallPenalty, placeholder);
 
          // "ptarget2d EA2D VIEA2D Z2D rawP1D heavisideSF1D shortfallP1D P2D"
          fprintf(fp,"%c%lf%c%lf%c%lf%c%lf%c%lf%c%i%c%lf%c%lf",
@@ -994,7 +928,7 @@ void writeSpecies(int spno, vector<sspecies> spec, string savename,int imode,dou
 }  // Output missing species information with new information
 
 // write summed solution file output_ssoln.csv
-void writeSumSoln(int puno, vector<int> sumsoln, vector<spustuff> pu, string savename, int imode)
+void writeSumSoln(int puno, vector<int>& sumsoln, vector<spustuff>& pu, string savename, int imode)
 {
    pair<char, FILE*> fileInfo = GetFileAndDelimiter(savename, imode);
    FILE *fp = fileInfo.second; // Imode = 1, REST output, Imode = 2, Arcview output
@@ -1027,48 +961,17 @@ void writeRichness(int puno, vector<spustuff>& pu, string savename,int iOutputTy
 }
 
 // compute total area available, reserved, excluded. write it to a file if verbosity > 3.
-void computeTotalAreas(int puno,int spno, vector<spustuff> pu, vector<sspecies> spec, vector<spu> SM)
+void computeTotalAreas(int puno,int spno, vector<spustuff>& pu, vector<sspecies>& spec, vector<spu>& SM)
 {
-   int ism, isp;
-   vector<int> TotalOccurrences(spno, 0), TO_2(spno, 0), TO_3(spno, 0);
-   vector<double> TotalAreas(spno, 0), TA_2(spno, 0), TA_3(spno, 0);
-   FILE* TotalAreasFile;
-
    if (verbosity > 3)
    {
-      for (int i=0;i<spno;i++)
-      {
-         TotalAreas[i] = 0;
-         TA_2[i] = 0;
-         TA_3[i] = 0;
-      }
+      vector<int> TotalOccurrences(spno, 0), TO_2(spno, 0), TO_3(spno, 0);
+      vector<double> TotalAreas(spno, 0), TA_2(spno, 0), TA_3(spno, 0);
+      FILE* TotalAreasFile;
 
-      for (int ipu=0;ipu<puno;ipu++)
-      {
-         if (pu[ipu].richness)
-         {
-               for (int i=0;i<pu[ipu].richness;i++)
-               {
-                  ism = pu[ipu].offset + i;
-                  isp = SM[ism].spindex;
-
-                  TotalOccurrences[isp]++;
-                  TotalAreas[isp] += SM[ism].amount;
-
-                  if (pu[ipu].status == 2)
-                  {
-                     TO_2[isp]++;
-                     TA_2[isp] += SM[ism].amount;
-                  }
-
-                  if (pu[ipu].status == 3)
-                  {
-                     TO_3[isp]++;
-                     TA_3[isp] += SM[ism].amount;
-                  }
-               }
-         }
-      }
+      computeOccurrencesAndAreas(puno, pu, SM, 
+         TotalOccurrences, TO_2, TO_3, 
+         TotalAreas, TA_2, TA_3);
 
       TotalAreasFile = fopen("MarOptTotalAreas.csv","w");
       fprintf(TotalAreasFile,"spname,spindex,totalarea,reservedarea,excludedarea,targetarea,totalocc,reservedocc,excludedocc,targetocc\n");
@@ -1081,9 +984,8 @@ void computeTotalAreas(int puno,int spno, vector<spustuff> pu, vector<sspecies> 
 }
 
 // compute total area available, reserved, excluded. write it to a file output_totalareas.csv
-void writeTotalAreas(int puno,int spno, vector<spustuff> pu, vector<sspecies> spec, vector<spu> SM, string savename,int iOutputType)
+void writeTotalAreas(int puno,int spno, vector<spustuff>& pu, vector<sspecies>& spec, vector<spu>& SM, string savename,int iOutputType)
 {
-   int ism, isp;
    vector<int> TotalOccurrences(spno, 0), TO_2(spno, 0), TO_3(spno, 0);
    vector<double> TotalAreas(spno, 0), TA_2(spno, 0), TA_3(spno, 0);
 
@@ -1091,39 +993,9 @@ void writeTotalAreas(int puno,int spno, vector<spustuff> pu, vector<sspecies> sp
    FILE *TotalAreasFile = fileInfo.second;
    char sDelimiter = fileInfo.first;
 
-   for (int i=0;i<spno;i++)
-   {
-      TotalAreas[i] = 0;
-      TA_2[i] = 0;
-      TA_3[i] = 0;
-   }
-
-   for (int ipu=0;ipu<puno;ipu++)
-   {
-      if (pu[ipu].richness)
-      {
-         for (int i=0;i<pu[ipu].richness;i++)
-         {
-            ism = pu[ipu].offset + i;
-            isp = SM[ism].spindex;
-
-            TotalOccurrences[isp]++;
-            TotalAreas[isp] += SM[ism].amount;
-
-            if (pu[ipu].status == 2)
-            {
-               TO_2[isp]++;
-               TA_2[isp] += SM[ism].amount;
-            }
-
-            if (pu[ipu].status == 3)
-            {
-               TO_3[isp]++;
-               TA_3[isp] += SM[ism].amount;
-            }
-         }
-      }
-   }
+   computeOccurrencesAndAreas(puno, pu, SM, 
+      TotalOccurrences, TO_2, TO_3, 
+      TotalAreas, TA_2, TA_3);
 
    fprintf(TotalAreasFile,"spname%ctotalarea%creservedarea%cexcludedarea%ctargetarea%ctotalocc%creservedocc%cexcludedocc%ctargetocc\n",
                         sDelimiter,sDelimiter,sDelimiter,sDelimiter,sDelimiter,sDelimiter,sDelimiter,sDelimiter);
@@ -1135,7 +1007,7 @@ void writeTotalAreas(int puno,int spno, vector<spustuff> pu, vector<sspecies> sp
 }
 
 // write vector R (status of each planning unit) to file. debug aid for annealing algorithms
-void writeR(int iMessage, string sMessage,int puno, vector<int> R, vector<spustuff> pu, sfname& fnames)
+void writeR(int iMessage, string sMessage,int puno, vector<int>& R, vector<spustuff>& pu, sfname& fnames)
 {
    FILE *fp;
    string messagebuffer = sMessage + to_string(iMessage);
@@ -1161,7 +1033,7 @@ void writeR(int iMessage, string sMessage,int puno, vector<int> R, vector<spustu
 
 // debug output for probability 1D
 void writeChangeProbability1DDebugTable(string savename,int iIteration,int ipu,int spno,
-   vector<sspecies> spec, vector<spustuff> pu, vector<spu> SM, int imode)
+   vector<sspecies>& spec, vector<spustuff>& pu, vector<spu>& SM, int imode)
 {
    FILE *fp;
    int ism,isp;
@@ -1189,9 +1061,9 @@ void writeChangeProbability1DDebugTable(string savename,int iIteration,int ipu,i
                NZ[isp] = 4;
 
             if (NZ[isp] >= 0)
-               NRP[isp] = probZUT(NZ[isp]);
+               NRP[isp] = utils::probZUT(NZ[isp]);
             else
-               NRP[isp] = 1 - probZUT(-1 * NZ[isp]);
+               NRP[isp] = 1 - utils::probZUT(-1 * NZ[isp]);
 
             if (spec[isp].variance1D > 0)
                OZ[isp] = (spec[isp].target - spec[isp].expected1D) / sqrt(spec[isp].variance1D);
@@ -1199,9 +1071,9 @@ void writeChangeProbability1DDebugTable(string savename,int iIteration,int ipu,i
                OZ[isp] = 4;
 
             if (OZ[isp] >= 0)
-               ORP[isp] = probZUT(OZ[isp]);
+               ORP[isp] = utils::probZUT(OZ[isp]);
             else
-               ORP[isp] = 1 - probZUT(-1 * OZ[isp]);
+               ORP[isp] = 1 - utils::probZUT(-1 * OZ[isp]);
 
             if (spec[isp].ptarget1d > NRP[isp])
                NHSF[isp] = 1;
@@ -1232,7 +1104,7 @@ void writeChangeProbability1DDebugTable(string savename,int iIteration,int ipu,i
 
 // debug output for probability 2D
 void writeChangeProbability2DDebugTable(string savename,int iIteration,int ipu,int spno,
-   vector<sspecies> spec, vector<spustuff> pu, vector<spu> SM, int imode)
+   vector<sspecies>& spec, vector<spustuff>& pu, vector<spu>& SM, int imode)
 {
    FILE *fp;
    int ism,isp;
@@ -1261,9 +1133,9 @@ void writeChangeProbability2DDebugTable(string savename,int iIteration,int ipu,i
                NZ[isp] = 4;
 
             if (NZ[isp] >= 0)
-               NP[isp] = probZUT(NZ[isp]);
+               NP[isp] = utils::probZUT(NZ[isp]);
             else
-               NP[isp] = 1 - probZUT(-1 * NZ[isp]);
+               NP[isp] = 1 - utils::probZUT(-1 * NZ[isp]);
 
             if (spec[isp].variance1D > 0)
                OZ[isp] = (spec[isp].target - spec[isp].expected2D) / sqrt(spec[isp].variance2D);
@@ -1271,9 +1143,9 @@ void writeChangeProbability2DDebugTable(string savename,int iIteration,int ipu,i
                OZ[isp] = 4;
 
             if (OZ[isp] >= 0)
-               OP[isp] = probZUT(OZ[isp]);
+               OP[isp] = utils::probZUT(OZ[isp]);
             else
-               OP[isp] = 1 - probZUT(-1 * OZ[isp]);
+               OP[isp] = 1 - utils::probZUT(-1 * OZ[isp]);
 
             if (spec[isp].ptarget2d > NP[isp])
                NHSF[isp] = 1;
@@ -1325,24 +1197,10 @@ void writeProbData(int puno, vector<spustuff> pu, sfname& fnames)
 // make a backup copy of a connection file
 void copyFile(string sInputFile, string sOutputFile)
 {
-   FILE *fpInputFile, *fpOutputFile;
-   char ch;
+   ifstream src(sInputFile.c_str(), ios::binary);
+   ofstream dst(sOutputFile.c_str(), ios::binary);
 
-   if ((fpInputFile = fopen(sInputFile.c_str(), "rb"))!=NULL)
-   // if the input file does not exist, then exit gracefully
-   {
-      fpOutputFile = fopen(sOutputFile.c_str(), "wb");
-
-      while (!feof(fpInputFile))
-      {
-         ch = fgetc(fpInputFile);
-         if (!feof(fpInputFile))
-               fputc(ch, fpOutputFile);
-      }
-
-      fclose(fpInputFile);
-      fclose(fpOutputFile);
-   }
+   dst << src.rdbuf();
 }
 
 // Display statistics for a configuration of planning unit
@@ -1352,21 +1210,14 @@ stringstream displayValueForPUs(int puno, int spno, vector<int>& R, scost& reser
 {
    stringstream displayValue;
    int i, isp = 0;
-   double connectiontemp = 0, shortfall, rMPM;
+   double shortfall, rMPM;
 
    #ifdef DEBUG_PRINTRESVALPROB
    appendTraceFile("displayValueForPUs start\n");
    #endif
 
    isp = computeRepresentationMISSLEVEL(spno,spec,misslevel,shortfall,rMPM);
-
-   for (int i=0;i<puno;i++)
-   {
-      if (R[i]==1 || R[i] == 2)
-      {
-         connectiontemp += ConnectionCost2(i,connections,R,1,0,1);
-      }
-   }
+   double connectiontemp = computeTotalConnection2(puno, R, connections);
 
    #ifdef DEBUG_PRINTRESVALPROB
    appendTraceFile("PrintResVal missing %i connectiontemp %g\n",isp,connectiontemp);

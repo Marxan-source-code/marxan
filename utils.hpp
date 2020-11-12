@@ -1,33 +1,18 @@
 #pragma once
 // Helper functions for marxan execution.
+// Unit functions with no depedency on marxan specific structures or logic.
 
 #include <algorithm>
 #include <cctype>
 #include <locale>
 #include <random>
+#include <string>
 
 namespace marxan {
 namespace utils {
 
-// return random number between 0 and parameter n-1
-// not recommended to call repeatedly as the initialization is relatively expensive. Use for one-off calls.
-// if needed for repeated use, consider initializing the distribution locally.
 inline
-int returnRandom (int num, std::mt19937& mt)
-{
-    std::uniform_int_distribution<int> int_range(0, num-1);
-    return int_range(mt);
-}
-
-// similar to above, not recommended for repeated use in loops.
-inline
-double returnRandomFloat(std::mt19937& mt) {
-    std::uniform_real_distribution<double> float_range(0.0, 1.0);
-    return float_range(mt);
-}
-
-inline
-string getFileNameSuffix(int suffixMode) {
+std::string getFileNameSuffix(int suffixMode) {
     if (suffixMode == 3) {
         return ".csv";
     }
@@ -65,13 +50,32 @@ void trim(std::string &s) {
 
 // Adds '/' or '\' to end of dir string if not existent
 inline
-string cleanDirectoryString(string dirName) {
+std::string cleanDirectoryString(std::string dirName) {
     if (dirName.back() != '\\' && dirName.back() != '/') {
         return dirName + "/";
     }
 
     return dirName;
 }
+
+inline
+double probZUT(double z)
+/*
+Using erf as it can be transformed into the standard normal function:
+http://www.cplusplus.com/reference/cmath/erf/
+See discussion https://stackoverflow.com/questions/27214780/how-to-implement-the-standard-normal-cumulative-distribution-function-in-c-or-o
+*/
+{
+    return 1 - (1/2)*(1 + erf(z/sqrt(2)));
+}
+
+inline
+double probZLT(double z)
+{
+    return (1/2)*(1 + erf(z/sqrt(2)));
+}
+
+
 
 } // namespace utils
 } // namespace marxan

@@ -2,7 +2,7 @@
 #include <algorithm>
 #include <stdexcept>
 
-#include "marxan.hpp"
+#include "computation.hpp"
 
 // functions relating to species clumping
 
@@ -14,13 +14,13 @@ namespace marxan {
    {
       if (pu[iPUIndex].richness > 0)
          for (int i=0;i<pu[iPUIndex].richness;i++)
-               if (SM[pu[iPUIndex].offset + i].spindex == iSpecIndex)
-                  if (thread == -1) {
-                     return SM[pu[iPUIndex].offset + i].clump[0]; //TODO verify thread change
-                  }
-                  else {
-                     return SM[pu[iPUIndex].offset + i].clump[thread]; //TODO verify thread change
-                  }
+            if (SM[pu[iPUIndex].offset + i].spindex == iSpecIndex)
+               if (thread == -1) {
+                  return SM[pu[iPUIndex].offset + i].clump[0]; //TODO verify thread change
+               }
+               else {
+                  return SM[pu[iPUIndex].offset + i].clump[thread]; //TODO verify thread change
+               }
 
       return 0;
    }
@@ -60,10 +60,6 @@ namespace marxan {
          int &clumppu, vector<sconnections> &connections, vector<spu> &SM,
          double &totalamount,int &totalocc,
          int &iseparation, int imode, int clumptype, int thread) {
-      
-      //if (clump.empty()) {
-      //   throw runtime_error("Error in ClumpCut. clump argument is empty.");
-      //}
 
       int ineighbour = 0,iclumps = 0;
       vector<int> newhead, head;
@@ -114,7 +110,7 @@ namespace marxan {
                if (pclumpu != clumppu) {
                   sclumps temp;
                   temp.clumpid = pclumpu;
-                  temp.amount = clump.amount - returnAmountSpecAtPu(pu,SM,clumppu,isp);
+                  temp.amount = clump.amount - returnAmountSpecAtPu(pu[clumppu],SM,isp).second;
                   spclump.push_back(temp);
                }
             }
@@ -124,7 +120,7 @@ namespace marxan {
             iseparation = spec[isp].sepnum;
          }
          
-         rAmount = returnAmountSpecAtPu(pu,SM,clumppu,isp);
+         rAmount = returnAmountSpecAtPu(pu[clumppu],SM,isp).second;
          totalamount = PartialPen4(isp,clump.amount-rAmount,spec,clumptype);
          totalocc = (clump.occs - (rAmount > 0))*(totalamount > 0); // count only if still valid size
          
@@ -169,7 +165,7 @@ namespace marxan {
 
          iocc = 0;
          for (int id2: clumplist) {
-            rAmount = returnAmountSpecAtPu(pu,SM,id2,isp);
+            rAmount = returnAmountSpecAtPu(pu[id2],SM,isp).second;
             clumpamount += rAmount;
             iocc += (rAmount > 0);
          }
@@ -253,8 +249,6 @@ namespace marxan {
    // Add New Clump
    sclumps AddNewClump(int isp,int ipu,vector<sspecies> &spec,vector<spustuff> &pu, vector<spu> &SM, int thread) {
       int iclumpno = 0;
-      //struct sclumps *pclump,*pnewclump;
-      //struct sclumppu *pnewclumppu;
       double rAmount;
 
       if (spec[isp].head.empty()) {
@@ -292,7 +286,7 @@ namespace marxan {
       sclumps temp;
       temp.clumpid = iclumpno;
       temp.head.push_back(ipu);
-      rAmount = returnAmountSpecAtPu(pu,SM,ipu,isp);
+      rAmount = returnAmountSpecAtPu(pu[ipu],SM,isp).second;
       temp.amount = rAmount;
       temp.occs = (rAmount > 0);
 
@@ -342,7 +336,7 @@ namespace marxan {
                ftemp = PartialPen4(isp,spec[isp].head[ind].amount,spec,clumptype);
                spec[isp].amount -= ftemp;
                spec[isp].occurrence -= spec[isp].head[ind].occs *(ftemp > 0);
-               rAmount = returnAmountSpecAtPu(pu,SM,ipu,isp);
+               rAmount = returnAmountSpecAtPu(pu[ipu],SM,isp).second;
                spec[isp].head[ind].occs += (rAmount > 0);
                spec[isp].head[ind].amount += rAmount;
             }
@@ -457,7 +451,7 @@ namespace marxan {
       }
 
       if (ineighbours <= 1) {
-         rAmount = returnAmountSpecAtPu(pu,SM,ipu,isp);
+         rAmount = returnAmountSpecAtPu(pu[ipu],SM,isp).second;
          oldclump.amount -= rAmount;
          oldclump.occs -= (rAmount > 0);
          newamount = PartialPen4(isp,oldclump.amount,spec,clumptype);
@@ -496,7 +490,7 @@ namespace marxan {
                   oldclump.head.erase(eraseIt);
 
                   setClumpSpecAtPu(pu,SM,id2,isp,pclump.clumpid, thread);
-                  rAmount = returnAmountSpecAtPu(pu,SM,id2,isp);
+                  rAmount = returnAmountSpecAtPu(pu[id2],SM,isp).second;
                   pclump.amount += rAmount;
                   pclump.occs += (rAmount>0);
                   
@@ -553,7 +547,7 @@ namespace marxan {
       /*** Step 1. Make a list of all the possible PUs to be included ****/
       vector<int> plisthead;
       for (int i=0;i<puno;i++) {
-         if (returnAmountSpecAtPu(pu,SM,i,isp) > 0)
+         if (returnAmountSpecAtPu(pu[i],SM,isp).second > 0)
          {
             if (pu[i].status==3) continue; /* not allowed to consider this one */
             if (pu[i].status==2)
@@ -683,7 +677,7 @@ namespace marxan {
                   i = 1;
                if (i)
                {
-                  rAmount = returnAmountSpecAtPu(pu,SM,oldPu,isp);
+                  rAmount = returnAmountSpecAtPu(pu[oldPu],SM,isp).second;
                   if ((pclump.amount - rAmount > spec[isp].target2) && (spec[isp].amount - rAmount > spec[isp].target))
                      i = 1;
                   else
@@ -802,8 +796,6 @@ namespace marxan {
       vector<sneighbour> pnbr;
       vector<sclumps> head;
       vector<sclumps> sepclump;
-      //struct sclumps *pclump,*sepclump=NULL,*psclump;
-      struct sclumppu *ppu;
       double amount,oldamount = 0.0,shortfall;
       int oldoccs = 0,occs, iClump;
 
@@ -855,7 +847,7 @@ namespace marxan {
       } /* Add ipu to my sepclump list */
 
       /* now I know number and names of neighbouring clumps */
-      amount = returnAmountSpecAtPu(pu,SM,ipu,isp);
+      amount = returnAmountSpecAtPu(pu[ipu],SM,isp).second;
       occs = (amount > 0);
       for(sclumps plink: head) {
             amount += plink.amount;
@@ -895,7 +887,7 @@ namespace marxan {
                   }
       if (spec[isp].target && spec[isp].targetocc)
             shortfall /= 2;
-      return(shortfall + SepPenalty(iseparation,spec[isp].sepnum));
+      return(shortfall + computeSepPenalty(iseparation,spec[isp].sepnum));
    }
 
    /** Value Remove. The amount of species loss for removing a single pu */
@@ -947,7 +939,7 @@ namespace marxan {
       /*  if (isp ==16) printf("shortfall %.2f occ %i newocc %i pclump->amount %.2f\n",
                shortfall, spec[isp].occurrence,newocc,pclump->amount);*/
 
-      return(shortfall + SepPenalty(iseparation,spec[isp].sepnum));
+      return(shortfall + computeSepPenalty(iseparation,spec[isp].sepnum));
    }
 
    /***************   NewPenalty4   *********************/
@@ -973,7 +965,7 @@ namespace marxan {
             vector<spu> &SM,int imode, int thread) {
 
       // Returns true if ipu is acceptable as a planning unit
-      int i =  returnIndexSpecAtPu(pu,SM,ipu,isp);
+      int i =  returnAmountSpecAtPu(pu[ipu],SM,isp).first;
       sclumps pclump;
       bool found = false;
 
@@ -1088,23 +1080,6 @@ namespace marxan {
       return(sepcount);
    } // CountSeparation
 
-   // Sep Penalty
-   // This returns the penalty for not meeting separation requirments. Feed in sepnum and current
-   //  separation and returns a value from 0 to 1 which is an artificial shortfall.
-   double SepPenalty(int ival,int itarget)
-   {
-      double fval;
-
-      if (!itarget)
-         return (0); /* no penalty if no separation requirement*/
-         
-      fval = (double) ival / (double) itarget;
-      if (!ival)
-         fval = 1.0 /(double) itarget;
-
-      return (1/(7*fval+0.2)-(1/7.2)); // Gives a nice hyperbole with fval = 1 return 0 and fval = 0 or 0.1 returning almost 1
-   } // SepPenalty
-
    /* This is a modified form of count separation where the user can specify any
     maximum separation distance rather than just assuming a sep distance of three */
    /* ipu and newno used when imode <> 0. When counting as if ipu were added or removed
@@ -1209,9 +1184,6 @@ namespace marxan {
    // isp is present (or NULL), in the form of a slink link list
    vector<int> makelist(int isp,int ipu, int puno,vector<int> &R, vector<sclumps> &newno,vector<sspecies> &spec,
                        vector<spustuff> &pu,vector<spu> &SM,int imode, int thread) {
-      struct sclumps *pclump;
-      struct sclumppu *ppu;
-      double rAmount = returnAmountSpecAtPu(pu,SM,ipu,isp);
 
       // Note! Changes made so that we append to end instead of inserting to beginning of linked list. 
       vector<int> head;
@@ -1242,6 +1214,7 @@ namespace marxan {
       } // if target2
       else
       {
+         double rAmount = returnAmountSpecAtPu(pu[ipu],SM,isp).second;
          // non clumping species
          if ((imode ==1) && rAmount)
          {
@@ -1316,34 +1289,6 @@ namespace marxan {
       }
 
       return(bestsep);
-   }
-
-   double ConnectionCost1(int ipu, vector<spustuff> &pu, vector<sconnections> &connections, double cm) {
-      double fcost;
-      struct sneighbour *p;
-      #ifdef DEBUG_CONNECTIONCOST
-      char debugbuffer[200];
-      #endif
-
-      fcost = connections[ipu].fixedcost;
-      for (auto& p : connections[ipu].first) {
-         if (asymmetricconnectivity)
-         {
-            if (p.connectionorigon)
-               fcost += p.cost;
-         }
-         else 
-         {
-            fcost += p.cost;
-         }
-      }
-
-      #ifdef DEBUG_CONNECTIONCOST
-      sprintf(debugbuffer,"ConnectionCost1 ipu %i connection %g\n",ipu,fcost);
-      appendTraceFile(debugbuffer);
-      #endif
-
-      return(fcost*cm);
    }
 
    // ********* Connection Cost Type 2 **************

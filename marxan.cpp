@@ -26,6 +26,7 @@
 #undef DEBUG_PROB1D
 #undef DEBUG_PROB2D
 
+#include <algorithm>
 #include <chrono>
 #include <ctime>
 #include <cfloat>
@@ -33,10 +34,13 @@
 #include <omp.h>
 
 // load the required function definition modules
+#include "algorithms.hpp"
+#include "computation.hpp"
 #include "marxan.hpp"
 #include "utils.hpp"
 
 namespace marxan {
+using namespace algorithms;
 using namespace utils;
 
 // Initialize global constants
@@ -154,8 +158,7 @@ void executeRunLoop(int iSparseMatrixFileLength, long int repeats,int puno,int s
 
         appendTraceFile("before computeReserveValue run %i\n", i);
 
-        initialiseReserve(puno, prop, R); // Create Initial Reserve
-        addReserve(puno, pu, R);
+        initialiseReserve(prop, pu, R, rngEngine); // Create Initial Reserve
         SpeciesAmounts(spno,puno,spec,pu,SMGlobal,R,clumptype); // Re-added this from v2.4 because spec amounts need to be refreshed when initializing
 
         if (aggexist)
@@ -328,7 +331,6 @@ int executeMarxan(string sInputFileName)
     int iSparseMatrixFileLength = 0, iSparseMatrixFileLength_sporder = 0;
     long int repeats;
     int puno,spno,gspno;
-    vector<sgenspec> gspec;
     double cm,prop;
     int runopts,heurotype,clumptype,itimptype;
     string savename,tempname2;
@@ -415,7 +417,7 @@ int executeMarxan(string sInputFileName)
     appendTraceFile("before build search arrays\n");
 
     // create the fast lookup tables for planning units and species names
-    computeBinarySearch(puno,spno,pu,specGlobal,PULookup,SPLookup);
+    populateLookupTables(puno,spno,pu,specGlobal,PULookup,SPLookup);
 
     appendTraceFile("after build search arrays\n");
 
@@ -489,11 +491,12 @@ int executeMarxan(string sInputFileName)
     if  (!fnames.blockdefname.empty())
     {
         displayProgress1("    Reading in the Block Definition File \n");
+        vector<sgenspec> gspec; // declare within this scope of usage
         readSpeciesBlockDefinition(gspno,gspec,fnames);
         setBlockDefinitions(gspno,spno,puno,gspec,specGlobal,pu,SMGlobal);
     }
 
-    setDefaultTargets(spno,specGlobal);
+    setDefaultTargets(specGlobal);
     appendTraceFile("after process block definitions\n");
 
     appendTraceFile("before computeTotalAreas\n");
@@ -566,7 +569,7 @@ int executeMarxan(string sInputFileName)
         }
 
         // transfer loaded penalties to correct data structrure
-        applyUserPenalties(specGlobal,spno);
+        applyUserPenalties(specGlobal);
     }
     else
     {
@@ -641,39 +644,26 @@ int executeMarxan(string sInputFileName)
     }
 
     // If we are in a runmode with only CalcPenalties, we stop/exit here gracefully because we are finished.
-    if (runoptions.HeuristicOn == 0)
+    if (runoptions.HeuristicOn == 0 && runoptions.ThermalAnnealingOn == 0 && runoptions.QuantumAnnealingOn == 0 && runoptions.ItImpOn == 0)
     {
-        if (runoptions.ThermalAnnealingOn == 0)
-        {
-            if (runoptions.QuantumAnnealingOn == 0)
-            {
-                if (runoptions.ItImpOn == 0)
-                {
-                    appendTraceFile("end final file output\n");
-                    appendTraceFile("\nMarxan end execution\n");
-                    displayShutdownMessage();
+        appendTraceFile("end final file output\n");
+        appendTraceFile("\nMarxan end execution\n");
+        displayShutdownMessage();
 
-                    if (marxanIsSecondary == 1)
-                        secondaryExit();
+        if (marxanIsSecondary == 1)
+            secondaryExit();
 
-                    if (aggexist)
-                        ClearClumps(spno,specGlobal,pu,SMGlobal);  // Remove these pointers for cleanliness sake
+        if (aggexist)
+            ClearClumps(spno, specGlobal, pu, SMGlobal); // Remove these pointers for cleanliness sake
 
-                    if (fnames.savelog)
-                        createLogFile(0,NULL);  /* tidy up files */
+        if (fnames.savelog)
+            createLogFile(0, NULL); /* tidy up files */
 
-                    exit(1);
-                }
-            }
-        }
+        exit(1);
     }
 
     if (fnames.savesolutionsmatrix)
     {
-        #ifdef DEBUG_CLUSTERANALYSIS
-        appendTraceFile("before sprintf savename %s\n",savename);
-        #endif
-
         tempname2 = savename + "_solutionsmatrix" + getFileNameSuffix(fnames.savesolutionsmatrix);
 
         #ifdef DEBUG_CLUSTERANALYSIS
@@ -751,47 +741,6 @@ int executeMarxan(string sInputFileName)
     return 0;
 } // executeMarxan
 
-int returnIndexSpecAtPu(vector<spustuff> &pu, vector<spu> &SM, int iPUIndex, int iSpecIndex)
-{
-    if (pu[iPUIndex].richness > 0)
-    {
-        for (int i=0;i<pu[iPUIndex].richness;i++)
-            if (SM[pu[iPUIndex].offset + i].spindex == iSpecIndex)
-                return (pu[iPUIndex].offset + i);
-    }
-
-    return -1; // if an index is not otherwise found, we return -1 to indicate no index was found
-}
-
-double returnAmountSpecAtPu(vector<spustuff> &pu, vector<spu> &SM, int iPUIndex, int iSpecIndex)
-{
-    if (pu[iPUIndex].richness > 0)
-        for (int i=0;i<pu[iPUIndex].richness;i++)
-            if (SM[pu[iPUIndex].offset + i].spindex == iSpecIndex)
-                return SM[pu[iPUIndex].offset + i].amount;
-
-    return 0;
-}
-
-// compute proportional target for species when prop target is specified
-// use the prop value from the conservation feature file to set a proportion target for species
-void computeSpecProp(int spno, vector<sspecies> &spec, int puno, vector<spustuff> &pu, vector<spu> &SM)
-{
-    // compute and set target for species with a prop value
-    double totalamount;
-    int isp, ipu;
-
-    for (isp=0;isp<spno;isp++)
-    {
-        if (spec[isp].prop > 0)
-        {
-            for (ipu = 0,totalamount = 0;ipu<puno;ipu++)
-                totalamount += returnAmountSpecAtPu(pu,SM,ipu,isp);
-            spec[isp].target = totalamount * spec[isp].prop;
-        }
-    }
-}
-
 void SpeciesAmounts(int spno,int puno, vector<sspecies>& spec, vector<spustuff>& pu, vector<spu>& SM,
                     vector<int>& R,int clumptype)
 {
@@ -839,9 +788,7 @@ void setBlockDefinitions(int gspno,int spno,int puno, vector<sgenspec> &gspec, v
             {
                 if (spec[isp].type == gspec[igsp].type && spec[isp].target < 0)
                 {
-                    for (ipu=0,totalamount =0;ipu<puno;ipu++)
-                        totalamount += returnAmountSpecAtPu(PU,SM,ipu,isp);
-                    spec[isp].target = totalamount * gspec[igsp].prop;
+                    spec[isp].target = computeTotalSpecAmtAllPu(PU, SM, isp) * gspec[igsp].prop;
                 } // Setting target with percentage
             }
         }
@@ -900,27 +847,6 @@ void setBlockDefinitions(int gspno,int spno,int puno, vector<sgenspec> &gspec, v
         // according to percentage
     }
 } // setBlockDefinitions
-
-// set default targets for species
-void setDefaultTargets(int spno, vector<sspecies> &spec)
-{
-    int isp;
-    for (isp=0;isp<spno;isp++)
-    {
-        if (spec[isp].target <0)
-            spec[isp].target = 0;
-        if (spec[isp].target2 < 0)
-            spec[isp].target2 = 0;
-        if (spec[isp].targetocc < 0)
-            spec[isp].targetocc = 0;
-        if (spec[isp].sepnum < 0)
-            spec[isp].sepnum = 0;
-        if (spec[isp].sepdistance < 0)
-            spec[isp].sepdistance = 0;
-        if (spec[isp].spf < 0)
-            spec[isp].spf = 1;
-    }
-}
 
 // TODO ADBAI - needs refactoring
 // set default run options based on the selection algorithm chosen
@@ -1046,26 +972,16 @@ void setDefaultRunOptions(int runopts, srunoptions &runoptions)
     }
 } // setDefaultRunOptions
 
-void addReserve(int puno,vector<spustuff> &pu, vector<int> &R)
-{
-    int i;
-    for (i=0;i<puno;i++)
-    {
-        if (pu[i].status)
-            R[i] = pu[i].status; // set planning unit status to pu.dat status
-    }
-}
-
 // compute initial penalties for species with a greedy algorithm.
 // If species has spatial requirements then CalcPenaltyType4 is used instead
 int computePenalties(int puno,int spno, vector<spustuff> &pu, vector<sspecies> &spec,
-                     vector<sconnections> &connections, vector<spu> &SM, vector<int> &PUtemp, int aggexist, double cm, int clumptype, int thread)
+                     vector<sconnections> &connections, vector<spu> &SM, int aggexist, double cm, int clumptype, int thread)
 {
     int i,j,ibest,imaxtarget,itargetocc;
     double ftarget,fbest,fbestrat,fcost,ftemp, rAmount;
     int badspecies = 0,goodspecies = 0;
-
-    addReserve(puno,pu,PUtemp); // Adds existing reserve to PUtemp
+    vector<int> PUtemp(puno); 
+    initialiseReserve(0,pu,PUtemp, rngEngine); // Initialize reserve to 0 and fixed. 
 
     for (i=0;i<spno;i++)
     {
@@ -1080,21 +996,7 @@ int computePenalties(int puno,int spno, vector<spustuff> &pu, vector<sspecies> &
             continue;
         } // Species has aggregation requirements
 
-        ftarget = 0;
-        itargetocc = 0;
-        spec[i].penalty = 0;
-
-        for (j=0;j<puno;j++)
-        {
-            if (PUtemp[j] < 2)
-                PUtemp[j] = 0;
-            if (PUtemp[j] == 2)
-            {
-                ftarget += returnAmountSpecAtPu(pu,SM,j,i);
-                itargetocc++;
-                spec[i].penalty += computePlanningUnitValue(j,pu,connections,cm);
-            }
-        } // reset PUtemp and also target
+        computeFixedPenaltyForSpec(PUtemp, pu, SM, connections, i, ftarget, itargetocc, spec[i].penalty, cm, asymmetricconnectivity);
 
         // Already adequately represented on type 2 planning unit
         if (ftarget >= spec[i].target && itargetocc >= spec[i].targetocc)
@@ -1108,15 +1010,19 @@ int computePenalties(int puno,int spno, vector<spustuff> &pu, vector<sspecies> &
             continue;
         } // Target met in unremovable reserve
 
+        // Reset non fixed pu
+        for (int j = 0; j < puno; j++)
+            if (PUtemp[j] < 2) PUtemp[j] = 0; 
+
         do
         {
             fbest =0; imaxtarget = 0; fbestrat = 0;
             for (j=0;j<puno;j++)
             { // trying to find best pu
-                rAmount = returnAmountSpecAtPu(pu,SM,j,i);
+                rAmount = returnAmountSpecAtPu(pu[j],SM,i).second;
                 if (PUtemp[j] == 0 && rAmount>0)
                 {
-                    fcost = computePlanningUnitValue(j,pu,connections,cm);
+                    fcost = computePlanningUnitValue(pu[j],connections[j],cm, asymmetricconnectivity);
                     if (fcost == 0)
                         fcost = delta;
                     if (rAmount >= spec[i].target - ftarget && (imaxtarget == 0 || (imaxtarget == 1 && fcost < fbest)))
@@ -1142,7 +1048,7 @@ int computePenalties(int puno,int spno, vector<spustuff> &pu, vector<sspecies> &
             if (fbest > 0)
             {
                 PUtemp[ibest] = 1;
-                ftarget += returnAmountSpecAtPu(pu,SM,ibest,i);
+                ftarget += returnAmountSpecAtPu(pu[ibest],SM,i).second;
                 itargetocc++;
                 spec[i].penalty += fbest;
 
@@ -1194,7 +1100,7 @@ int computePenaltiesOptimise(int puno,int spno, vector<spustuff> &pu, vector<ssp
 
     appendTraceFile("CalcPenaltiesOptimise start\n");
 
-    addReserve(puno,pu,PUtemp); // Adds existing reserve to PUtemp
+    initialiseReserve(puno,pu,PUtemp, rngEngine); // Adds existing reserve to PUtemp
 
     for (i=0;i<spno;i++)
     {
@@ -1225,7 +1131,7 @@ int computePenaltiesOptimise(int puno,int spno, vector<spustuff> &pu, vector<ssp
                 {
                     ftarget += SMsp[ism].amount;
                     itargetocc++;
-                    spec[i].penalty += computePlanningUnitValue(ipu,pu,connections,cm);
+                    spec[i].penalty += computePlanningUnitValue(pu[ipu],connections[ipu],cm, asymmetricconnectivity);
                 }
             }
         }
@@ -1252,7 +1158,7 @@ int computePenaltiesOptimise(int puno,int spno, vector<spustuff> &pu, vector<ssp
                     rAmount = SMsp[ism].amount;
                     if (PUtemp[ipu] == 0)
                     { // Making sure only checking planning units not already used
-                        fcost = computePlanningUnitValue(ipu,pu,connections,cm);
+                        fcost = computePlanningUnitValue(pu[ipu],connections[ipu],cm, asymmetricconnectivity);
                         if (fcost == 0)
                            fcost = delta;
                         if (rAmount >= spec[i].target - ftarget && (imaxtarget == 0
@@ -1316,17 +1222,6 @@ int computePenaltiesOptimise(int puno,int spno, vector<spustuff> &pu, vector<ssp
     return(badspecies);
 } // computePenaltiesOptimise
 
-// compute cost + connectivity for a single planning unit
-double computePlanningUnitValue(int ipu, vector<spustuff> &pu, vector<sconnections> &connections, double cm)
-{
-    double theValue;
-
-    theValue = pu[ipu].cost;
-    theValue += ConnectionCost1(ipu,pu,connections,cm);
-
-    return(theValue);
-}
-
 // compute change in the species representation for adding or removing a single planning unit or set of planning units
 double computeChangePenalty(int ipu,int puno, vector<sspecies>& spec, vector<spustuff>& pu, vector<spu>& SM,
                           vector<int>& R, vector<sconnections>& connections, int imode, int clumptype, double& rShortfall, int thread)
@@ -1353,21 +1248,17 @@ double computeChangePenalty(int ipu,int puno, vector<sspecies>& spec, vector<spu
         {
             ism = pu[ipu].offset + i;
             isp = SM[ism].spindex;
-            if (SM[ism].amount)
+            if (SM[ism].amount)  /** Only worry about PUs where species occurs and target != 0 **/
             {
                 fractionAmount = 0;
                 newamount = 0; /* Shortfall */
 
                 rOldShortfall = 0;
                 rNewShortfall = 0;
-
-                if (spec[isp].target > spec[isp].amount)
+                
+                if (spec[isp].target > spec[isp].amount && spec[isp].target != 0)
                 {
-                    if (spec[isp].target != 0)
-                    {
-                        fractionAmount = (spec[isp].target - spec[isp].amount) / spec[isp].target;
-                    }
-
+                    fractionAmount = (spec[isp].target - spec[isp].amount) / spec[isp].target;
                     rOldShortfall = spec[isp].target - spec[isp].amount;
                 }
 
@@ -1388,7 +1279,7 @@ double computeChangePenalty(int ipu,int puno, vector<sspecies>& spec, vector<spu
                 }
 
                 if (spec[isp].sepnum)
-                    fractionAmount += SepPenalty(spec[isp].separation, spec[isp].sepnum);
+                    fractionAmount += computeSepPenalty(spec[isp].separation, spec[isp].sepnum);
 
                 if (spec[isp].target2)
                 {
@@ -1409,7 +1300,7 @@ double computeChangePenalty(int ipu,int puno, vector<sspecies>& spec, vector<spu
                     if (spec[isp].target && spec[isp].targetocc)
                         newamount /= 2;
                     if (spec[isp].sepnum)
-                        newamount += SepPenalty(CountSeparation2(isp, ipu, tempSclumps, puno, R, pu, SM, spec, imode, thread),
+                        newamount += computeSepPenalty(CountSeparation2(isp, ipu, tempSclumps, puno, R, pu, SM, spec, imode, thread),
                                                 spec[isp].sepnum); /* I need a new function here */
 #ifdef ANNEALING_TEST
                     if (ipu == (puno - 1))
@@ -1420,16 +1311,9 @@ double computeChangePenalty(int ipu,int puno, vector<sspecies>& spec, vector<spu
 #endif
                 } /* no target2 */
 
-                if (isinf(fractionAmount) != 0)
-                {
-                    printf("\nfractionAmount infinite fractionAmount >%g<\n", fractionAmount);
-                }
                 penalty += spec[isp].penalty * spec[isp].spf * (newamount - fractionAmount);
-                if (isinf(penalty) != 0)
-                {
-                    printf("\ncomputeChangePenalty infinite ncomputeChangePenalty >%g<\n", penalty);
-                }
-            } /** Only worry about PUs where species occurs **/
+
+            }
 
 #ifdef DEBUGCHANGEPEN
             sprintf(debugline, "%i,%i,%i,%i,%g,%g,%i,%i,%i,%g,%g,%g\n",
@@ -1532,7 +1416,7 @@ void computeReserveValue(int puno,int spno, vector<int> &R, vector<spustuff> &pu
         if (spec[i].sepnum)
         {
             spec[i].separation = CountSeparation2(i,0,tempSclumps,puno,R,pu,SM,spec,0, thread);
-            reserve.penalty += SepPenalty(spec[i].separation,spec[i].sepnum) *
+            reserve.penalty += computeSepPenalty(spec[i].separation,spec[i].sepnum) *
                                 spec[i].spf*spec[i].penalty;
         }
     }
@@ -1641,13 +1525,6 @@ void computeReserveValue(int puno,int spno, vector<int> &R, vector<spustuff> &pu
         }
     }
 } // computeReserveValue
-
-void initialiseReserve(int puno,double prop, vector<int> &R)
-{
-    uniform_real_distribution<double> float_range(0.0, 1.0);
-    for (int i=0;i<puno;i++)
-        R[i] = float_range(rngEngine) < prop ? 1:0;
-}
 
 // sets cost threshold penalty when "cost threshold" is in use
 double thresholdPenalty(double tpf1,double tpf2,double timeprop)
@@ -1846,19 +1723,6 @@ void computeQuantumChangeScore(int spno,int puno, vector<spustuff> pu, vector<sc
 #endif
 } // computeQuantumChangeScore
 
-// compute penalty for a species for changing status of a single planning unit
-double computeSpeciesPlanningUnitPenalty(int ipu,int isp,vector<sspecies> &spec,vector<spustuff> &pu, vector<spu> &SM,int imode)
-{
-    double newpen;
-
-    newpen = spec[isp].target - spec[isp].amount - returnAmountSpecAtPu(pu,SM,ipu,isp)*imode;
-
-    if (newpen < 0)
-        newpen = 0;
-
-    return(newpen);
-}
-
 // determines if the change value for changing a single planning unit status is good
 // does the change stochastically fall below the current acceptance probability?
 int isGoodChange(scost& change,double temp, uniform_real_distribution<double>& float_range)
@@ -1868,12 +1732,12 @@ int isGoodChange(scost& change,double temp, uniform_real_distribution<double>& f
 
 // determines if the change value for changing status for a set of planning units is good
 // does it stochastically fall below the current acceptance probability?
-int isGoodQuantumChange(struct scost change,double rProbAcceptance)
+int isGoodQuantumChange(struct scost change,double rProbAcceptance, uniform_real_distribution<double>& float_range)
 {
     if (change.total <= 0)
         return 1;
     else
-        return (rProbAcceptance > returnRandomFloat(rngEngine)) ? 1 : 0;
+        return (rProbAcceptance > float_range(rngEngine)) ? 1 : 0;
 }
 
 // change the status of a single planning unit
@@ -1881,7 +1745,6 @@ void doChange(int ipu,int puno,vector<int> &R, scost &reserve, scost &change,
               vector<spustuff> &pu,vector<spu> &SM,vector<sspecies> &spec,vector<sconnections> &connections,
               int imode,int clumptype, int thread)
 {
-    vector<sclumps> tempSclumps;
     int i, ism, isp;
     double rAmount;
 
@@ -1900,7 +1763,6 @@ void doChange(int ipu,int puno,vector<int> &R, scost &reserve, scost &change,
         {
             ism = pu[ipu].offset + i;
             isp = SM[ism].spindex;
-
             rAmount = SM[ism].amount;
 
             if (spec[isp].target2 && rAmount > 0)
@@ -1946,6 +1808,7 @@ void doChange(int ipu,int puno,vector<int> &R, scost &reserve, scost &change,
 
             if (spec[isp].sepnum > 0) /* Count separation but only if it is possible that it has changed */
                 if ((imode == 1 && spec[isp].separation < spec[isp].sepnum) || (imode == -1 && spec[isp].separation > 1))
+                    vector<sclumps> tempSclumps;
                     spec[isp].separation = CountSeparation2(isp, 0, tempSclumps, puno, R, pu, SM, spec, 0, thread);
         }
     }
@@ -2038,144 +1901,6 @@ void doQuantumChange(int puno, vector<int> R, scost& reserve, scost& change,
     #endif
 } // doQuantumChange
 
-/*****************************************************/
-/*********** Post Processing *************************/
-/*****************************************************/
-
-/***  Counts the number of species missing from the reserve ****/
-// compute the number of species whose representation fraction is less that the MISSLEVEL parameter
-int computeRepresentationMISSLEVEL(int spno,vector<sspecies> &spec,double misslevel,double &shortfall,double &rMinimumProportionMet)
-{
-    int i,isp = 0;
-    double rProportionMet;
-
-    shortfall = 0;
-    rMinimumProportionMet = 1;
-    for (i=0;i<spno;i++)
-    {
-        rProportionMet = 1;
-        if (spec[i].target > 0)
-        {
-            if (spec[i].amount < spec[i].target)
-            {
-                shortfall += spec[i].target - spec[i].amount;
-                rProportionMet = spec[i].amount / spec[i].target;
-
-                if (rProportionMet < rMinimumProportionMet)
-                    rMinimumProportionMet = rProportionMet;
-
-                #ifdef DEBUG_COUNTMISSING
-                appendTraceFile("computeRepresentationMISSLEVEL i %i target %g amount %g shortfall %g\n",i,spec[i].target,spec[i].amount,*shortfall);
-                #endif
-            }
-        }
-        if (spec[i].targetocc > 0)
-        {
-            if (spec[i].occurrence < spec[i].targetocc)
-            {
-                shortfall += spec[i].targetocc - spec[i].occurrence;
-                rProportionMet = spec[i].occurrence / spec[i].targetocc;
-
-                if (rProportionMet < rMinimumProportionMet)
-                    rMinimumProportionMet = rProportionMet;
-            }
-        }
-        if (spec[i].target)
-        {
-            if (spec[i].amount/spec[i].target < misslevel)
-            {
-                isp++;
-                continue;
-            }
-        }
-
-        if (spec[i].targetocc)
-        {
-            if ((double)spec[i].occurrence/(double)spec[i].targetocc < misslevel)
-            {
-                isp++;
-                continue;
-            }
-        }
-        if (spec[i].sepdistance && spec[i].separation < 3)
-        {
-            isp++;  /* count species if not met separation and not already counted */
-        }
-    }
-
-    #ifdef DEBUG_COUNTMISSING
-    appendTraceFile("computeRepresentationMISSLEVEL shortfall %g\n",*shortfall);
-    #endif
-
-    return(isp);
-}
-
-// compute connectivity total, in, edge, out for summary report
-void computeConnectivityIndices(double &rConnectivityTotal, double &rConnectivityIn,
-                                double &rConnectivityEdge, double &rConnectivityOut,
-                                int puno, vector<int> &R, vector<sconnections> &connections)
-// We record 4 categories for connectivity;
-//  - total, all connections in the region
-//  - in, all connections entirely within the reserve network (ie. both pu's in)
-//  - edge, all connections on the edge of the reserve network (ie. one pu in & one pu out)
-//  - out, all connections not captured in the reserve network (ie. both pu's out)
-//
-// Of these, we previously only recorded "edge", referring to it as boundary length.
-// The proportion of connections captured is given by;
-//  in / total
-//
-// total = in + edge + out
-{
-    int i;
-    double rFixed;
-
-    for (i=0;i<puno;i++)
-    {
-        rFixed = connections[i].fixedcost;
-
-        rConnectivityTotal += rFixed;
-
-        if (R[i]==1 || R[i] == 2)
-        { // add to 'in' or 'edge'
-            rConnectivityEdge += rFixed;
-
-            for(sneighbour p: connections[i].first)
-            {
-                if (p.nbr > i)
-                {
-                    if (R[p.nbr] == 1 || R[p.nbr] == 2) // add to 'in'
-                        rConnectivityIn += p.cost;
-                    else  // add to 'edge'
-                        rConnectivityEdge += p.cost;
-
-                    // add to 'total'
-                    rConnectivityTotal += p.cost;
-                }
-            }
-        }
-        else
-        { // add to 'out' or 'edge'
-            rConnectivityOut += rFixed;
-
-            for(sneighbour p: connections[i].first)
-            {
-                if (p.nbr > i)
-                {
-                    if (R[p.nbr] == 1 || R[p.nbr] == 2) // add to 'edge'
-                        rConnectivityEdge += p.cost;
-                    else  // add to 'out'
-                        rConnectivityOut += p.cost;
-
-                    // add to 'total'
-                    rConnectivityTotal += p.cost;
-                }
-            }
-        }
-    }
-}
-
-
-
 // handle command line parameters for the marxan executable
 void handleOptions(int argc,char *argv[], string sInputFileName)
 {
@@ -2213,7 +1938,7 @@ void initialiseConnollyAnnealing(int puno,int spno,vector<spustuff> &pu, vector<
 {
     long int i,ipu,imode, iOldR;
     double deltamin = 0,deltamax = 0;
-    double localdelta;
+    double localdelta = 1E-10;
     scost change = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
     scost reserve = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
@@ -2240,15 +1965,12 @@ void initialiseConnollyAnnealing(int puno,int spno,vector<spustuff> &pu, vector<
     appendTraceFile("initialiseConnollyAnnealing A\n");
     #endif
 
-    localdelta = 1E-10;
-
-    initialiseReserve(puno,prop,R);
+    initialiseReserve(prop,pu,R, rngEngine);
 
     #ifdef DEBUG_PROB1D
     appendTraceFile("initialiseConnollyAnnealing B\n");
     #endif
 
-    addReserve(puno,pu,R);
     if (aggexist)
         ClearClumps(spno,spec,pu,SM);
 
@@ -2285,7 +2007,6 @@ void initialiseConnollyAnnealing(int puno,int spno,vector<spustuff> &pu, vector<
 
     anneal.Tinit = deltamax;
     deltamin *= 0.1;
-
     anneal.Tcool = exp(log(deltamin/ anneal.Tinit)/(double)anneal.Titns);
 
     appendTraceFile("initialiseConnollyAnnealing end\n");
@@ -2306,8 +2027,7 @@ void initialiseAdaptiveAnnealing(int puno,int spno,double prop,vector<int> &R,ve
 
     for (i=0;i<isamples;i++)
     {  /* Generate Random Reserve */
-        initialiseReserve(puno,prop,R);
-        addReserve(puno,pu,R);
+        initialiseReserve(prop, pu, R, rngEngine);
         /* Score Random reserve */
         computeReserveValue(puno,spno,R,pu,connections,SM,cm,spec,aggexist,cost,clumptype, thread);
         /* Add Score to Sum */
@@ -2552,6 +2272,7 @@ void quantumAnnealing(int spno, int puno, vector<sconnections> &connections,vect
     string writename, sDecayType;
     vector<int> PUChosen;
     long int iTests = 0, iIterations;
+    uniform_real_distribution<double> float_range(0.0, 1.0);
 
     if (iQADECAYTYPE == 0)
         sDecayType = "EXPONENTIAL";
@@ -2608,6 +2329,7 @@ void quantumAnnealing(int spno, int puno, vector<sconnections> &connections,vect
     rThreshold = costthresh;
     costthresh = rThreshold * rStartDecMult;
     rAcceptanceProbability = rQAACCPR; // 1% probability of acceptance of bad moves
+    uniform_int_distribution<int> int_range(0, puno-1);
 
     for (itime = 1;itime<=anneal.iterations;itime++)
     {
@@ -2638,7 +2360,7 @@ void quantumAnnealing(int spno, int puno, vector<sconnections> &connections,vect
             {
                 do
                 {
-                    j = returnRandom(puno, rngEngine);
+                    j = int_range(rngEngine);
 
                     #ifdef DEBUG_QA
                     appendTraceFile("quantumAnnealing j %i PUChosen[j] %i R[j] %i \n",j,PUChosen[j],R[j]);
@@ -2665,7 +2387,7 @@ void quantumAnnealing(int spno, int puno, vector<sconnections> &connections,vect
                 tempname2 = savename + "_snap" + sRun + to_string(++snapcount) + getFileNameSuffix(fnames.savesnapchanges);
                 writeSolution(puno,R,pu,tempname2,fnames.savesnapsteps,fnames);
             }
-            if (isGoodQuantumChange(change,rAcceptanceProbability)==1)
+            if (isGoodQuantumChange(change,rAcceptanceProbability,float_range)==1)
             { // Save snapshot every savesnapfreq changes
                 iGoodChange = 1;
 
@@ -2740,114 +2462,11 @@ void quantumAnnealing(int spno, int puno, vector<sconnections> &connections,vect
     appendTraceFile("quantumAnnealing end iterations %ld tests %li\n",iIterations,iTests);
 } // quantumAnnealing
 
-// compute binary search arrays for looking up pu's and species fast
-// TODO adbai refactor
-void computeBinarySearch(int puno, int spno, vector<spustuff> &pu, vector<sspecies> &spec,
-                         map<int,int> &PULookup, map<int,int> &SPLookup)
-{
-    int i;
-
-    /* create the lookup arrays for planning unit and species names */
-    /* populate the lookup arrays with planning unit and species names*/
-    for (i=0;i<puno;i++)
-    {
-        PULookup[pu[i].id] = i;
-    }
-    for (i=0;i<spno;i++)
-    {
-        SPLookup[spec[i].name] = i;
-    }
-
-    //if (verbosity > 3)
-    //    writeBinarySearchArrays("before",fnames,puno,spno,PULookup,SPLookup);
-
-    //if (verbosity > 3)
-    //    writeBinarySearchArrays("after",fnames,puno,spno,PULookup,SPLookup);
-}
-
-// use binary search to find a PU index given it's id
-int binarySearchPuIndex(int id,int name, map<int,int>& PULookup)
-{
-    return(PULookup[name]);
-}
-
-// use binary search to find a species index given it's id
-int binarySearchSpecIndex(int spno,int name, map<int,int>& SPLookup)
-{
-    return(SPLookup[name]);
-}
-
 // marxan is running as a secondary process and has finished. create a sync file so the calling software will know marxan has finished creating the output files
 // secondaryExit does not deliver a message prior to exiting, but creates a file so C-Plan/Zonae Cogito/etc knows marxan has exited
 void secondaryExit(void)
 {
     writeSecondarySyncFile();
-}
-
-// apply the species penalties nominated in input penalties file for use in the annealing algorithms
-void applyUserPenalties(vector<sspecies> &spec,int spno)
-{
-    int i;
-
-    for (i=0;i<spno;i++)
-        spec[i].penalty = spec[i].rUserPenalty;
-}
-
-// TODO adbai - consider refactor
-// helps to do a heap sort
-void siftDownIterativeImprovement(vector<iimp>& numbers, int root, int bottom, int array_size)
-{
-    int done, maxChild;
-    iimp temp;
-
-    done = 0;
-    while ((root*2 <= bottom) && (!done))
-    {
-        if (root*2 < array_size)
-        {
-            if (root*2 == bottom)
-            {
-                maxChild = root * 2;
-            } else {
-                if (numbers[root * 2].randomfloat > numbers[root * 2 + 1].randomfloat)
-                    maxChild = root * 2;
-                else
-                    maxChild = root * 2 + 1;
-            }
-
-            if (numbers[root].randomfloat < numbers[maxChild].randomfloat)
-            {
-                 temp = numbers[root];
-                 numbers[root] = numbers[maxChild];
-                 numbers[maxChild] = temp;
-                 root = maxChild;
-            } else {
-                done = 1;
-            }
-        } else {
-            done = 1;
-        }
-    }
-}
-
-// sort a datastructure with heap sort
-void heapSortIterativeImprovement(vector<iimp>& numbers, int array_size)
-{
-    int i;
-    iimp temp;
-
-    for (i = (array_size / 2)-1; i >= 0; i--)
-    {
-        siftDownIterativeImprovement(numbers, i, array_size, array_size);
-    }
-
-    for (i = array_size-1; i >= 1; i--)
-    {
-        temp = numbers[0];
-        numbers[0] = numbers[i];
-        numbers[i] = temp;
-        siftDownIterativeImprovement(numbers, 0, i-1, array_size);
-    }
 }
 
 // iteratively improves a planning unit solutions
@@ -2858,12 +2477,11 @@ void iterativeImprovement(int puno,int spno,vector<spustuff> &pu, vector<sconnec
                           int clumptype,int irun,string savename, int thread)
 {
     int puvalid =0,i,j,ipu=0,imode,ichoice, iRowCounter, iRowLimit;
-    vector<iimp> iimparray;
+    vector<int> iimparray;
     double debugfloat;
     string tempname2, sRun = to_string(irun);
     FILE *ttfp,*Rfp;
     string writename;
-    uniform_real_distribution<double> float_range(0.0, 1.0);
 
     appendTraceFile("iterativeImprovement start\n");
 
@@ -2913,23 +2531,20 @@ void iterativeImprovement(int puno,int spno,vector<spustuff> &pu, vector<sconnec
         {
             if ((R[i] < 2) && (pu[i].status < 2))
             {
-                iimparray[ipu].puindex = i;
-                iimparray[ipu].randomfloat = float_range(rngEngine);
+                iimparray[ipu] = i;
                 ipu++;
             }
         }
 
         appendTraceFile("iterativeImprovement after array init\n");
 
-        // sort the iimp array by the randomindex field
-        heapSortIterativeImprovement(iimparray,puvalid);
-
-        appendTraceFile("iterativeImprovement after heapSortIterativeImprovement\n");
+        // shuffle iimp array
+        random_shuffle(iimparray.begin(), iimparray.end());
 
         /***** Doing the improvements ****/
         for (i=0;i<puvalid;i++)
         {
-            ichoice = iimparray[i].puindex;
+            ichoice = iimparray[i];
 
             if ((R[ichoice] < 2) && (pu[ichoice].status < 2))
             {
