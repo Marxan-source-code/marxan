@@ -9,38 +9,23 @@
 namespace marxan {
 
    // returns the clump number of a species at a planning unit, if the species doesn't occur here, returns 0
-   // If threads have not been defined (i.e. thread == -1), return the first thread state.
    int rtnClumpSpecAtPu(vector<spustuff> &pu, vector<spu> &SM, int iPUIndex, int iSpecIndex, int thread)
    {
       if (pu[iPUIndex].richness > 0)
          for (int i=0;i<pu[iPUIndex].richness;i++)
             if (SM[pu[iPUIndex].offset + i].spindex == iSpecIndex)
-               if (thread == -1) {
-                  return SM[pu[iPUIndex].offset + i].clump[0]; //TODO verify thread change
-               }
-               else {
-                  return SM[pu[iPUIndex].offset + i].clump[thread]; //TODO verify thread change
-               }
+               return SM[pu[iPUIndex].offset + i].clump[thread]; //TODO verify thread change
 
       return 0;
    }
 
    // sets the clump number of a species at a planning unit
-   // this is a per thread operation, unless the thread is -1 in which case we apply it to all thread states
    void setClumpSpecAtPu(vector<spustuff> &pu, vector<spu> &SM, int iPUIndex, int iSpecIndex, int iSetClump, int thread)
    {
-      int i;
-
       if (pu[iPUIndex].richness > 0)
-         for (i=0;i<pu[iPUIndex].richness;i++)
-               if (SM[pu[iPUIndex].offset + i].spindex == iSpecIndex)
-                  if (thread == -1) {
-                     for (int j=0; j < SM[pu[iPUIndex].offset + i].clump.size(); j++) {
-                        SM[pu[iPUIndex].offset + i].clump[j] = iSetClump;
-                     }
-                  }
-                  else 
-                     SM[pu[iPUIndex].offset + i].clump[thread] = iSetClump; //TODO verify thread change
+         for (int i=0;i<pu[iPUIndex].richness;i++)
+            if (SM[pu[iPUIndex].offset + i].spindex == iSpecIndex)
+               SM[pu[iPUIndex].offset + i].clump[thread] = iSetClump; //TODO verify thread change
    }
 
    void ClearClump(int isp, sclumps &target, vector<spustuff> &pu, vector<spu> &SM, int thread) {
@@ -238,9 +223,13 @@ namespace marxan {
 
    // Clear Clumps
    // This is for clean up purposes
-   void ClearClumps(int spno,vector<sspecies> &spec,vector<spustuff> &pu, vector<spu> &SM) {
+   void ClearClumps(int spno,vector<sspecies> &spec,vector<spustuff> &pu, vector<spu> &SM, int thread) {
       for (int i=0;i<spno;i++)
       {
+         for (sclumps& clump: spec[i].head) {
+            ClearClump(i,clump,pu,SM, thread);
+         }
+
          spec[i].head.clear();
          spec[i].clumps = 0;
       } // Clear clump for each species

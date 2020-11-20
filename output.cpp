@@ -2,6 +2,7 @@
 #include <cstring>
 #include <ctime>
 #include <fstream>
+#include <iostream>
 #include <map>
 
 #include "computation.hpp"
@@ -370,27 +371,24 @@ void createTraceFile(void)
 }
 
 // append message to a trace file when verbosity > 2
-// TODO ADBAI - make threadsafe
 void appendTraceFile(string sMess,...)
-{
-    /*
-    FILE* fdebugtrace;
-    va_list args;
+{    
+   FILE* fdebugtrace;
+   va_list args;
 
-    if (verbosity > 2)
-    {
-        if (fnames.savedebugtracefile)
-        {
-            va_start(args,sMess);
-        
-            fdebugtrace = fopen(sTraceFileName,"a");
-            vfprintf(fdebugtrace,sMess,args);
-            fclose(fdebugtrace);
+   if (verbosity > 2)
+   {
+      if (fnames.savedebugtracefile)
+      {
+         va_start(args,sMess);
+      
+         fdebugtrace = fopen(sTraceFileName.c_str(),"a");
+         vfprintf(fdebugtrace,sMess.c_str(),args);
+         fclose(fdebugtrace);
 
-            va_end(args);
-        }
-    }
-    */
+         va_end(args);
+      }
+   }   
 }
 
 // create a debug file

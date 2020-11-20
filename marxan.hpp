@@ -139,9 +139,9 @@ namespace marxan {
     /* Connectivity Structure. Fixed connectivity number.*/
     typedef struct sneighbour
     {
-        int nbr;
+        int nbr; // puid of neighbour
         double cost;
-        int connectionorigon;
+        int connectionorigon; // for asymmetric connections, whether connection starts from this node.
     } sneighbour;
     
     extern vector<sneighbour> debugnbr;
@@ -256,14 +256,14 @@ int computePenaltiesOptimise(int puno,int spno, vector<spustuff> &pu, vector<ssp
 double ConnectionCost2(int ipu, vector<sconnections> &connections, vector<int> &R, int imode, int imode2, double cm);
 void computeReserveValue(int puno,int spno, vector<int> &R, vector<spustuff> &pu,
                          vector<sconnections> &connections, vector<spu> &SM,
-                         double cm, vector<sspecies> &spec, int aggexist, scost &reserve,int clumptype, int thread);
+                         double cm, vector<sspecies> &spec, int aggexist, scost &reserve,int clumptype, int thread, stringstream& logBuffer);
 void computeChangeScore(int iIteration,int ipu,int spno,int puno,vector<spustuff> &pu, vector<sconnections> &connections,
                         vector<sspecies> &spec, vector<spu> &SM, vector<int> &R, double cm, int imode,
                         scost &change, scost &reserve,double costthresh,double tpf1, double tpf2,
                         double timeprop,int clumptype, int thread);
 void doChange(int ipu,int puno,vector<int> &R, scost &reserve, scost &change,
               vector<spustuff> &pu,vector<spu> &SM,vector<sspecies> &spec,vector<sconnections> &connections,
-              int imode,int clumptype, int thread);
+              int imode,int clumptype, int thread, stringstream& logBuffer);
 
 stringstream displayValueForPUs(int puno, int spno,vector<int> &R, scost &reserve,
                         vector<sspecies> &spec,double misslevel);
@@ -274,13 +274,13 @@ void TimePassed(void);
 
 void initialiseConnollyAnnealing(int puno,int spno,vector<spustuff> &pu, vector<sconnections> &connections, vector<sspecies> &spec,
                                  vector<spu> &SM,double cm, sanneal &anneal,int aggexist,
-                                 vector<int> &R,double prop,int clumptype,int irun, int thread);
+                                 vector<int> &R,double prop,int clumptype,int irun, int thread, stringstream& logBuffer);
 void initialiseAdaptiveAnnealing(int puno,int spno,double prop,vector<int> &R,vector<spustuff> &pu,vector<sconnections> &connections,
-                                 vector<spu> &SM,double cm,vector<sspecies> &spec,int aggexist,sanneal &anneal,int clumptype, int thread);
+                                 vector<spu> &SM,double cm,vector<sspecies> &spec,int aggexist,sanneal &anneal,int clumptype, int thread, stringstream& logBuffer);
 void thermalAnnealing(int spno, int puno, vector<sconnections> &connections,vector<int> &R, double cm,
                       vector<sspecies>& spec, vector<spustuff> &pu, vector<spu> &SM, scost &reserve,
                       long int repeats,int irun,string savename,double misslevel,
-                      int aggexist,double costthresh, double tpf1, double tpf2,int clumptype, sanneal &anneal, int thread);
+                      int aggexist,double costthresh, double tpf1, double tpf2,int clumptype, sanneal &anneal, int thread, stringstream& logBuffer);
 void quantumAnnealing(int spno, int puno, vector<sconnections> &connections,vector<int> &R, double cm,
                       vector<sspecies>& spec, vector<spustuff> &pu, vector<spu> &SM, scost &change, scost &reserve,
                       long int repeats,int irun,string savename,double misslevel,
@@ -288,7 +288,7 @@ void quantumAnnealing(int spno, int puno, vector<sconnections> &connections,vect
 #endif
 
 
-void ClearClumps(int spno,vector<sspecies> &spec,vector<spustuff> &pu, vector<spu> &SM);
+void ClearClumps(int spno,vector<sspecies> &spec,vector<spustuff> &pu, vector<spu> &SM, int thread);
 
 int NameToPUID(int puno,int name, vector<spustuff> &pu);
 int NameToSPID(int spno,int name,vector<sspecies> &spec);
@@ -304,7 +304,7 @@ void SaveSeed(int iseed);
 void iterativeImprovement(int puno,int spno,vector<spustuff> &pu, vector<sconnections> &connections,
                           vector<sspecies> &spec,vector<spu> &SM,vector<int> &R, double cm,
                           scost &reserve, scost &change,double costthresh,double tpf1, double tpf2,
-                          int clumptype,int irun,string savename, int thread);
+                          int clumptype,int irun,string savename, int thread, stringstream& logBuffer);
 
 // input reading
 int readConnections(int& puno, vector<sconnections>& connections, vector<spustuff>& pu,
@@ -399,7 +399,7 @@ void SpeciesAmounts4(int isp,vector<sspecies> &spec,int clumptype);
 
 void Heuristics(int spno,int puno,vector<spustuff> &pu,vector<sconnections> &connections,
         vector<int> &R, double cm, vector<sspecies> &spec, vector<spu> &SM, scost &reserve,
-        double costthresh, double tpf1,double tpf2, int imode,int clumptype, int thread);
+        double costthresh, double tpf1,double tpf2, int imode,int clumptype, int thread, stringstream& logBuffer);
 
 double ChangeProbability1D(int iIteration, int ipu, int spno,int puno,vector<sspecies> &spec,vector<spustuff> &pu,vector<spu> &SM,int imode);
 double ChangeProbability2D(int iIteration, int ipu, int spno,int puno,vector<sspecies> &spec,vector<spustuff> &pu,vector<spu> &SM,int imode);

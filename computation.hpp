@@ -43,6 +43,7 @@ void checkAndUpdateTargetProportion(double target, double amount, double& shortf
         }
 }
 
+// Sums all connectivity edges for a pu.
 inline
 double connectionCost1(sconnections &connections, double cm, int asymmetricconnectivity)
 {
@@ -286,6 +287,7 @@ double computeSpeciesPlanningUnitPenalty(int ipu,int isp,vector<sspecies> &spec,
 }
 
 // Sums the total spec amount across all pu
+inline
 double computeTotalSpecAmtAllPu(vector<spustuff> &PU, vector<spu> &SM, int speciesInd) 
 {   
     double totalAmount = 0.0;
@@ -296,6 +298,7 @@ double computeTotalSpecAmtAllPu(vector<spustuff> &PU, vector<spu> &SM, int speci
 
 // compute proportional target for species when prop target is specified
 // use the prop value from the conservation feature file to set a proportion target for species
+inline
 void computeSpecProp(int spno, vector<sspecies> &spec, int puno, vector<spustuff> &pu, vector<spu> &SM)
 {
     // compute and set target for species with a prop value
@@ -311,7 +314,8 @@ void computeSpecProp(int spno, vector<sspecies> &spec, int puno, vector<spustuff
     }
 }
 
-// Computes penalty for a species given a reserve
+// Computes penalty for a species given a reserve, based on only fixed pu
+inline
 void computeFixedPenaltyForSpec(vector<int> &R, vector<spustuff> &pu, vector<spu> &SM, vector<sconnections> &connections, int spIndex, 
     double& ftarget, int& itargetocc, double& penalty, double cm, int asymmetricconnectivity) {
     ftarget = 0, itargetocc = 0, penalty = 0;
@@ -325,6 +329,109 @@ void computeFixedPenaltyForSpec(vector<int> &R, vector<spustuff> &pu, vector<spu
             penalty += computePlanningUnitValue(pu[j],connections[j],cm, asymmetricconnectivity);
         }
     }
+}
+
+inline
+// ********* Connection Cost Type 2 **************
+// **  Requires R[]. imode2 = 0 there is no negative cost for removing connection, we are calling from ReserveCost
+//                         or 1 there is a negative cost for removing connection, we are calling from Annealing
+//                   imode = -1 we are removing the planning unit from a reserve, calling from Annealing
+//                        or 1  we are adding the planning unit to a reserve, or it is already in reserve
+//      It seems that the behaviour of this function is unsupported if imode2=0 and imode=-1
+double ConnectionCost2(int ipu, vector<sconnections> &connections, vector<int> &R, int imode, int imode2, double cm, 
+    int asymmetricconnectivity, int fOptimiseConnectivityIn)
+{
+    double fcost, rDelta;
+    int R_pu1;
+
+    fcost = connections[ipu].fixedcost * imode;
+
+    if (asymmetricconnectivity)
+    {
+        for (sneighbour &p : connections[ipu].first)
+        {
+            if (imode2) // calling from Annealing
+            {
+                if (imode == 1)
+                    R_pu1 = 0;
+                else
+                    R_pu1 = 1;
+
+                if (p.connectionorigon)
+                {
+                    if (R[p.nbr] == 0)
+                    {
+                        if (R_pu1 == 1)
+                        {
+                            rDelta = -1 * p.cost;
+                            fcost += rDelta;
+                        }
+                        else
+                        {
+                            rDelta = p.cost;
+                            fcost += rDelta;
+                        }
+                    }
+                }
+                else
+                {
+                    if (R[p.nbr] == 1 || R[p.nbr] == 2)
+                    {
+                        if (R_pu1 == 1)
+                        {
+                            rDelta = p.cost;
+                            fcost += rDelta;
+                        }
+                        else
+                        {
+                            rDelta = -1 * p.cost;
+                            fcost += rDelta;
+                        }
+                    }
+                }
+            }
+            else // calling from ReserveCost
+            {
+                if (R[p.nbr] == 0)
+                    if (p.connectionorigon)
+                    {
+                        rDelta = p.cost;
+                        fcost += rDelta;
+                    }
+            }
+        }
+    }
+    else
+    {
+        for (sneighbour &p : connections[ipu].first) // treatment for symmetric connectivity
+        {
+            if (fOptimiseConnectivityIn == 1)
+            { // optimise for "Connectivity In"
+                if (R[p.nbr] == 1 || R[p.nbr] == 2)
+                {
+                    rDelta = imode * p.cost;
+                }
+                else
+                {
+                    rDelta = imode * imode2 * p.cost * -1;
+                }
+            }
+            else
+            { // optimise for "Connectivity Edge"
+                if (R[p.nbr] == 1 || R[p.nbr] == 2)
+                {
+                    rDelta = imode * imode2 * p.cost * -1;
+                }
+                else
+                {
+                    rDelta = imode * p.cost;
+                }
+            }
+            fcost += rDelta;
+        }
+    }
+
+    return (fcost * cm);
 }
 
 } // namespace marxan

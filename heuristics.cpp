@@ -49,14 +49,14 @@ double GreedyScore(int ipu,int puno,int spno, vector<sspecies>& spec,vector<spu>
 
 /*********** Rarity Settup. Sets up rare score for each species ******/
 /**** score is total abundance / smallest species abundance *********/
-void SetRareness(int puno, int spno, vector<double> &Rare,vector<int> &R,vector<spustuff> &pu,vector<spu> &SM) 
+void SetRareness(int puno, int spno, vector<double> &Rare,vector<int> &R,vector<spustuff> &pu,vector<spu> &SM, stringstream& logBuffer) 
 {
     double smallest = 0;
     vector<double> fcount(spno, 0);
     int i, ism, isp, ipu;
 
 #ifdef DEBUG_HEURISTICS
-    appendTraceFile("SetRareness start\n");
+    logBuffer << "SetRareness start\n";
 #endif
 
     for (ipu = 0; ipu < puno; ipu++)
@@ -76,7 +76,7 @@ void SetRareness(int puno, int spno, vector<double> &Rare,vector<int> &R,vector<
         Rare[isp] = fcount[isp];
 
 #ifdef DEBUG_HEURISTICS
-        appendTraceFile("SetRareness isp %i Rare %g\n", isp, Rare[isp]);
+        logBuffer << "SetRareness isp " << isp << " Rare " << Rare[isp] << endl;
 #endif
     }
 
@@ -87,7 +87,7 @@ void SetRareness(int puno, int spno, vector<double> &Rare,vector<int> &R,vector<
         Rare[isp] /= smallest;
 
 #ifdef DEBUG_HEURISTICS
-    appendTraceFile("SetRareness end\n");
+    logBuffer << "SetRareness end\n";
 #endif
 }  // SetRareness
 
@@ -200,27 +200,28 @@ double AveRareScore(int ipu,int puno,vector<sspecies> &spec,vector<spu> &SM,
 } // Ave Rare Score
 
 double SumRareScore(int ipu,int puno,vector<sspecies> &spec,vector<spu> &SM,
-    vector<int> &R,vector<sconnections> &connections,vector<spustuff> &pu,double cm,vector<double> &Rare,int clumptype, int thread)
+    vector<int> &R,vector<sconnections> &connections,vector<spustuff> &pu,double cm,
+    vector<double> &Rare,int clumptype, int thread, stringstream& logBuffer)
 {
     int i, ism, isp;
     double rarescore = 0;
 
 #ifdef DEBUG_HEURISTICS
-    appendTraceFile("SumRareScore start\n");
+    logBuffer << "SumRareScore start\n";
 #endif
 
     if (pu[ipu].richness)
         for (i = 0; i < pu[ipu].richness; i++)
         {
 #ifdef DEBUG_HEURISTICS
-            appendTraceFile("SumRareScore feature %i of %i\n", i, pu[ipu].richness);
+            logBuffer << "SumRareScore feature " << i << "of " << pu[ipu].richness <<"\n";
 #endif
 
             ism = pu[ipu].offset + i;
             isp = SM[ism].spindex;
 
 #ifdef DEBUG_HEURISTICS
-            appendTraceFile("SumRareScore SMamount %g target %g specamount %g rare %g\n", SM[ism].amount, spec[isp].target, spec[isp].amount, Rare[isp]);
+            logBuffer << "SumRareScore SMamount "<<SM[ism].amount<<" target " <<spec[isp].target<<" specamount "<<spec[isp].amount<<" rare "<<Rare[isp]<<"\n";
 #endif
 
             if (SM[ism].amount &&
@@ -230,7 +231,7 @@ double SumRareScore(int ipu,int puno,vector<sspecies> &spec,vector<spu> &SM,
         }
 
 #ifdef DEBUG_HEURISTICS
-    appendTraceFile("SumRareScore end\n");
+    logBuffer  << "SumRareScore end\n";
 #endif
 
     return (rarescore);
@@ -302,7 +303,7 @@ double SumIrr(int ipu,vector<double> &Rare,vector<spustuff> &pu,vector<spu> &SM,
 // Main Heuristic Engine
 void Heuristics(int spno,int puno,vector<spustuff> &pu,vector<sconnections> &connections,
         vector<int> &R, double cm, vector<sspecies> &spec, vector<spu> &SM, scost &reserve,
-        double costthresh, double tpf1,double tpf2, int imode,int clumptype, int thread)
+        double costthresh, double tpf1,double tpf2, int imode,int clumptype, int thread, stringstream& logBuffer)
 // imode = 1: 2: 3: 4:
 // imode = 5: 6: Prod Irreplaceability, 7: Sum Irreplaceability
 {
@@ -313,7 +314,7 @@ void Heuristics(int spno,int puno,vector<spustuff> &pu,vector<sconnections> &con
     uniform_real_distribution<double> float_range(0.0, 1.0);
 
 #ifdef DEBUG_HEURISTICS
-    appendTraceFile("Heuristics start\n");
+    logBuffer << "Heuristics start mode " << imode << "\n";
 #endif
 
     // Irreplacability
@@ -323,17 +324,17 @@ void Heuristics(int spno,int puno,vector<spustuff> &pu,vector<sconnections> &con
         SetAbundance(puno, Rare, pu, SM);
 
 #ifdef DEBUG_HEURISTICS
-        appendTraceFile("Heuristics 6 or 7\n");
+        logBuffer << "Heuristics 6 or 7\n";
 #endif
     }
 
     if (imode >= 2 && imode <= 5) // Rareness Setups
     {
         Rare.resize(spno);
-        SetRareness(puno, spno, Rare, R, pu, SM);
+        SetRareness(puno, spno, Rare, R, pu, SM, logBuffer);
 
 #ifdef DEBUG_HEURISTICS
-        appendTraceFile("Heuristics 2 to 5 after SetRareness\n");
+        logBuffer << "Heuristics 2 to 5 after SetRareness\n";
 #endif
     }
 
@@ -371,13 +372,13 @@ void Heuristics(int spno,int puno,vector<spustuff> &pu,vector<sconnections> &con
                 {
 
 #ifdef DEBUG_HEURISTICS
-                    appendTraceFile("Heuristics pu %i of %i\n", i, puno);
+                    logBuffer << "Heuristics pu " << i << " of " << puno << "\n";
 #endif
 
-                    currscore = SumRareScore(i, puno, spec, SM, R, connections, pu, cm, Rare, clumptype, thread);
+                    currscore = SumRareScore(i, puno, spec, SM, R, connections, pu, cm, Rare, clumptype, thread, logBuffer);
 
 #ifdef DEBUG_HEURISTICS
-                    appendTraceFile("Heuristics after SumRareScore\n");
+                    logBuffer << "Heuristics after SumRareScore\n";
 #endif
                 }
                 if (imode == 6)
@@ -402,7 +403,7 @@ void Heuristics(int spno,int puno,vector<spustuff> &pu,vector<sconnections> &con
             {
                 computeChangeScore(-1, bestpu, spno, puno, pu, connections, spec, SM, R, cm, 1, change, reserve,
                                    costthresh, tpf1, tpf2, 1, clumptype, thread);
-                doChange(bestpu, puno, R, reserve, change, pu, SM, spec, connections, 1, clumptype, thread);
+                doChange(bestpu, puno, R, reserve, change, pu, SM, spec, connections, 1, clumptype, thread, logBuffer);
 
                 // Different Heuristics might have different penalty effects
                 // Old fashioned penalty and missing counting
@@ -435,7 +436,7 @@ void Heuristics(int spno,int puno,vector<spustuff> &pu,vector<sconnections> &con
     reserve.total = reserve.cost + reserve.connection + reserve.penalty + reserve.probability1D + reserve.probability2D;
 
 #ifdef DEBUG_HEURISTICS
-    appendTraceFile("Heuristics end\n");
+    logBuffer << "Heuristics end\n";
 #endif
 } // Heuristics
 

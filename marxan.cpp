@@ -114,13 +114,16 @@ void executeRunLoop(int iSparseMatrixFileLength, long int repeats,int puno,int s
     omp_init_lock(&solution_matrix_append_lock);
 
     // for each repeat run
-    printf("Running multithreaded over number of threads: %d\n", omp_get_max_threads());
+    int maxThreads = omp_get_max_threads();
+
+    printf("Running multithreaded over number of threads: %d\n", maxThreads);
     #pragma omp parallel for
     for (int i = 1; i <= repeats; i++)
     {
         // Create run specific structures
         int thread = omp_get_thread_num();
         string tempname2;
+        stringstream appendLogBuffer; // stores the trace file log
         stringstream runConsoleOutput; // stores the console message for the run. This is needed for more organized printing output due to multithreading.
         sanneal anneal = anneal_global;
         scost reserve = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
@@ -129,186 +132,199 @@ void executeRunLoop(int iSparseMatrixFileLength, long int repeats,int puno,int s
         vector<int> R(puno);
         vector<sspecies> spec = specGlobal; // make local copy of original spec
 
-        appendTraceFile("start run loop run %ld\n", i);
-
-        if (runoptions.ThermalAnnealingOn)
-        {
-            // Annealing Setup
-            if (anneal.type == 2)
+        appendLogBuffer << "start run loop run " << i << endl;
+        try {
+            if (runoptions.ThermalAnnealingOn)
             {
-                appendTraceFile("before initialiseConnollyAnnealing run %i\n", i);
+                // Annealing Setup
+                if (anneal.type == 2)
+                {
+                    appendLogBuffer << "before initialiseConnollyAnnealing run " << i << endl;
 
-                initialiseConnollyAnnealing(puno, spno, pu, connections, spec, SMGlobal, cm, anneal, aggexist, R, prop, clumptype, i, thread);
+                    initialiseConnollyAnnealing(puno, spno, pu, connections, spec, SMGlobal, cm, anneal, aggexist, R, prop, clumptype, i, thread, appendLogBuffer);
+                    
+                    appendLogBuffer << "after initialiseConnollyAnnealing run " << i << endl;
+                }
 
-                appendTraceFile("after initialiseConnollyAnnealing run %i\n", i);
+                if (anneal.type == 3)
+                {
+                    appendLogBuffer << "before initialiseAdaptiveAnnealing run " << i << endl;
+
+                    initialiseAdaptiveAnnealing(puno, spno, prop, R, pu, connections, SMGlobal, cm, spec, aggexist, anneal, clumptype, thread, appendLogBuffer);
+
+                    appendLogBuffer << "after initialiseAdaptiveAnnealing run " << i << endl;
+                }
+
+                if (verbosity > 1) runConsoleOutput << "Run " << i << ": Using Calculated Tinit = " << anneal.Tinit << " Tcool = " << anneal.Tcool << "\n";
+                anneal.temp = anneal.Tinit;
             }
 
-            if (anneal.type == 3)
-            {
-                appendTraceFile("before initialiseAdaptiveAnnealing run %i\n", i);
+            appendLogBuffer << "before computeReserveValue run " << i << endl;
 
-                initialiseAdaptiveAnnealing(puno, spno, prop, R, pu, connections, SMGlobal, cm, spec, aggexist, anneal, clumptype, thread);
-
-                appendTraceFile("after initialiseAdaptiveAnnealing run %i\n", i);
-            }
-
-            if (verbosity > 1) runConsoleOutput << "Run " << i << ": Using Calculated Tinit = " << anneal.Tinit << " Tcool = " << anneal.Tcool << "\n";
-            anneal.temp = anneal.Tinit;
-        }
-
-        appendTraceFile("before computeReserveValue run %i\n", i);
-
-        initialiseReserve(prop, pu, R, rngEngine); // Create Initial Reserve
-        SpeciesAmounts(spno,puno,spec,pu,SMGlobal,R,clumptype); // Re-added this from v2.4 because spec amounts need to be refreshed when initializing
-
-        if (aggexist)
-            ClearClumps(spno, spec, pu, SMGlobal);
-
-        appendTraceFile("after computeReserveValue run %i\n", i);
-
-        if (verbosity > 1)
-        {
-            computeReserveValue(puno, spno, R, pu, connections, SMGlobal, cm, spec, aggexist, reserve, clumptype, thread);
-            runConsoleOutput << "Run " << i << " Init: " << displayValueForPUs(puno, spno, R, reserve, spec, misslevel).str();
-        }
-        if (verbosity > 5)
-        {
-            displayTimePassed();
-        }
-
-        if (runoptions.ThermalAnnealingOn)
-        {
-            appendTraceFile("before thermalAnnealing run %i\n", i);
-
-            thermalAnnealing(spno, puno, connections, R, cm, spec, pu, SMGlobal, reserve,
-                             repeats, i, savename, misslevel,
-                             aggexist, costthresh, tpf1, tpf2, clumptype, anneal, thread);
-
-            if (verbosity > 1)
-            {
-                computeReserveValue(puno,spno,R,pu,connections,SMGlobal,cm,spec,aggexist,reserve,clumptype, thread);
-                runConsoleOutput << "Run " << i << " ThermalAnnealing: " << displayValueForPUs(puno,spno,R,reserve,spec,misslevel).str();
-            }
-
-            appendTraceFile("after thermalAnnealing run %i\n", i);
-        }
-
-        if (runoptions.QuantumAnnealingOn)
-        {
-            appendTraceFile("before quantumAnnealing run %i\n", i);
-
-            quantumAnnealing(spno, puno, connections, R, cm, spec, pu, SMGlobal, change, reserve,
-                             repeats, i, savename, misslevel,
-                             aggexist, costthresh, tpf1, tpf2, clumptype, anneal, thread);
-
-            if (verbosity >1)
-            {
-                computeReserveValue(puno,spno,R,pu,connections,SMGlobal,cm,spec,aggexist,reserve,clumptype, thread);
-                runConsoleOutput << "Run " << i << "  QuantumAnnealing: " << displayValueForPUs(puno,spno,R,reserve,spec,misslevel).str();
-
-            }
-
-            appendTraceFile("after quantumAnnealing run %i\n", i);
-        }
-
-        if (runoptions.HeuristicOn)
-        {
-            appendTraceFile("before Heuristics run %i\n", i);
-
-            Heuristics(spno, puno, pu, connections, R, cm, spec, SMGlobal, reserve,
-                       costthresh, tpf1, tpf2, heurotype, clumptype, thread);
-
-            if (verbosity > 1 && (runopts == 2 || runopts == 5))
-            {
-                computeReserveValue(puno,spno,R,pu,connections,SMGlobal,cm,spec,aggexist,reserve,clumptype, thread);
-                runConsoleOutput << "Run " << i << "  Heuristic: " << displayValueForPUs(puno, spno, R, reserve, spec, misslevel).str();
-            }
-
-            appendTraceFile("after Heuristics run %i\n", i);
-        }
-
-        if (runoptions.ItImpOn)
-        {
-            appendTraceFile("before iterativeImprovement run %i\n", i);
-
-            iterativeImprovement(puno, spno, pu, connections, spec, SMGlobal, R, cm,
-                                 reserve, change, costthresh, tpf1, tpf2, clumptype, i, savename, thread);
-
-            if (itimptype == 3)
-                iterativeImprovement(puno, spno, pu, connections, spec, SMGlobal, R, cm,
-                                     reserve, change, costthresh, tpf1, tpf2, clumptype, i, savename, thread);
-
-            appendTraceFile("after iterativeImprovement run %i\n", i);
+            initialiseReserve(prop, pu, R, rngEngine); // Create Initial Reserve
+            SpeciesAmounts(spno,puno,spec,pu,SMGlobal,R,clumptype); // Re-added this from v2.4 because spec amounts need to be refreshed when initializing
 
             if (aggexist)
-                ClearClumps(spno, spec, pu, SMGlobal);
+                ClearClumps(spno, spec, pu, SMGlobal, thread);
+
+            appendLogBuffer << "after computeReserveValue run " << i << endl;
 
             if (verbosity > 1)
             {
-                computeReserveValue(puno, spno, R, pu, connections, SMGlobal, cm, spec, aggexist, reserve, clumptype, thread);
-                runConsoleOutput << "Run " << i << " Iterative Improvement: " << displayValueForPUs(puno, spno, R, reserve, spec, misslevel).str();
+                computeReserveValue(puno, spno, R, pu, connections, SMGlobal, cm, spec, aggexist, reserve, clumptype, thread, appendLogBuffer);
+                runConsoleOutput << "Run " << i << " Init: " << displayValueForPUs(puno, spno, R, reserve, spec, misslevel).str();
+            }
+            if (verbosity > 5)
+            {
+                displayTimePassed();
             }
 
-        } // Activate Iterative Improvement
+            if (runoptions.ThermalAnnealingOn)
+            {
+                appendLogBuffer << "before thermalAnnealing run " << i << endl;
 
-        appendTraceFile("before file output run %i\n", i);
-        string fileNumber = to_string(i);
-        if (fnames.saverun)
-        {
-            tempname2 = savename + "_r" + fileNumber + getFileNameSuffix(fnames.saverun);
-            writeSolution(puno, R, pu, tempname2, fnames.saverun, fnames);
-        }
+                thermalAnnealing(spno, puno, connections, R, cm, spec, pu, SMGlobal, reserve,
+                                repeats, i, savename, misslevel,
+                                aggexist, costthresh, tpf1, tpf2, clumptype, anneal, thread, appendLogBuffer);
 
-        if (fnames.savespecies && fnames.saverun)
-        {
-            tempname2 = savename + "_mv" + fileNumber + getFileNameSuffix(fnames.savespecies);
-            writeSpecies(spno, spec, tempname2, fnames.savespecies, misslevel);
-        }
+                if (verbosity > 1)
+                {
+                    computeReserveValue(puno,spno,R,pu,connections,SMGlobal,cm,spec,aggexist,reserve,clumptype, thread, appendLogBuffer);
+                    runConsoleOutput << "Run " << i << " ThermalAnnealing: " << displayValueForPUs(puno,spno,R,reserve,spec,misslevel).str();
+                }
 
-        if (fnames.savesum)
-        {   // summaries get stored and aggregated to prevent race conditions.
-            summaries[i-1] = computeSummary(puno,spno,R,spec,reserve,i,misslevel,fnames.savesum);
-        }
-
-        // Print results from run.
-        displayProgress1(runConsoleOutput.str());
-
-        // compute and store objective function score for this reserve system
-        computeReserveValue(puno, spno, R, pu, connections, SMGlobal, cm, spec, aggexist, change, clumptype, thread);
-
-        // remember the bestScore and bestRun
-        if (change.total < bestScore)
-        {
-            omp_set_lock(&bestR_write_lock);
-            // After locking, do another check in case bestScore has changed
-            if (change.total < bestScore) {
-                // this is best run so far
-                bestScore = change.total;
-                bestRun = i;
-                // store bestR
-                bestR = R;
-                bestRunString = runConsoleOutput.str();
+                appendLogBuffer << "after thermalAnnealing run " << i << endl;
             }
-            omp_unset_lock(&bestR_write_lock);
+
+            if (runoptions.QuantumAnnealingOn)
+            {
+                appendLogBuffer << "before quantumAnnealing run " << i << endl;
+
+                quantumAnnealing(spno, puno, connections, R, cm, spec, pu, SMGlobal, change, reserve,
+                                repeats, i, savename, misslevel,
+                                aggexist, costthresh, tpf1, tpf2, clumptype, anneal, thread);
+
+                if (verbosity >1)
+                {
+                    computeReserveValue(puno,spno,R,pu,connections,SMGlobal,cm,spec,aggexist,reserve,clumptype, thread, appendLogBuffer);
+                    runConsoleOutput << "Run " << i << "  QuantumAnnealing: " << displayValueForPUs(puno,spno,R,reserve,spec,misslevel).str();
+
+                }
+
+                appendLogBuffer << "after quantumAnnealing run " << i << endl;
+            }
+
+            if (runoptions.HeuristicOn)
+            {
+                appendLogBuffer << "before Heuristics run " << i << endl;
+
+                Heuristics(spno, puno, pu, connections, R, cm, spec, SMGlobal, reserve,
+                        costthresh, tpf1, tpf2, heurotype, clumptype, thread, appendLogBuffer);
+
+                if (verbosity > 1 && (runopts == 2 || runopts == 5))
+                {
+                    computeReserveValue(puno,spno,R,pu,connections,SMGlobal,cm,spec,aggexist,reserve,clumptype, thread, appendLogBuffer);
+                    runConsoleOutput << "Run " << i << "  Heuristic: " << displayValueForPUs(puno, spno, R, reserve, spec, misslevel).str();
+                }
+
+                appendLogBuffer << "after Heuristics run " << i << endl;
+            }
+
+            if (runoptions.ItImpOn)
+            {
+                appendLogBuffer << "before iterativeImprovement run " << i << endl;
+
+                iterativeImprovement(puno, spno, pu, connections, spec, SMGlobal, R, cm,
+                                    reserve, change, costthresh, tpf1, tpf2, clumptype, i, savename, thread, appendLogBuffer);
+
+                if (itimptype == 3)
+                    iterativeImprovement(puno, spno, pu, connections, spec, SMGlobal, R, cm,
+                                        reserve, change, costthresh, tpf1, tpf2, clumptype, i, savename, thread, appendLogBuffer);
+
+                appendLogBuffer << "after iterativeImprovement run " << i << endl;
+
+                if (aggexist)
+                    ClearClumps(spno, spec, pu, SMGlobal, thread);
+
+                if (verbosity > 1)
+                {
+                    computeReserveValue(puno, spno, R, pu, connections, SMGlobal, cm, spec, aggexist, reserve, clumptype, thread, appendLogBuffer);
+                    runConsoleOutput << "Run " << i << " Iterative Improvement: " << displayValueForPUs(puno, spno, R, reserve, spec, misslevel).str();
+                }
+
+            } // Activate Iterative Improvement
+
+            appendLogBuffer << "before file output run " << i << endl;
+            string fileNumber = to_string(i);
+            if (fnames.saverun)
+            {
+                tempname2 = savename + "_r" + fileNumber + getFileNameSuffix(fnames.saverun);
+                writeSolution(puno, R, pu, tempname2, fnames.saverun, fnames);
+            }
+
+            if (fnames.savespecies && fnames.saverun)
+            {
+                tempname2 = savename + "_mv" + fileNumber + getFileNameSuffix(fnames.savespecies);
+                writeSpecies(spno, spec, tempname2, fnames.savespecies, misslevel);
+            }
+
+            if (fnames.savesum)
+            {   // summaries get stored and aggregated to prevent race conditions.
+                summaries[i-1] = computeSummary(puno,spno,R,spec,reserve,i,misslevel,fnames.savesum);
+            }
+
+            // Print results from run.
+            displayProgress1(runConsoleOutput.str());
+
+            // compute and store objective function score for this reserve system
+            computeReserveValue(puno, spno, R, pu, connections, SMGlobal, cm, spec, aggexist, change, clumptype, thread, appendLogBuffer);
+
+            // remember the bestScore and bestRun
+            if (change.total < bestScore)
+            {
+                omp_set_lock(&bestR_write_lock);
+                // After locking, do another check in case bestScore has changed
+                if (change.total < bestScore) {
+                    // this is best run so far
+                    bestScore = change.total;
+                    bestRun = i;
+                    // store bestR
+                    bestR = R;
+                    bestRunString = runConsoleOutput.str();
+                    bestSpec = spec; // make a copy of best spec.
+                }
+                omp_unset_lock(&bestR_write_lock);
+            }
+
+            if (fnames.savesolutionsmatrix)
+            {
+                appendLogBuffer << "before appendSolutionsMatrix savename " << i << endl;
+                tempname2 = savename + "_solutionsmatrix"  + getFileNameSuffix(fnames.savesolutionsmatrix);
+
+                omp_set_lock(&solution_matrix_append_lock);
+                appendSolutionsMatrix(i, puno, R, tempname2, fnames.savesolutionsmatrix, fnames.solutionsmatrixheaders);
+                omp_unset_lock(&solution_matrix_append_lock);
+
+                appendLogBuffer << "after appendSolutionsMatrix savename " << i << endl;
+            }
+
+            if (aggexist)
+                ClearClumps(spno, spec, pu, SMGlobal, thread);
+
+        }
+        catch (exception& e) {
+            // On exceptions, append exception to log file in addition to existing buffer. 
+            displayProgress1(runConsoleOutput.str());
+            appendLogBuffer << "Exception occurred on run " << i << ": " << e.what() << endl;
+            appendTraceFile(appendLogBuffer.str());
+
+            throw(e);
         }
 
-        if (fnames.savesolutionsmatrix)
-        {
-            appendTraceFile("before appendSolutionsMatrix savename %s\n", savename);
-            tempname2 = savename + "_solutionsmatrix"  + getFileNameSuffix(fnames.savesolutionsmatrix);
+        appendLogBuffer << "after file output run " << i << endl;
+        appendLogBuffer << "end run " << i << endl;
 
-            omp_set_lock(&solution_matrix_append_lock);
-            appendSolutionsMatrix(i, puno, R, tempname2, fnames.savesolutionsmatrix, fnames.solutionsmatrixheaders);
-            omp_unset_lock(&solution_matrix_append_lock);
-
-            appendTraceFile("after appendSolutionsMatrix savename %s\n", savename);
-        }
-
-        if (aggexist)
-            ClearClumps(spno, spec, pu, SMGlobal);
-
-        appendTraceFile("after file output run %i\n", i);
-        appendTraceFile("end run %i\n", i);
+        appendTraceFile(appendLogBuffer.str());
 
         if (marxanIsSecondary == 1)
             writeSecondarySyncFileRun(i);
@@ -323,7 +339,7 @@ void executeRunLoop(int iSparseMatrixFileLength, long int repeats,int puno,int s
         string tempname2 = savename + "_sum" + getFileNameSuffix(fnames.savesum);
         writeSummary(tempname2, summaries, fnames.saverun);
     }
-    cout << "Best run: " << bestRun << " Best score: " << bestScore << "\n" << bestRunString;
+    cout << "\nBest run: " << bestRun << " Best score: " << bestScore << "\n" << bestRunString;
 } // executeRunLoop
 
 int executeMarxan(string sInputFileName)
@@ -342,6 +358,7 @@ int executeMarxan(string sInputFileName)
     double costthresh,tpf1,tpf2;
     long int itemp;
     int isp;
+    int maxThreads = omp_get_max_threads();
 
     // Handle Error driven termination
     if (setjmp(jmpbuf))
@@ -528,6 +545,13 @@ int executeMarxan(string sInputFileName)
             sepexist = 1;
     }
 
+    // if clumping requirements exist, initialize clumping arrays
+    if (aggexist) {
+        for (spu& term: SMGlobal) {
+            term.clump.assign(maxThreads, 0);
+        }
+    }
+
     if (fnames.savesen)
     {
         appendTraceFile("before writeScenario\n");
@@ -579,7 +603,7 @@ int executeMarxan(string sInputFileName)
             appendTraceFile("before CalcPenalties\n");
 
             // we don't have sporder matrix available, so use slow CalcPenalties method
-            itemp = computePenalties(puno,spno,pu,specGlobal,connections,SMGlobal,R_CalcPenalties,aggexist,cm,clumptype, -1);
+            itemp = computePenalties(puno,spno,pu,specGlobal,connections,SMGlobal,R_CalcPenalties,aggexist,cm,clumptype, 0);
 
             appendTraceFile("after CalcPenalties\n");
         }
@@ -590,7 +614,7 @@ int executeMarxan(string sInputFileName)
             {
                 appendTraceFile("before CalcPenaltiesOptimise\n");
 
-                itemp = computePenaltiesOptimise(puno,spno,pu,specGlobal,connections,SMGlobal,SMsporder,R_CalcPenalties,aggexist,cm,clumptype,-1);
+                itemp = computePenaltiesOptimise(puno,spno,pu,specGlobal,connections,SMGlobal,SMsporder,R_CalcPenalties,aggexist,cm,clumptype, 0);
 
                 appendTraceFile("after CalcPenaltiesOptimise\n");
             }
@@ -599,7 +623,7 @@ int executeMarxan(string sInputFileName)
                 appendTraceFile("before CalcPenalties\n");
 
                 // we have optimise calc penalties switched off, so use slow CalcPenalties method
-                itemp = computePenalties(puno,spno,pu,specGlobal,connections,SMGlobal,R_CalcPenalties,aggexist,cm,clumptype,-1);
+                itemp = computePenalties(puno,spno,pu,specGlobal,connections,SMGlobal,R_CalcPenalties,aggexist,cm,clumptype,0);
 
                 appendTraceFile("after CalcPenalties\n");
             }
@@ -652,9 +676,6 @@ int executeMarxan(string sInputFileName)
 
         if (marxanIsSecondary == 1)
             secondaryExit();
-
-        if (aggexist)
-            ClearClumps(spno, specGlobal, pu, SMGlobal); // Remove these pointers for cleanliness sake
 
         if (fnames.savelog)
             createLogFile(0, NULL); /* tidy up files */
@@ -726,9 +747,6 @@ int executeMarxan(string sInputFileName)
                 secondaryExit();
         }
     }
-
-    if (aggexist)
-        ClearClumps(spno,specGlobal,pu,SMGlobal);  // Remove these pointers for cleanliness sake
 
     displayShutdownMessage();
 
@@ -975,12 +993,11 @@ void setDefaultRunOptions(int runopts, srunoptions &runoptions)
 // compute initial penalties for species with a greedy algorithm.
 // If species has spatial requirements then CalcPenaltyType4 is used instead
 int computePenalties(int puno,int spno, vector<spustuff> &pu, vector<sspecies> &spec,
-                     vector<sconnections> &connections, vector<spu> &SM, int aggexist, double cm, int clumptype, int thread)
+                     vector<sconnections> &connections, vector<spu> &SM, vector<int> &PUtemp, int aggexist, double cm, int clumptype, int thread)
 {
     int i,j,ibest,imaxtarget,itargetocc;
-    double ftarget,fbest,fbestrat,fcost,ftemp, rAmount;
+    double ftarget,fbest,fbestrat,fcost,ftemp, rAmount, rAmountBest;
     int badspecies = 0,goodspecies = 0;
-    vector<int> PUtemp(puno); 
     initialiseReserve(0,pu,PUtemp, rngEngine); // Initialize reserve to 0 and fixed. 
 
     for (i=0;i<spno;i++)
@@ -1016,39 +1033,43 @@ int computePenalties(int puno,int spno, vector<spustuff> &pu, vector<sspecies> &
 
         do
         {
-            fbest =0; imaxtarget = 0; fbestrat = 0;
+            fbest =0; imaxtarget = 0; fbestrat = 0, rAmountBest = 0;
             for (j=0;j<puno;j++)
             { // trying to find best pu
-                rAmount = returnAmountSpecAtPu(pu[j],SM,i).second;
-                if (PUtemp[j] == 0 && rAmount>0)
+                if (PUtemp[j] == 0)
                 {
-                    fcost = computePlanningUnitValue(pu[j],connections[j],cm, asymmetricconnectivity);
-                    if (fcost == 0)
-                        fcost = delta;
-                    if (rAmount >= spec[i].target - ftarget && (imaxtarget == 0 || (imaxtarget == 1 && fcost < fbest)))
-                    { // can I meet the target cheaply?
-                        imaxtarget = 1;
-                        ibest = j;
-                        fbest = fcost;
-                    } else {
-                        if (fbestrat < rAmount/fcost)
-                        { // finding the cheapest planning unit
-                            fbest = fcost;
-                            fbestrat = rAmount/fbest;
+                    rAmount = returnAmountSpecAtPu(pu[j],SM,i).second;
+                    if (rAmount>0) {
+                        fcost = computePlanningUnitValue(pu[j],connections[j],cm, asymmetricconnectivity);
+                        if (fcost == 0)
+                            fcost = delta;
+                        if (rAmount >= spec[i].target - ftarget && (imaxtarget == 0 || (imaxtarget == 1 && fcost < fbest)))
+                        { // can I meet the target cheaply?
+                            imaxtarget = 1;
                             ibest = j;
+                            fbest = fcost;
+                            rAmountBest = rAmount;
+                        } else {
+                            if (fbestrat < rAmount/fcost)
+                            { // finding the cheapest planning unit
+                                fbest = fcost;
+                                fbestrat = rAmount/fbest;
+                                ibest = j;
+                                rAmountBest = rAmount;
+                            }
                         }
-                    }
 
-                    #ifdef DEBUGCALCPENALTIES
-                    appendTraceFile("CalcPenalties species %i puid %i cost %g\n",spec[i].name,pu[j].id,fcost);
-                    #endif
+                        #ifdef DEBUGCALCPENALTIES
+                        appendTraceFile("CalcPenalties species %i puid %i cost %g\n",spec[i].name,pu[j].id,fcost);
+                        #endif
+                    }
                 }  // Making sure only checking planning units not already used
             }
 
             if (fbest > 0)
             {
                 PUtemp[ibest] = 1;
-                ftarget += returnAmountSpecAtPu(pu[ibest],SM,i).second;
+                ftarget += rAmountBest;
                 itargetocc++;
                 spec[i].penalty += fbest;
 
@@ -1081,7 +1102,7 @@ int computePenalties(int puno,int spno, vector<spustuff> &pu, vector<sspecies> &
     // Clear clumps in case I needed them for target4 species
 
     if (aggexist)
-        ClearClumps(spno,spec,pu,SM);
+        ClearClumps(spno,spec,pu,SM, thread);
 
     if (goodspecies)
         displayProgress1("%i species are already adequately represented.\n",goodspecies);
@@ -1212,7 +1233,7 @@ int computePenaltiesOptimise(int puno,int spno, vector<spustuff> &pu, vector<ssp
     
     // Clear clumps in case I needed them for target4 species
     if (aggexist)
-        ClearClumps(spno,spec,pu,SM);
+        ClearClumps(spno,spec,pu,SM, thread);
 
     if (goodspecies)
         displayProgress1("%i species are already adequately represented.\n",goodspecies);
@@ -1344,7 +1365,7 @@ double computeChangePenalty(int ipu,int puno, vector<sspecies>& spec, vector<spu
 // compute objective function value of a reserve system
 void computeReserveValue(int puno,int spno, vector<int> &R, vector<spustuff> &pu,
                          vector<sconnections> &connections, vector<spu> &SM,
-                         double cm, vector<sspecies> &spec, int aggexist, scost &reserve,int clumptype, int thread)
+                         double cm, vector<sspecies> &spec, int aggexist, scost &reserve,int clumptype, int thread, stringstream& logBuffer)
 {
     vector<sclumps> tempSclumps;
     int i,j;
@@ -1352,15 +1373,7 @@ void computeReserveValue(int puno,int spno, vector<int> &R, vector<spustuff> &pu
     vector<double> ExpectedAmount1D, VarianceInExpectedAmount1D,
            ExpectedAmount2D, VarianceInExpectedAmount2D;
     double rConnectivityValue;
-    #ifdef DEBUG_RESERVECOST
-    char debugline[200];
-    #endif
-    #ifdef DEBUG_PROB2D
-    char sProbDebugFileName[500], sProbDebugCost[100];
-    #endif
-    #ifdef DEBUG_PROB1D
-    char sProbDebugFileName[500], sProbDebugCost[100];
-    #endif
+    string sProbDebugFileName; // for debugging only
 
     // init arrays for prob 1D and 2D
     if (fProb1D == 1)
@@ -1433,8 +1446,7 @@ void computeReserveValue(int puno,int spno, vector<int> &R, vector<spustuff> &pu
             reserve.connection += rConnectivityValue;
 
             #ifdef DEBUG_RESERVECOST
-            sprintf(debugline,"puid %i connectivity %lf\n",pu[j].id,rConnectivityValue);
-            appendTraceFile(debugline);
+            logBuffer << "puid " << pu[j].id << " connectivity " << rConnectivityValue << endl;
             #endif
 
             if (fProb1D == 1)
@@ -1460,50 +1472,24 @@ void computeReserveValue(int puno,int spno, vector<int> &R, vector<spustuff> &pu
     reserve.total = reserve.cost + reserve.connection + reserve.penalty + reserve.probability1D + reserve.probability2D;
 
     #ifdef DEBUG_PROB1D
-    sprintf(sProbDebugCost,"probability1D %f\n",reserve.probability1D);
-    appendTraceFile(sProbDebugCost);
+    logBuffer << "probability1D " << reserve.probability1D << endl;
 
-    appendTraceFile("computeReserveValue E\n");
-
-    sprintf(sProbDebugCost,"%f",reserve.cost);
-    strcpy(sProbDebugFileName,fnames.outputdir);
-    strcat(sProbDebugFileName,"output_Prob1DDebug_");
-    strcat(sProbDebugFileName,sProbDebugCost);
-    strcat(sProbDebugFileName,".csv");
+    sProbDebugFileName = fnames.outputdir + "output_Prob1DDebug_" + to_string(reserve.cost) + ".csv";
     writeProb1DDebugTable(spno,sProbDebugFileName,
                           ExpectedAmount1D,VarianceInExpectedAmount1D,spec);
 
-    appendTraceFile("computeReserveValue F\n");
-
-    sprintf(sProbDebugCost,"%f",reserve.cost);
-    strcpy(sProbDebugFileName,fnames.outputdir);
-    strcat(sProbDebugFileName,"output_Prob1DDetailDebug_");
-    strcat(sProbDebugFileName,sProbDebugCost);
-    strcat(sProbDebugFileName,".csv");
+    sProbDebugFileName = fnames.outputdir + "output_Prob1DDetailDebug_" + to_string(reserve.cost) + ".csv";
     writeProb1DDetailDebugTable(sProbDebugFileName,puno,spno,pu,SM,R);
-
-    appendTraceFile("computeReserveValue G\n");
     #endif
 
     #ifdef DEBUG_PROB2D
-    sprintf(sProbDebugCost,"probability2D %f\n",reserve.probability2D);
-    appendTraceFile(sProbDebugCost);
+    logBuffer << "probability2D " << reserve.probability2D << endl;
 
-    sprintf(sProbDebugCost,"%f",reserve.cost);
-    strcpy(sProbDebugFileName,fnames.outputdir);
-    strcat(sProbDebugFileName,"output_Prob2DDebug_");
-    strcat(sProbDebugFileName,sProbDebugCost);
-    strcat(sProbDebugFileName,".csv");
-
+    sProbDebugFileName = fnames.outputdir + "output_Prob2DDebug_" + to_string(reserve.cost) + ".csv";
     writeProb2DDebugTable(spno,sProbDebugFileName,
                           ExpectedAmount2D,VarianceInExpectedAmount2D,spec);
 
-    sprintf(sProbDebugCost,"%f",reserve.cost);
-    strcpy(sProbDebugFileName,fnames.outputdir);
-    strcat(sProbDebugFileName,"output_Prob2DDetailDebug_");
-    strcat(sProbDebugFileName,sProbDebugCost);
-    strcat(sProbDebugFileName,".csv");
-
+    sProbDebugFileName = fnames.outputdir + "output_Prob2DDetailDebug_" + to_string(reserve.cost) + ".csv";
     writeProb2DDetailDebugTable(sProbDebugFileName,puno,pu,SM,R);
     #endif
     
@@ -1548,21 +1534,16 @@ void computeChangeScore(int iIteration,int ipu,int spno,int puno,vector<spustuff
 #endif
 
     change.cost = pu[ipu].cost * imode; /* Cost of this PU on it's own */
+
+    auto t1 = chrono::steady_clock::now();
     change.connection = ConnectionCost2(ipu, connections, R, imode, 1, cm);
-    if (threshtype == 1)
-    {
-        tchangeconnection = change.connection;
-        tresconnection = reserve.connection;
-        change.connection = 0;
-        reserve.connection = 0;
-    }
+    auto t2 = chrono::steady_clock::now();
+    cout << "ConnectionCost2 time: " << chrono::duration_cast<std::chrono::nanoseconds>(t2 - t1).count() << "\n";
 
+    t1 = chrono::steady_clock::now();
     change.penalty = computeChangePenalty(ipu, puno, spec, pu, SM, R, connections, imode, clumptype, change.shortfall, thread);
-
-    if (isinf(change.penalty) != 0)
-    {
-        printf("\ncomputeChangeScore infinite change.penalty >%g<\n", change.penalty);
-    }
+    t2 = chrono::steady_clock::now();
+    cout << "computeChangePenalty time: " << chrono::duration_cast<std::chrono::nanoseconds>(t2 - t1).count() << "\n";
 
     if (costthresh)
     {
@@ -1589,12 +1570,6 @@ void computeChangeScore(int iIteration,int ipu,int spno,int puno,vector<spustuff
 
     change.threshpen = threshpen;
 
-    if (threshtype == 1)
-    {
-        change.connection = tchangeconnection;
-        reserve.connection = tresconnection;
-    }
-
     if (fProb1D == 1)
         change.probability1D = ChangeProbability1D(iIteration, ipu, spno, puno, spec, pu, SM, imode);
     else
@@ -1605,11 +1580,6 @@ void computeChangeScore(int iIteration,int ipu,int spno,int puno,vector<spustuff
         change.probability2D = 0;
 
     change.total = change.cost + change.connection + change.penalty + change.threshpen + change.probability1D + change.probability2D;
-
-    if (isinf(change.total) != 0)
-    {
-        printf("\ncomputeChangeScore infinite change.total >%g<\n", change.total);
-    }
 
 #ifdef DEBUGCHECKCHANGE
     sprintf(debugline, "%i,%i,%i,%g,%g,%g,%g,%g,%g,%g\n",
@@ -1727,7 +1697,10 @@ void computeQuantumChangeScore(int spno,int puno, vector<spustuff> pu, vector<sc
 // does the change stochastically fall below the current acceptance probability?
 int isGoodChange(scost& change,double temp, uniform_real_distribution<double>& float_range)
 {
-    return (exp(-change.total/temp)> float_range(rngEngine)) ? 1 : 0;
+    if (change.total <= 0)
+        return 1;
+    else
+        return (exp(-change.total / temp) > float_range(rngEngine));
 }
 
 // determines if the change value for changing status for a set of planning units is good
@@ -1743,7 +1716,7 @@ int isGoodQuantumChange(struct scost change,double rProbAcceptance, uniform_real
 // change the status of a single planning unit
 void doChange(int ipu,int puno,vector<int> &R, scost &reserve, scost &change,
               vector<spustuff> &pu,vector<spu> &SM,vector<sspecies> &spec,vector<sconnections> &connections,
-              int imode,int clumptype, int thread)
+              int imode,int clumptype, int thread, stringstream& logBuffer)
 {
     int i, ism, isp;
     double rAmount;
@@ -1801,15 +1774,16 @@ void doChange(int ipu,int puno,vector<int> &R, scost &reserve, scost &change,
                 }
 
 #ifdef ANNEALING_TEST
-                appendTraceFile("doChange ipu %i isp %i spec.amount %g imode %i\n",
-                                ipu, isp, spec[isp].amount, imode);
+                logBuffer << "doChange ipu " << ipu << " isp " << isp << " spec.amount " << spec[isp].amount << " imode " << imode << endl;
 #endif
             }
 
             if (spec[isp].sepnum > 0) /* Count separation but only if it is possible that it has changed */
                 if ((imode == 1 && spec[isp].separation < spec[isp].sepnum) || (imode == -1 && spec[isp].separation > 1))
+                {
                     vector<sclumps> tempSclumps;
                     spec[isp].separation = CountSeparation2(isp, 0, tempSclumps, puno, R, pu, SM, spec, 0, thread);
+                }
         }
     }
 
@@ -1934,7 +1908,7 @@ void handleOptions(int argc,char *argv[], string sInputFileName)
 
 void initialiseConnollyAnnealing(int puno,int spno,vector<spustuff> &pu, vector<sconnections> &connections, vector<sspecies> &spec,
                                  vector<spu> &SM,double cm, sanneal &anneal,int aggexist,
-                                 vector<int> &R,double prop,int clumptype,int irun, int thread)
+                                 vector<int> &R,double prop,int clumptype,int irun, int thread, stringstream& logBuffer)
 {
     long int i,ipu,imode, iOldR;
     double deltamin = 0,deltamax = 0;
@@ -1943,17 +1917,10 @@ void initialiseConnollyAnnealing(int puno,int spno,vector<spustuff> &pu, vector<
     scost reserve = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
     #ifdef DEBUGTRACEFILE
-    string sRun;
     FILE *fp;
-    string writename;
-    #endif
-
-    #ifdef DEBUGTRACEFILE
-    appendTraceFile("initialiseConnollyAnnealing start\n");
     if (verbosity > 4)
     {
-        sRun = to_string(irun);
-        writename = fnames.outputdir + "debug_maropt_initialiseConnollyAnnealing_" + sRun + ".csv";
+        string writename = fnames.outputdir + "debug_maropt_initialiseConnollyAnnealing_" + to_string(irun) + ".csv";
         fp = fopen(writename.c_str(),"w");
         if (fp==NULL)
             displayErrorMessage("cannot create debug_maropt_initialiseConnollyAnnealing file %s\n",writename);
@@ -1962,39 +1929,37 @@ void initialiseConnollyAnnealing(int puno,int spno,vector<spustuff> &pu, vector<
     #endif
 
     #ifdef DEBUG_PROB1D
-    appendTraceFile("initialiseConnollyAnnealing A\n");
+    logBuffer << "initialiseConnollyAnnealing A - before initialise reserve\n";
     #endif
 
     initialiseReserve(prop,pu,R, rngEngine);
 
     #ifdef DEBUG_PROB1D
-    appendTraceFile("initialiseConnollyAnnealing B\n");
+    logBuffer << "initialiseConnollyAnnealing B - after initialise reserve\n";
     #endif
 
     if (aggexist)
-        ClearClumps(spno,spec,pu,SM);
+        ClearClumps(spno,spec,pu,SM, thread);
 
     #ifdef DEBUG_PROB1D
-    appendTraceFile("initialiseConnollyAnnealing C\n");
+    logBuffer << "initialiseConnollyAnnealing C - before compute reserve\n";
     #endif
 
-    computeReserveValue(puno,spno,R,pu,connections,SM,cm,spec,aggexist, reserve,clumptype, thread);
+    computeReserveValue(puno,spno,R,pu,connections,SM,cm,spec,aggexist, reserve,clumptype, thread, logBuffer);
 
     #ifdef DEBUG_PROB1D
-    appendTraceFile("initialiseConnollyAnnealing D\n");
+    logBuffer << "initialiseConnollyAnnealing D - after compute reserve\n";
     #endif
 
     std::uniform_int_distribution<int> int_range(0, puno-1);
     for (i=1;i<= anneal.iterations/100; i++)
     {
-        auto starttime = std::chrono::high_resolution_clock::now();
-
         ipu = int_range(rngEngine);
         iOldR = R[ipu];
         imode = R[ipu]==1?-1:1;
 
         computeChangeScore(-1,ipu,spno,puno,pu,connections,spec,SM,R,cm,imode,change,reserve,0,0,0,0,clumptype, thread);
-        doChange(ipu,puno,R,reserve,change,pu,SM,spec,connections,imode,clumptype, thread);
+        doChange(ipu,puno,R,reserve,change,pu,SM,spec,connections,imode,clumptype, thread, logBuffer);
         if (change.total > deltamax)
             deltamax = change.total;
         if (change.total >localdelta && (deltamin < localdelta || change.total < deltamin))
@@ -2009,14 +1974,15 @@ void initialiseConnollyAnnealing(int puno,int spno,vector<spustuff> &pu, vector<
     deltamin *= 0.1;
     anneal.Tcool = exp(log(deltamin/ anneal.Tinit)/(double)anneal.Titns);
 
-    appendTraceFile("initialiseConnollyAnnealing end\n");
+    #ifdef DEBUGTRACEFILE
     if (verbosity > 4)
         fclose(fp);
+    #endif
 } // initialiseConnollyAnnealing
 
 // initialise adaptive annealing (where anneal type = 3)
 void initialiseAdaptiveAnnealing(int puno,int spno,double prop,vector<int> &R,vector<spustuff> &pu,vector<sconnections> &connections,
-                                 vector<spu> &SM,double cm,vector<sspecies> &spec,int aggexist,sanneal &anneal,int clumptype, int thread)
+                                 vector<spu> &SM,double cm,vector<sspecies> &spec,int aggexist,sanneal &anneal,int clumptype, int thread, stringstream& logBuffer)
 {
     long int i,isamples;
     double sum = 0,sum2 = 0;
@@ -2029,7 +1995,7 @@ void initialiseAdaptiveAnnealing(int puno,int spno,double prop,vector<int> &R,ve
     {  /* Generate Random Reserve */
         initialiseReserve(prop, pu, R, rngEngine);
         /* Score Random reserve */
-        computeReserveValue(puno,spno,R,pu,connections,SM,cm,spec,aggexist,cost,clumptype, thread);
+        computeReserveValue(puno,spno,R,pu,connections,SM,cm,spec,aggexist,cost,clumptype, thread, logBuffer);
         /* Add Score to Sum */
         sum += cost.total;
         sum2 += cost.total*cost.total;
@@ -2044,7 +2010,7 @@ void initialiseAdaptiveAnnealing(int puno,int spno,double prop,vector<int> &R,ve
     anneal.sum = 0;
     anneal.sum2 = 0;
 
-    appendTraceFile("Tinit %g Titns %li Tcool %g\n", anneal.Tinit, anneal.Titns, anneal.Tcool);
+    logBuffer << "Tinit " << anneal.Tinit << " Titns " << anneal.Titns << " Tcool " << anneal.Tcool << endl;
 } // initialiseAdaptiveAnnealing
 
 // reduce annealing temperature when anneal type = 3
@@ -2067,7 +2033,7 @@ void reduceTemperature(sanneal& anneal)
 void thermalAnnealing(int spno, int puno, vector<sconnections> &connections,vector<int> &R, double cm,
                       vector<sspecies>& spec, vector<spustuff> &pu, vector<spu> &SM, scost &reserve,
                       long int repeats,int irun,string savename,double misslevel,
-                      int aggexist,double costthresh, double tpf1, double tpf2,int clumptype, sanneal &anneal, int thread)
+                      int aggexist,double costthresh, double tpf1, double tpf2,int clumptype, sanneal &anneal, int thread, stringstream& logBuffer)
 {
     scost change = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
     long int itime = 0,ipu = -1,i,itemp, snapcount = 0,ichanges = 0, iPreviousR,iGoodChange = 0;
@@ -2078,7 +2044,7 @@ void thermalAnnealing(int spno, int puno, vector<sconnections> &connections,vect
     string writename;
     uniform_real_distribution<double> float_range(0.0, 1.0);
 
-    appendTraceFile("thermalAnnealing start iterations %ld\n", anneal.iterations);
+    logBuffer << "thermalAnnealing start iterations " << anneal.iterations << "\n";
     if (verbosity > 4)
     {
         writeR(0,"after_Annealing_entered",puno,R,pu,fnames);
@@ -2144,19 +2110,26 @@ void thermalAnnealing(int spno, int puno, vector<sconnections> &connections,vect
     for (itime = 1;itime<=anneal.iterations;itime++)
     {
         // Choose random pu. If PU is set > 1 then that pu is fixed and cannot be changed.
+        auto t1 = chrono::steady_clock::now();
+
         ipu = int_range(rngEngine);
         while (R[ipu] > 1) {
             ipu = int_range(rngEngine);
         }
 
+        auto t2 = chrono::steady_clock::now();
+        cout << "IPU CHOOSE time: " << chrono::duration_cast<std::chrono::nanoseconds>(t2 - t1).count() << "\n";
+
         itemp = R[ipu] == 1 ? -1 : 1;  /* Add or Remove PU ? */
         computeChangeScore(itime,ipu,spno,puno,pu,connections,spec,SM,R,cm,itemp, change,reserve,
                            costthresh,tpf1,tpf2,(double) itime/ (double) anneal.iterations,clumptype, thread);
+
 
         /* Need to calculate Appropriate temperature in isGoodChange or another function */
         /* Upgrade temperature */
         if (itime%anneal.Tlen == 0)
         {
+            t1 = chrono::steady_clock::now();
             rTemperature = rTemperature * anneal.Tcool;
 
             if (rTemperature > rStartDecThresh)
@@ -2179,6 +2152,9 @@ void thermalAnnealing(int spno, int puno, vector<sconnections> &connections,vect
 
             displayProgress3("time %ld temp %f Complete %ld%% currval %.4f\n",
                              itime,anneal.temp,(int)itime*100/anneal.iterations,reserve.total);
+            
+            t2 = chrono::steady_clock::now();
+            cout << "REDUCETEMPERATURE time: " << chrono::duration_cast<std::chrono::nanoseconds>(t2 - t1).count() << "\n";
         } /* reduce temperature */
 
         if (fnames.savesnapsteps && !(itime % fnames.savesnapfrequency))
@@ -2188,12 +2164,14 @@ void thermalAnnealing(int spno, int puno, vector<sconnections> &connections,vect
         } /* Save snapshot every savesnapfreq timesteps */
 
         iPreviousR = R[ipu];
-        if (isGoodChange(change,anneal.temp, float_range)==1)
+        iGoodChange = isGoodChange(change,anneal.temp, float_range);
+
+        if (iGoodChange)
         {
-            iGoodChange = 1;
             ++ichanges;
             
-            doChange(ipu,puno,R,reserve,change,pu,SM,spec,connections,itemp,clumptype, thread);
+            doChange(ipu,puno,R,reserve,change,pu,SM,spec,connections,itemp,clumptype, thread, logBuffer);
+
             if (fnames.savesnapchanges && !(ichanges % fnames.savesnapfrequency))
             {
                 tempname2 = savename + "_snap" + sRun + to_string(++snapcount) + getFileNameSuffix(fnames.savesnapchanges);
@@ -2201,10 +2179,6 @@ void thermalAnnealing(int spno, int puno, vector<sconnections> &connections,vect
             } /* Save snapshot every savesnapfreq changes */
 
         } /* Good change has been made */
-        else
-        {
-            iGoodChange = 0;
-        }
 
         if (anneal.type == 3)
         {
@@ -2246,7 +2220,7 @@ void thermalAnnealing(int spno, int puno, vector<sconnections> &connections,vect
 
     /** Post Processing  **********/
     if (aggexist)
-        ClearClumps(spno,spec,pu,SM);
+        ClearClumps(spno,spec,pu,SM, thread);
 
     if (verbosity > 4)
         fclose(fp);
@@ -2447,7 +2421,7 @@ void quantumAnnealing(int spno, int puno, vector<sconnections> &connections,vect
 
     /** Post Processing  **********/
     if (aggexist)
-        ClearClumps(spno,spec,pu,SM);
+        ClearClumps(spno,spec,pu,SM,thread);
 
     #ifdef DEBUGTRACEFILE
     if (verbosity > 4)
@@ -2474,7 +2448,7 @@ void secondaryExit(void)
 void iterativeImprovement(int puno,int spno,vector<spustuff> &pu, vector<sconnections> &connections,
                           vector<sspecies> &spec,vector<spu> &SM,vector<int> &R, double cm,
                           scost &reserve, scost &change,double costthresh,double tpf1, double tpf2,
-                          int clumptype,int irun,string savename, int thread)
+                          int clumptype,int irun,string savename, int thread, stringstream& logBuffer)
 {
     int puvalid =0,i,j,ipu=0,imode,ichoice, iRowCounter, iRowLimit;
     vector<int> iimparray;
@@ -2483,16 +2457,14 @@ void iterativeImprovement(int puno,int spno,vector<spustuff> &pu, vector<sconnec
     FILE *ttfp,*Rfp;
     string writename;
 
-    appendTraceFile("iterativeImprovement start\n");
-
+    logBuffer << "iterativeImprovement start\n";
     // counting pu's we need to test
     for (i=0;i<puno;i++)
     {
         if ((R[i] < 2) && (pu[i].status < 2))
             puvalid++;
     }
-
-    appendTraceFile("iterativeImprovement puvalid %i\n",puvalid);
+    logBuffer << "iterativeImprovement puvalid " << puvalid << "\n";
 
     if (fnames.saveitimptrace)
     {
@@ -2536,7 +2508,7 @@ void iterativeImprovement(int puno,int spno,vector<spustuff> &pu, vector<sconnec
             }
         }
 
-        appendTraceFile("iterativeImprovement after array init\n");
+        logBuffer << "iterativeImprovement after array init\n";
 
         // shuffle iimp array
         random_shuffle(iimparray.begin(), iimparray.end());
@@ -2554,7 +2526,7 @@ void iterativeImprovement(int puno,int spno,vector<spustuff> &pu, vector<sconnec
                if (change.total < 0)
                {
                   displayProgress2("It Imp has changed %i with change value %lf \n",ichoice,change.total);
-                  doChange(ichoice,puno,R,reserve,change,pu,SM,spec,connections,imode,clumptype, thread);
+                  doChange(ichoice,puno,R,reserve,change,pu,SM,spec,connections,imode,clumptype, thread, logBuffer);
                }   // I've just made a good change
             }
 
