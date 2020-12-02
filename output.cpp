@@ -99,7 +99,7 @@ void writeProb2DDebugTable(int spno,string savename, vector<double> ExpectedAmou
 }
 
 // debug output for probability 1D
-void writeProb1DDetailDebugTable(string savename,int puno,int spno, vector<spustuff> pu, vector<spu> SM, vector<int> R)
+void writeProb1DDetailDebugTable(string savename,int puno,int spno, vector<spustuff>& pu,  vector<spu>& SM, vector<int>& R)
 {
    FILE *fp;
    int i,ipu,ism,isp;
@@ -153,7 +153,7 @@ void writeProb1DDetailDebugTable(string savename,int puno,int spno, vector<spust
 }
 
 // debug output for probability 2D
-void writeProb2DDetailDebugTable(string savename,int puno,vector<spustuff> pu,vector<spu> SM, vector<int> R)
+void writeProb2DDetailDebugTable(string savename,int puno,vector<spustuff>& pu, vector<spu>& SM, vector<int>& R)
 {
    FILE *fp;
    int i,ipu,ism,isp;
@@ -506,7 +506,7 @@ void writeAsymmetricConnectionFile(int puno, vector<sconnections> connections, v
 }
 
 // write an output file from the loaded sparse matrix
-void writeSparseMatrix(int iSMno,int puno, vector<spustuff> PU, vector<sspecies> spec, vector<spu> SM, sfname fnames)
+void writeSparseMatrix(int iSMno,int puno, vector<spustuff>& PU, vector<sspecies>& spec, vector<spu>& SM, sfname& fnames)
 {
    FILE *fp;
    string writename = fnames.inputdir + "sm.csv";
@@ -537,7 +537,7 @@ double computeTotalConnection2(int puno, vector<int>& R, vector<sconnections>& c
     {
         if (R[i] == 1 || R[i] == 2)
         {
-            connectiontemp += ConnectionCost2(i, connections, R, 1, 0, 1);
+            connectiontemp += ConnectionCost2(i, connections, R, 1, 0, 1, asymmetricconnectivity, fOptimiseConnectivityIn);
         }
     }
     return connectiontemp;

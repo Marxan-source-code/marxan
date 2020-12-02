@@ -302,14 +302,11 @@ inline
 void computeSpecProp(int spno, vector<sspecies> &spec, int puno, vector<spustuff> &pu, vector<spu> &SM)
 {
     // compute and set target for species with a prop value
-    double totalamount;
-
     for (int isp=0;isp<spno;isp++)
     {
         if (spec[isp].prop > 0)
         {
-            totalamount = computeTotalSpecAmtAllPu(pu,SM,isp);
-            spec[isp].target = totalamount * spec[isp].prop;
+            spec[isp].target = computeTotalSpecAmtAllPu(pu,SM,isp) * spec[isp].prop;
         }
     }
 }
@@ -337,14 +334,12 @@ inline
 //                         or 1 there is a negative cost for removing connection, we are calling from Annealing
 //                   imode = -1 we are removing the planning unit from a reserve, calling from Annealing
 //                        or 1  we are adding the planning unit to a reserve, or it is already in reserve
-//      It seems that the behaviour of this function is unsupported if imode2=0 and imode=-1
+//      It seems that the behaviour of this function is undefined/unsupported if imode2=0 and imode=-1
 double ConnectionCost2(int ipu, vector<sconnections> &connections, vector<int> &R, int imode, int imode2, double cm, 
     int asymmetricconnectivity, int fOptimiseConnectivityIn)
 {
-    double fcost, rDelta;
+    double fcost  = connections[ipu].fixedcost * imode;
     int R_pu1;
-
-    fcost = connections[ipu].fixedcost * imode;
 
     if (asymmetricconnectivity)
     {
@@ -352,6 +347,8 @@ double ConnectionCost2(int ipu, vector<sconnections> &connections, vector<int> &
         {
             if (imode2) // calling from Annealing
             {
+                // determines if ipu is currently switched on or not
+                // if imode==1 then we assume currently switched off, and will switch on.
                 if (imode == 1)
                     R_pu1 = 0;
                 else
@@ -363,13 +360,11 @@ double ConnectionCost2(int ipu, vector<sconnections> &connections, vector<int> &
                     {
                         if (R_pu1 == 1)
                         {
-                            rDelta = -1 * p.cost;
-                            fcost += rDelta;
+                            fcost -= p.cost;
                         }
                         else
                         {
-                            rDelta = p.cost;
-                            fcost += rDelta;
+                            fcost += p.cost;
                         }
                     }
                 }
@@ -379,13 +374,11 @@ double ConnectionCost2(int ipu, vector<sconnections> &connections, vector<int> &
                     {
                         if (R_pu1 == 1)
                         {
-                            rDelta = p.cost;
-                            fcost += rDelta;
+                            fcost += p.cost;
                         }
                         else
                         {
-                            rDelta = -1 * p.cost;
-                            fcost += rDelta;
+                            fcost -= p.cost;
                         }
                     }
                 }
@@ -395,8 +388,7 @@ double ConnectionCost2(int ipu, vector<sconnections> &connections, vector<int> &
                 if (R[p.nbr] == 0)
                     if (p.connectionorigon)
                     {
-                        rDelta = p.cost;
-                        fcost += rDelta;
+                        fcost += p.cost;
                     }
             }
         }
@@ -409,25 +401,24 @@ double ConnectionCost2(int ipu, vector<sconnections> &connections, vector<int> &
             { // optimise for "Connectivity In"
                 if (R[p.nbr] == 1 || R[p.nbr] == 2)
                 {
-                    rDelta = imode * p.cost;
+                    fcost += imode * p.cost;
                 }
                 else
                 {
-                    rDelta = imode * imode2 * p.cost * -1;
+                    fcost += imode * imode2 * p.cost * -1;
                 }
             }
             else
             { // optimise for "Connectivity Edge"
                 if (R[p.nbr] == 1 || R[p.nbr] == 2)
                 {
-                    rDelta = imode * imode2 * p.cost * -1;
+                    fcost += imode * imode2 * p.cost * -1;
                 }
                 else
                 {
-                    rDelta = imode * p.cost;
+                    fcost += imode * p.cost;
                 }
             }
-            fcost += rDelta;
         }
     }
 

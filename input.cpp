@@ -474,7 +474,7 @@ int readConnections(int& puno, vector<sconnections>& connections, vector<spustuf
 void readSparseMatrix(int &iSMSize, vector<spu> &SM, int puno, int spno, vector<spustuff> &pu,
                       map<int,int> &PULookup,map<int,int> &SPLookup,
                       sfname& fnames) {
-    
+    vector<map<int,spu>> SMTemp; // temporarily storing in this structure prevents the need for ordering.
     FILE *fp;
     string readname;
     char sLine[500],*sVarVal;
@@ -508,8 +508,8 @@ void readSparseMatrix(int &iSMSize, vector<spu> &SM, int puno, int spno, vector<
     iSMSize = iInternalSMSize;
 
     // create the sparse matrix
+    SMTemp.resize(puno);
     SM.resize(iInternalSMSize);
-    iLastPUID = -1;
 
     // init with zero values
     for (i=0;i<iInternalSMSize;i++)
@@ -529,30 +529,43 @@ void readSparseMatrix(int &iSMSize, vector<spu> &SM, int puno, int spno, vector<
             sscanf(sVarVal,"%lf",&rProbability);
         }
 
-        if (_puid < iLastPUID)
-        {
-            // error condition exists, file is not in ascending order for PUID
-            appendTraceFile("Error: PU v Species file %s is not in ascending order for PUID at record %i.\nAborting Program.",fnames.puvsprname,i+1);
-            displayErrorMessage("Error: PU v Species file %s is not in ascending order for PUID at record %i.\nAborting Program.",fnames.puvsprname,i+1);
+        int old_puid;
+        try {
+            old_puid = _puid;
+            _puid = PULookup.at(_puid);
+        }
+        catch (out_of_range ex) {
+            displayWarningMessage("Puid %d found in puvspr file but not found in pu file. Ignoring.\n", old_puid);
         }
 
-        iLastPUID = _puid;
-
-        _puid = PULookup[_puid];
-        _spid = SPLookup[_spid];
+        int old_spid;
+        try {
+            old_spid = _spid;
+            _spid = SPLookup.at(_spid);
+        }
+        catch (out_of_range ex) {
+            displayWarningMessage("Spid %d found in puvspr file but not found in spec file. Ignoring.\n", old_spid);
+        }
 
         /* increment richness for planning unit containing this feature */
         pu[_puid].richness += 1;
-        /* if planning units richness is one, set its offset */
-        if (pu[_puid].richness == 1)
-            pu[_puid].offset = i;
-
-        SM[i].prob = rProbability;
-        SM[i].amount = amount;
-        SM[i].spindex = _spid;
+        SMTemp[_puid][_spid].prob = rProbability;
+        SMTemp[_puid][_spid].amount = amount;
     }
 
     fclose(fp);
+
+    int j = 0;
+    // Populate real SM using SMTemp
+    for (int i = 0; i < puno; i++) {
+        pu[i].offset = j;
+        for (auto &[spindex, val] : SMTemp[i]) {
+            SM[j].amount = val.amount;
+            SM[j].prob = val.prob;
+            SM[j].spindex = spindex;
+            j++;
+        }
+    }
 
     iBigMatrixSize = puno * spno;
     rInternalSMSize = iInternalSMSize;
@@ -673,7 +686,7 @@ void readSparseMatrixSpOrder(int &iSMSize, vector<spusporder> &SM, int puno, int
 
 // read value for a single parameter specified in input.dat parameter file
 template<class T>
-void readInputOption(vector<string> infile, string varname, T& value, int crit, int& present)
+void readInputOption(vector<string>& infile, string varname, T& value, int crit, int& present)
 // Given a varname, scans the infile to see if this field was configured with primitive type T. 
 // Here the lines of the file are supplied as a vector of strings.
 // If configured, returns the value in "value". 

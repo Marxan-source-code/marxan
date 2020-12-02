@@ -253,7 +253,7 @@ int computePenaltiesOptimise(int puno,int spno, vector<spustuff> &pu, vector<ssp
                              vector<sconnections> &connections, vector<spu> &SM, vector<spusporder> &SMsp,
                              vector<int> &PUtemp, int aggexist, double cm, int clumptype, int thread);
 
-double ConnectionCost2(int ipu, vector<sconnections> &connections, vector<int> &R, int imode, int imode2, double cm);
+//double ConnectionCost2(int ipu, vector<sconnections> &connections, vector<int> &R, int imode, int imode2, double cm);
 void computeReserveValue(int puno,int spno, vector<int> &R, vector<spustuff> &pu,
                          vector<sconnections> &connections, vector<spu> &SM,
                          double cm, vector<sspecies> &spec, int aggexist, scost &reserve,int clumptype, int thread, stringstream& logBuffer);
