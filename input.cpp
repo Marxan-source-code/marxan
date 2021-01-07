@@ -613,10 +613,11 @@ void readPenalties(vector<sspecies> &spec,int spno,sfname& fnames,map<int,int> &
 void readSparseMatrixSpOrder(int &iSMSize, vector<spusporder> &SM, int puno, int spno,
                              map<int,int> &PULookup,map<int,int> &SPLookup, vector<sspecies> &spec,
                              sfname &fnames) {
+    vector<map<int,spusporder>> SMTemp;
     FILE *fp;
     string readname;
-    char sLine[500],*sVarName,*sVarVal;
-    int i, _spid,spid, _puid, iInternalSMSize = 0, iBigMatrixSize, iLastSPID;
+    char sLine[500],*sVarVal;
+    int _spid, _puid, iInternalSMSize = 0, iBigMatrixSize, iLastSPID;
     double amount, rDensity, rInternalSMSize, rBigMatrixSize;
 
     readname = fnames.inputdir + fnames.matrixspordername;
@@ -627,23 +628,13 @@ void readSparseMatrixSpOrder(int &iSMSize, vector<spusporder> &SM, int puno, int
     if (fgets(sLine,500-1,fp) == NULL)
         displayErrorMessage("Error reading sparse matrix sporder.\n");
 
-    while (fgets(sLine,500-1,fp))
-        iInternalSMSize++;
-
-    rewind(fp);
-
-    iSMSize = iInternalSMSize;
-
     // create the sparse matrix
-    SM.resize(iInternalSMSize);
+    SMTemp.resize(spno);
 
-    iLastSPID = -1;
     // planning unit richness and offset are already set to zero
     // init with zero values
-    for (i=0;i<iInternalSMSize;i++)
+    while (fgets(sLine,500-1,fp))
     {
-        fgets(sLine,500-1,fp);
-
         sVarVal = strtok(sLine," ,;:^*\"/\t\'\\\n");
         sscanf(sVarVal,"%d",&_spid);
         sVarVal = strtok(NULL," ,;:^*\"/\t\'\\\n");
@@ -651,29 +642,43 @@ void readSparseMatrixSpOrder(int &iSMSize, vector<spusporder> &SM, int puno, int
         sVarVal = strtok(NULL," ,;:^*\"/\t\'\\\n");
         sscanf(sVarVal,"%lf",&amount);
 
-        if (_spid < iLastSPID)
-        {
-            // error condition exists, file is not in ascending order for SPID
-            appendTraceFile("Error: PU v Species file %s is not in ascending order for SPID at record %i.\nAborting Program.",fnames.puvsprname,i+1);
-            displayErrorMessage("Error: PU v Species file %s is not in ascending order for SPID at record %i.\nAborting Program.",fnames.puvsprname,i+1);
+        int old_puid;
+        try {
+            old_puid = _puid;
+            _puid = PULookup.at(_puid);
+        }
+        catch (out_of_range ex) {
+            displayWarningMessage("Puid %d found in puvspr file but not found in pu file. Ignoring.\n", old_puid);
         }
 
-        iLastSPID = _spid;
-
-        _puid = PULookup[_puid];
-        spid = SPLookup[_spid];
+        int old_spid;
+        try {
+            old_spid = _spid;
+            _spid = SPLookup.at(_spid);
+        }
+        catch (out_of_range ex) {
+            displayWarningMessage("Spid %d found in puvspr file but not found in spec file. Ignoring.\n", old_spid);
+        }
 
         // increment richness for planning unit containing this feature
-        spec[spid].richness += 1;
-        // if planning units richness is one, set its offset
-        if (spec[spid].richness == 1)
-            spec[spid].offset = i;
-
-        SM[i].amount = amount;
-        SM[i].puindex = _puid;
+        spec[_spid].richness += 1;
+        SMTemp[_spid][_puid].amount = amount;
     }
 
     fclose(fp);
+
+    // Fill the SM vector
+    int j = 0;
+    for (int i = 0; i < spno; i++) {
+        spec[i].offset = j;
+        for (auto& [puindex, value]: SMTemp[i]) {
+            spusporder temp;
+            temp.amount = value.amount;
+            temp.puindex = puindex;
+            SM.push_back(temp);
+            j++;
+        }
+    }
 
     iBigMatrixSize = puno * spno;
     rInternalSMSize = iInternalSMSize;

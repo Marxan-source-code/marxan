@@ -48,7 +48,7 @@ void trim(std::string &s) {
     rtrim(s);
 }
 
-// Adds '/' or '\' to end of dir string if not existent
+// Adds '/' to end of dir string if not existent
 inline
 std::string cleanDirectoryString(std::string dirName) {
     if (dirName.back() != '\\' && dirName.back() != '/') {

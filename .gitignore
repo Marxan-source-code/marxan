@@ -3,3 +3,5 @@ marxan
 input
 input.dat
 output
+bin
+*.exe

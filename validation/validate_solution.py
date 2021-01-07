@@ -1,6 +1,9 @@
 """
 This script checks the given marxan solution's cost and shortfall.
 Use this to independently validate whether a marxan solution 
+
+Example run
+python validate_solution.py "../bin/data/Base_30_costadd100/output/output_best.txt" "../bin/data/Base_30_costadd100/input/pu.dat" "../bin/data/Base_30_costadd100/input/spec.dat" "../bin/data/Base_30_costadd100/input/puvspr.dat"
 """
 import argparse
 import csv
@@ -91,7 +94,10 @@ def calculate_shortfall(contributions, targets):
     shortfall = 0.0
 
     for spec in targets:
-        shortfall += max(0, targets[spec] - contributions[spec])
+        if spec in contributions:
+            shortfall += max(0, targets[spec] - contributions[spec])
+        else:
+            shortfall += max(0, targets[spec])
 
     return shortfall
 

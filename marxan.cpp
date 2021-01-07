@@ -121,6 +121,7 @@ void executeRunLoop(int iSparseMatrixFileLength, long int repeats,int puno,int s
     int maxThreads = omp_get_max_threads();
 
     printf("Running multithreaded over number of threads: %d\n", maxThreads);
+    displayProgress1("Running multithreaded over number of threads: " + to_string(maxThreads) + "\n");
     #pragma omp parallel for
     for (int i = 1; i <= repeats; i++)
     {
@@ -331,6 +332,7 @@ void executeRunLoop(int iSparseMatrixFileLength, long int repeats,int puno,int s
             // On exceptions, append exception to log file in addition to existing buffer. 
             displayProgress1(runConsoleOutput.str());
             appendLogBuffer << "Exception occurred on run " << i << ": " << e.what() << endl;
+            displayProgress1(appendLogBuffer.str());
             appendTraceFile(appendLogBuffer.str());
 
             throw(e);
@@ -354,7 +356,11 @@ void executeRunLoop(int iSparseMatrixFileLength, long int repeats,int puno,int s
         string tempname2 = savename + "_sum" + getFileNameSuffix(fnames.savesum);
         writeSummary(tempname2, summaries, fnames.saverun);
     }
-    cout << "\nBest run: " << bestRun << " Best score: " << bestScore << "\n" << bestRunString;
+
+    stringstream bestOut;
+    bestOut << "\nBest run: " << bestRun << " Best score: " << bestScore << "\n" << bestRunString;
+    cout << bestOut.str();
+    displayProgress1(bestOut.str());
 } // executeRunLoop
 
 int executeMarxan(string sInputFileName)
@@ -1628,7 +1634,7 @@ void computeQuantumChangeScore(int spno,int puno, vector<spustuff>& pu, vector<s
 #endif
 
         change.cost += pu[j].cost * imode; /* Cost of this PU on it's own */
-        change.connection += ConnectionCost2(j, connections, R, imode, 1, cm);
+        change.connection += ConnectionCost2(j, connections, R, imode, 1, cm, asymmetricconnectivity, fOptimiseConnectivityIn);
         if (threshtype == 1)
         {
             tchangeconnection = change.connection;

@@ -34,7 +34,7 @@ double GreedyScore(int ipu,int puno,int spno, vector<sspecies>& spec,vector<spu>
     double currpen, currcost, currscore;
 
     currpen = GreedyPen(ipu, puno, spno, spec, R, pu, SM, clumptype, thread);
-    currcost = pu[ipu].cost + ConnectionCost2(ipu, connections, R, 1, 1, cm);
+    currcost = pu[ipu].cost + ConnectionCost2(ipu, connections, R, 1, 1, cm, asymmetricconnectivity, fOptimiseConnectivityIn);
     if (currcost <= 0)
     {
         currscore = -1.0 / delta;
@@ -107,7 +107,7 @@ double RareScore(int isp,int ipu,int puno,vector<sspecies> &spec,vector<spu> &SM
         currpen = newamount - fold;
     } // Add new penalty if species isn't already in the system
 
-    currcost = pu[ipu].cost + ConnectionCost2(ipu, connections, R, 1, 1, cm);
+    currcost = pu[ipu].cost + ConnectionCost2(ipu, connections, R, 1, 1, cm, asymmetricconnectivity, fOptimiseConnectivityIn);
     if (currcost <= 0)
     {
         currscore = -1.0 / delta;
