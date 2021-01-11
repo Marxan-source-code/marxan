@@ -2,6 +2,7 @@
 
 #include <csetjmp>
 #include <cstdarg>
+#include <chrono>
 #include <map>
 #include <random>
 #include <sstream>
@@ -327,7 +328,7 @@ int readSpecies(int &spno, vector<sspecies>& spec, sfname& fnames);
 int readSpeciesBlockDefinition(int& gspno, vector<sgenspec>& gspec, sfname& fnames);
 
 void SetVerbosity(int verb);
-void displayTimePassed(void);
+void displayTimePassed(chrono::high_resolution_clock::time_point start);
 
 void SetLogFile(int my_savelog, string my_savelogname);
 
@@ -337,7 +338,7 @@ void displayProgress(string sMess,...);
 void displayProgress1(string sMess,...);
 void displayProgress2(string sMess,...);
 void displayProgress3(string sMess,...);
-void displayShutdownMessage(void);
+void displayShutdownMessage(chrono::high_resolution_clock::time_point start);
 void displayUsage(string programName);
 
 void appendSolutionsMatrix(int iRun,int puno, vector<int>& R, string savename,int iOutputType, int iIncludeHeaders);

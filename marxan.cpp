@@ -75,6 +75,7 @@ map<int, int> PULookup, SPLookup;
 vector<sspecies> specGlobal, bestSpec;
 mt19937 rngEngine;
 srunoptions runoptions;
+chrono::high_resolution_clock::time_point startTime;
 
 double rProbabilityWeighting = 1;
 double rStartDecThresh = 0.7, rEndDecThresh = 0.3, rStartDecMult = 3, rEndDecMult = 1;
@@ -181,7 +182,7 @@ void executeRunLoop(int iSparseMatrixFileLength, long int repeats,int puno,int s
             }
             if (verbosity > 5)
             {
-                displayTimePassed();
+                displayTimePassed(startTime);
             }
 
             if (runoptions.ThermalAnnealingOn)
@@ -347,7 +348,7 @@ void executeRunLoop(int iSparseMatrixFileLength, long int repeats,int puno,int s
             writeSecondarySyncFileRun(i);
 
         if (verbosity > 1)
-            displayTimePassed();
+            displayTimePassed(startTime);
     }
 
     // Write all summaries for each run.
@@ -386,6 +387,7 @@ int executeMarxan(string sInputFileName)
         return 1;
 
     displayStartupMessage();
+    startTime = chrono::high_resolution_clock::now(); // set program start time.
 
     readInputOptions(cm, prop, anneal_global,
                      iseed, repeats, savename, fnames, sInputFileName,
@@ -585,7 +587,7 @@ int executeMarxan(string sInputFileName)
     }
 
     if (verbosity > 1)
-        displayTimePassed();
+        displayTimePassed(startTime);
 
     // *******  Pre-processing    ************
     displayProgress1("\nPre-processing Section. \n");
@@ -693,7 +695,7 @@ int executeMarxan(string sInputFileName)
     {
         appendTraceFile("end final file output\n");
         appendTraceFile("\nMarxan end execution\n");
-        displayShutdownMessage();
+        displayShutdownMessage(startTime);
 
         if (marxanIsSecondary == 1)
             secondaryExit();
@@ -766,7 +768,7 @@ int executeMarxan(string sInputFileName)
         }
     }
 
-    displayShutdownMessage();
+    displayShutdownMessage(startTime);
 
     appendTraceFile("end final file output\n");
     appendTraceFile("\nMarxan end execution\n");

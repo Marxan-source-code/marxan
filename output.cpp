@@ -216,12 +216,12 @@ void displayStartupMessage(void)
 }
 
 // display shutdown message when verbosity > 0
-void displayShutdownMessage(void)
+void displayShutdownMessage(chrono::high_resolution_clock::time_point start)
 {
     if (verbosity > 0)
     {
         printf("\n");
-        displayTimePassed();
+        displayTimePassed(start);
         printf("\n              The End \n");
         if (savelog)
         {
@@ -417,10 +417,11 @@ void appendDebugFile(string sFileName, string sLine, sfname& fnames)
 }
 
 // display how many seconds since program started
-void displayTimePassed(void)
+void displayTimePassed(chrono::high_resolution_clock::time_point start)
 {
-    int itemp;
-    itemp = (int) clock()/CLOCKS_PER_SEC;
+    auto end = chrono::high_resolution_clock::now(); 
+    int itemp = chrono::duration_cast<std::chrono::seconds>(end - start).count();
+
     printf("Time passed so far is ");
     if (itemp >= 60*60)
     {
