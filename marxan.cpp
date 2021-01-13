@@ -2509,7 +2509,7 @@ void iterativeImprovement(int puno,int spno,vector<spustuff> &pu, vector<sconnec
         logBuffer << "iterativeImprovement after array init\n";
 
         // shuffle iimp array
-        random_shuffle(iimparray.begin(), iimparray.end());
+        std::random_shuffle(iimparray.begin(), iimparray.end());
 
         /***** Doing the improvements ****/
         for (i=0;i<puvalid;i++)
