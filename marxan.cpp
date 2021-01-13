@@ -398,7 +398,7 @@ int executeMarxan(string sInputFileName)
 
     sTraceFileName = savename + "_TraceFile.txt";
     createTraceFile();
-    appendTraceFile("%s begin execution\n\n",sVersionString);
+    appendTraceFile("%s begin execution\n\n",sVersionString.c_str());
     appendTraceFile("LoadOptions\n");
 
     #ifdef DEBUGCHECKCHANGE
@@ -1037,7 +1037,7 @@ int computePenalties(int puno,int spno, vector<spustuff> &pu, vector<sspecies> &
         {
             goodspecies++;
             displayProgress2("Species %i (%s) has already met target %.2f\n",
-                             spec[i].name,spec[i].sname,spec[i].target);
+                             spec[i].name,spec[i].sname.c_str(),spec[i].target);
 
             appendTraceFile("CalcPenalties spname %i penalty %g\n",spec[i].name,spec[i].penalty);
 
@@ -1099,7 +1099,7 @@ int computePenalties(int puno,int spno, vector<spustuff> &pu, vector<sspecies> &
         if (fbest == 0) // Could not meet target using all available PUs
         { // If not met target with all available PUs
             displayProgress2("Species %d (%s) cannot reach target %.2f there is only %.2f available.\n",
-                           spec[i].name,spec[i].sname,spec[i].target,ftarget);
+                           spec[i].name,spec[i].sname.c_str(),spec[i].target,ftarget);
             if (ftarget==0)
                 ftarget=delta;  // Protect against divide by zero
             ftemp = 0;
@@ -1179,7 +1179,7 @@ int computePenaltiesOptimise(int puno,int spno, vector<spustuff> &pu, vector<ssp
         { // Target met in unremovable reserve
             goodspecies++;
             displayProgress2("Species %i (%s) has already met target %.2f\n",
-                             spec[i].name,spec[i].sname,spec[i].target);
+                             spec[i].name,spec[i].sname.c_str(),spec[i].target);
             continue;
         }
 
@@ -1232,7 +1232,7 @@ int computePenaltiesOptimise(int puno,int spno, vector<spustuff> &pu, vector<ssp
         if (fbest == 0) // Could not meet target using all available PUs
         { // If not met target with all available PUs
             displayProgress2("Species %d (%s) cannot reach target %.2f there is only %.2f available.\n",
-                             spec[i].name,spec[i].sname,spec[i].target,ftarget);
+                             spec[i].name,spec[i].sname.c_str(),spec[i].target,ftarget);
             if (ftarget==0)
                 ftarget=delta;  // Protect against divide by zero
             ftemp = 0;
@@ -1930,7 +1930,7 @@ void initialiseConnollyAnnealing(int puno,int spno,vector<spustuff> &pu, vector<
         string writename = fnames.outputdir + "debug_maropt_initialiseConnollyAnnealing_" + to_string(irun) + ".csv";
         fp = fopen(writename.c_str(),"w");
         if (fp==NULL)
-            displayErrorMessage("cannot create debug_maropt_initialiseConnollyAnnealing file %s\n",writename);
+            displayErrorMessage("cannot create debug_maropt_initialiseConnollyAnnealing file %s\n",writename.c_str());
         fprintf(fp,"i,ipu,puid,old R,imode,R,total,max,min\n");
     }
     #endif
@@ -2252,13 +2252,13 @@ void quantumAnnealing(int spno, int puno, vector<sconnections> &connections,vect
         sDecayType = "SIGMOIDAL";
 
     appendTraceFile("quantumAnnealing start iterations %ld decay type %s proportion %f decay A %f decay B %f acceptance probability %f saveannealingtrace %i\n",
-                          anneal.iterations,sDecayType,rQAPROP,rQADECAY,rQADECAYB,rQAACCPR,fnames.saveannealingtrace);
+                          anneal.iterations,sDecayType.c_str(),rQAPROP,rQADECAY,rQADECAYB,rQAACCPR,fnames.saveannealingtrace);
     if (verbosity > 4)
     {
         writeR(0,"after_Annealing_entered",puno,R,pu,fnames);
         writename = fnames.outputdir + "debug_maropt_annealing_" + sRun + ".csv";
         if ((fp = fopen(writename.c_str(),"w"))==NULL)
-            displayErrorMessage("cannot create annealing file %s\n",writename);
+            displayErrorMessage("cannot create annealing file %s\n",writename.c_str());
         fprintf(fp,"itime,ipu,puid,R,itemp,newR,iGoodChange,changetotal,changecost,changeconnection,changepen,temp\n");
     }
 
@@ -2267,7 +2267,7 @@ void quantumAnnealing(int spno, int puno, vector<sconnections> &connections,vect
         tempname2 = savename + "_anneal_objective" + sRun + ".csv";
         writename = fnames.outputdir + tempname2;
         if ((ttfp = fopen(writename.c_str(),"w"))==NULL)
-            displayErrorMessage("cannot create threshold trace file %s\n",writename);
+            displayErrorMessage("cannot create threshold trace file %s\n",writename.c_str());
         fprintf(ttfp,"iteration,threshold,dochange,total,pus,cost,connectivity,penalty");
         if (fProb1D == 1)
             fprintf(ttfp,",probability1D");
@@ -2278,7 +2278,7 @@ void quantumAnnealing(int spno, int puno, vector<sconnections> &connections,vect
         tempname2 = savename + "_anneal_zones" + sRun + ".csv";
         writename = fnames.outputdir + tempname2;
         if ((Rfp = fopen(writename.c_str(),"w"))==NULL)
-            displayErrorMessage("cannot create threshold trace file %s\n",writename);
+            displayErrorMessage("cannot create threshold trace file %s\n",writename.c_str());
 
         fprintf(Rfp,"configuration");
         for (i = 0;i<puno;i++)
@@ -2469,13 +2469,13 @@ void iterativeImprovement(int puno,int spno,vector<spustuff> &pu, vector<sconnec
         tempname2 = savename + "_itimp_objective" + sRun + ".csv";
         writename = fnames.outputdir + tempname2;
         if ((ttfp = fopen(writename.c_str(),"w"))==NULL)
-            displayErrorMessage("cannot create threshold trace file %s\n",writename);
+            displayErrorMessage("cannot create threshold trace file %s\n",writename.c_str());
         fprintf(ttfp,"improvement,total,pus,cost,connection,penalty,change total\n");
 
         tempname2 = savename + "_itimp_zones" + sRun + ".csv";
         writename = fnames.outputdir + tempname2;
         if ((Rfp = fopen(writename.c_str(),"w"))==NULL)
-            displayErrorMessage("cannot create threshold trace file %s\n",writename);
+            displayErrorMessage("cannot create threshold trace file %s\n",writename.c_str());
 
         fprintf(Rfp,"configuration");
         for (i = 0;i<puno;i++)

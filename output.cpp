@@ -43,7 +43,7 @@ pair<char, FILE*> GetFileAndDelimiter(string filename, int delimiterMode, bool a
 
    fp = append ? fopen(filename.c_str(),"a") : fopen(filename.c_str(),"w");
    if (!fp)
-      displayErrorMessage("Cannot save output to %s \n",filename);
+      displayErrorMessage("Cannot save output to %s \n",filename.c_str());
 
    if (delimiterMode > 1)
       sDelimiter = ',';
@@ -493,7 +493,7 @@ void writeAsymmetricConnectionFile(int puno, vector<sconnections> connections, v
 
    if ((fp = fopen(writename.c_str(),"w"))==NULL)
    {
-      displayProgress1("Warning: Cannot create file %s",writename);
+      displayProgress1("Warning: Cannot create file %s",writename.c_str());
    }
 
    fprintf(fp,"idA,idB,connectionorigon\n");
@@ -513,7 +513,7 @@ void writeSparseMatrix(int iSMno,int puno, vector<spustuff>& PU, vector<sspecies
    string writename = fnames.inputdir + "sm.csv";
 
    if ((fp = fopen(writename.c_str(),"w"))==NULL)
-      displayErrorMessage("cannot create PUvSpecies file %s\n",writename);
+      displayErrorMessage("cannot create PUvSpecies file %s\n",writename.c_str());
 
    fputs("species,pu,amount,prob\n",fp);
    for (int i=puno-1;i>=0;i--)
@@ -621,7 +621,7 @@ void writeSpec(int spno, vector<sspecies>& spec, string savename)
     for (int i=0;i<spno;i++)
         fprintf(fp,"%i,%s,%f,%f,%i,%f,%f,%i,%f,%i,%f,%f\n",
                    spec[i].name,
-                   spec[i].sname,spec[i].target,
+                   spec[i].sname.c_str(),spec[i].target,
                    spec[i].prop,spec[i].type,
                    spec[i].spf,spec[i].target2,
                    spec[i].targetocc,spec[i].sepdistance,
@@ -707,7 +707,7 @@ void appendSolutionsMatrix(int iRun,int puno, vector<int>& R, string savename,in
 
    if (iIncludeHeaders == 1)
    {
-      fprintf(fp,"S%i%s",iRun,sDelimiter);
+      fprintf(fp,"S%i%c",iRun,sDelimiter);
    }
 
    for (i=(puno-1);i>(-1);i--)
@@ -767,7 +767,7 @@ void writeScenario(int puno,int spno,double prop,double cm,
    string temp;
    fp = fopen(savename.c_str(),"w");
    if (!fp)
-      displayErrorMessage("Cannot save output to %s \n",savename);
+      displayErrorMessage("Cannot save output to %s \n",savename.c_str());
 
    fprintf(fp,"Number of Planning Units %i\n",puno);
    fprintf(fp,"Number of Conservation Values %i\n",spno);
@@ -1015,7 +1015,7 @@ void writeR(int iMessage, string sMessage,int puno, vector<int>& R, vector<spust
 
    string writename = fnames.inputdir + "debugR_" + messagebuffer + ".csv";
    if ((fp = fopen(writename.c_str(),"w"))==NULL)
-      displayErrorMessage("cannot create writeR file %s\n",writename);
+      displayErrorMessage("cannot create writeR file %s\n",writename.c_str());
 
    // write header row
    fprintf(fp,"puid,R\n");
@@ -1181,7 +1181,7 @@ void writeProbData(int puno, vector<spustuff> pu, sfname& fnames)
 
    writename = fnames.inputdir + "writeProbData.csv";
    if((fp = fopen(writename.c_str(),"w"))==NULL)
-      displayErrorMessage("probability file %s has not been found.\nAborting Program.",writename);
+      displayErrorMessage("probability file %s has not been found.\nAborting Program.",writename.c_str());
 
    fprintf(fp,"puid,prob\n");
 
@@ -1241,7 +1241,7 @@ stringstream displayValueForPUs(int puno, int spno, vector<int>& R, scost& reser
 // displayed when the command line options are not understood
 void displayUsage(string programName)
 {
-    fprintf(stderr,"%s usage: %s -[o] -[c] [input file name]\n",programName,programName);
+    fprintf(stderr,"%s usage: %s -[o] -[c] [input file name]\n",programName.c_str(),programName.c_str());
 }
 
 // if a weighted connectivity file is in use, construct one. written for Maria Beger. Not documented.
@@ -1320,10 +1320,10 @@ void writeWeightedConnectivityFile(sfname& fnames)
             sConnection = strtok(NULL," ,;:^*\"/\t\'\\\n");
             sscanf(sConnection.c_str(),"%lf",&rConnection);
 
-            fprintf(fpOutputConnection,"%s,%s,%lf\n",sId1,sId2,(rConnection*rWeighting));
+            fprintf(fpOutputConnection,"%s,%s,%lf\n",sId1.c_str(),sId2.c_str(),(rConnection*rWeighting));
 
             if (sAsymmetric.compare("yes") == 0)
-               fprintf(fpOutputConnection,"%s,%s,%lf\n",sId2,sId1,(rConnection*rWeighting));
+               fprintf(fpOutputConnection,"%s,%s,%lf\n",sId2.c_str(),sId1.c_str(),(rConnection*rWeighting));
          }
 
          fclose(fpInputConnection);

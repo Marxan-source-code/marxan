@@ -28,7 +28,7 @@ string storeFieldName(vector<string>& varlist,int numvars,string sVarName,
 
     if (!head.empty() && find(head.begin(), head.end(), sVarName) != head.end())
     {
-        displayErrorMessage("ERROR: variable %s has been defined twice in data file %s.\n",sVarName,fname);
+        displayErrorMessage("ERROR: variable %s has been defined twice in data file %s.\n",sVarName.c_str(),fname.c_str());
     }
 
     return(sVarName);
@@ -325,7 +325,7 @@ int readSpeciesBlockDefinition(int& gspno, vector<sgenspec>& gspec, sfname& fnam
             }
             else 
             {
-                displayWarningMessage("Cannot find >%s< \n",temp);
+                displayWarningMessage("Cannot find >%s< \n",temp.c_str());
                 displayErrorMessage("Serious error in GenSpecies data reading function.\n");
             }
         } /* looking for ivar different input variables */
@@ -484,7 +484,7 @@ void readSparseMatrix(int &iSMSize, vector<spu> &SM, int puno, int spno, vector<
 
     readname = fnames.inputdir + fnames.puvsprname;
     if((fp = fopen(readname.c_str(),"r"))==NULL)
-        displayErrorMessage("PU v Species file %s not found\nAborting Program.",readname);
+        displayErrorMessage("PU v Species file %s not found\nAborting Program.",readname.c_str());
 
     // read through the file first to see how many lines
     if (fgets(sLine,500-1,fp) == NULL)
@@ -585,7 +585,7 @@ void readPenalties(vector<sspecies> &spec,int spno,sfname& fnames,map<int,int> &
 
     readname = fnames.inputdir + fnames.penaltyname;
     if((fp = fopen(readname.c_str(),"r"))==NULL)
-        displayErrorMessage("Penalty file %s not found\nAborting Program.",readname);
+        displayErrorMessage("Penalty file %s not found\nAborting Program.",readname.c_str());
 
     for (i=0;i<spno;i++)
         spec[i].rUserPenalty = 0;
@@ -622,7 +622,7 @@ void readSparseMatrixSpOrder(int &iSMSize, vector<spusporder> &SM, int puno, int
 
     readname = fnames.inputdir + fnames.matrixspordername;
     if((fp = fopen(readname.c_str(),"r"))==NULL)
-        displayErrorMessage("PU v Species file %s not found\nAborting Program.",readname);
+        displayErrorMessage("PU v Species file %s not found\nAborting Program.",readname.c_str());
 
     // read through the file first to see how many lines
     if (fgets(sLine,500-1,fp) == NULL)
