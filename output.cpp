@@ -560,7 +560,7 @@ void writeSummary(string savename, vector<string>& summaries, int imode)
    fprintf(fp,"%c\"Shortfall\"%c\"Missing_Values\"%c\"MPM\"\n",sDelimiter,sDelimiter,sDelimiter);
    
    for (string& line: summaries) {
-      fprintf(fp, line.c_str());
+      fprintf(fp, "%s", line.c_str());
    }
 
    fclose(fp);

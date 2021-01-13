@@ -2057,7 +2057,7 @@ void thermalAnnealing(int spno, int puno, vector<sconnections> &connections,vect
         writeR(0,"after_Annealing_entered",puno,R,pu,fnames);
         writename = fnames.outputdir + "debug_maropt_annealing_" + sRun + ".csv";
         if ((fp = fopen(writename.c_str(),"w"))==NULL)
-            displayErrorMessage("cannot create annealing file %s\n",writename);
+            displayErrorMessage("cannot create annealing file %s\n",writename.c_str());
         fprintf(fp,"itime,ipu,puid,R,itemp,newR,iGoodChange,changetotal,changecost,changeconnection,changepen,temp\n");
     }
 
@@ -2066,7 +2066,7 @@ void thermalAnnealing(int spno, int puno, vector<sconnections> &connections,vect
         tempname2 = savename + "_anneal_objective" + sRun + ".csv";
         writename = fnames.outputdir + tempname2;
         if ((ttfp = fopen(writename.c_str(),"w"))==NULL)
-            displayErrorMessage("cannot create threshold trace file %s\n",writename);
+            displayErrorMessage("cannot create threshold trace file %s\n",writename.c_str());
 
         fprintf(ttfp,"iteration,threshold,dochange,total,pus,cost,connectivity,penalty,shortfall");
         if (fProb1D == 1)
@@ -2089,7 +2089,7 @@ void thermalAnnealing(int spno, int puno, vector<sconnections> &connections,vect
         tempname2 = savename + "_anneal_zones" + sRun + ".csv";
         writename = fnames.outputdir + tempname2;
         if ((Rfp = fopen(writename.c_str(),"w"))==NULL)
-            displayErrorMessage("cannot create threshold trace file %s\n",writename);
+            displayErrorMessage("cannot create threshold trace file %s\n",writename.c_str());
 
         fprintf(Rfp,"configuration");
         for (i = 0;i<puno;i++)
