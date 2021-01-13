@@ -32,6 +32,7 @@
 #include <cfloat>
 #include <iostream>
 #include <omp.h>
+#include <chrono> 
 
 // load the required function definition modules
 #include "algorithms.hpp"
@@ -2509,7 +2510,8 @@ void iterativeImprovement(int puno,int spno,vector<spustuff> &pu, vector<sconnec
         logBuffer << "iterativeImprovement after array init\n";
 
         // shuffle iimp array
-        std::random_shuffle(iimparray.begin(), iimparray.end());
+		unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
+        std::shuffle(iimparray.begin(), iimparray.end(), std::default_random_engine(seed));
 
         /***** Doing the improvements ****/
         for (i=0;i<puvalid;i++)
