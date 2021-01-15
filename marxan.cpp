@@ -1925,7 +1925,7 @@ void initialiseConnollyAnnealing(int puno,int spno,vector<spustuff> &pu, vector<
     scost reserve = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
     #ifdef DEBUGTRACEFILE
-    FILE *fp;
+    FILE *fp=nullptr;
     if (verbosity > 4)
     {
         string writename = fnames.outputdir + "debug_maropt_initialiseConnollyAnnealing_" + to_string(irun) + ".csv";
@@ -2048,7 +2048,7 @@ void thermalAnnealing(int spno, int puno, vector<sconnections> &connections,vect
     long int iRowCounter, iRowLimit;
     double rTemperature, rThreshold, rThresholdMultiplier;
     string tempname1,tempname2, sRun = to_string(irun);
-    FILE *fp,*ttfp,*Rfp;
+    FILE *fp = nullptr,*ttfp = nullptr,*Rfp = nullptr;
     string writename;
     uniform_real_distribution<double> float_range(0.0, 1.0);
 
@@ -2236,12 +2236,12 @@ void quantumAnnealing(int spno, int puno, vector<sconnections> &connections,vect
                       long int repeats,int irun,string savename,double misslevel,
                       int aggexist,double costthresh, double tpf1, double tpf2,int clumptype, sanneal &anneal, int thread)
 {
-    long int itime,i,j,itemp,snapcount,ichanges = 0, iGoodChange;
+    long int itime,i,j,itemp=0,snapcount,ichanges = 0, iGoodChange;
     long int iRowCounter, iRowLimit, iFluctuationCount;
     double rFluctuationMagnitude, rThreshold, rThresholdMultiplier,
     rAcceptanceProbability;
     string tempname1,tempname2, sRun = to_string(irun);
-    FILE *fp, *ttfp,*Rfp;
+    FILE *fp = nullptr, *ttfp = nullptr,*Rfp = nullptr;
     string writename, sDecayType;
     vector<int> PUChosen;
     long int iTests = 0, iIterations;
@@ -2453,7 +2453,7 @@ void iterativeImprovement(int puno,int spno,vector<spustuff> &pu, vector<sconnec
     vector<int> iimparray;
     double debugfloat;
     string tempname2, sRun = to_string(irun);
-    FILE *ttfp,*Rfp;
+    FILE *ttfp = nullptr,*Rfp = nullptr;
     string writename;
 
     logBuffer << "iterativeImprovement start\n";
