@@ -381,7 +381,7 @@ void RemPu(int ipu, int isp,vector<sconnections> &connections, vector<sspecies> 
          vector<spu> &SM,int clumptype, int thread);
 int CalcPenaltyType4(int isp,int puno, vector<spu> &SM,vector<sconnections> &connections,
       vector<sspecies> &spec,vector<spustuff> &pu,double cm,int clumptype, int thread);
-int CountSeparation(int isp, vector<sclumps> &newno,
+int CountSeparation(int isp, const vector<sclumps> &newno,
    vector<spustuff> &pu,vector<spu> &SM,vector<sspecies> &spec,int imode, int thread);
 int CountSeparation2(int isp,int ipu, vector<sclumps> &newno,int puno,vector<int> &R,
       vector<spustuff> &pu,vector<spu> &SM,vector<sspecies> &spec,int imode, int thread);

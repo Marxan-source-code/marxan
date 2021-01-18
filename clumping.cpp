@@ -9,7 +9,7 @@
 namespace marxan {
 
    // returns the clump number of a species at a planning unit, if the species doesn't occur here, returns 0
-   int rtnClumpSpecAtPu(vector<spustuff> &pu, vector<spu> &SM, int iPUIndex, int iSpecIndex, int thread)
+   int rtnClumpSpecAtPu(const vector<spustuff> &pu, const vector<spu> &SM, int iPUIndex, int iSpecIndex, int thread)
    {
       if (pu[iPUIndex].richness > 0)
          for (int i=0;i<pu[iPUIndex].richness;i++)
@@ -20,7 +20,7 @@ namespace marxan {
    }
 
    // sets the clump number of a species at a planning unit
-   void setClumpSpecAtPu(vector<spustuff> &pu, vector<spu> &SM, int iPUIndex, int iSpecIndex, int iSetClump, int thread)
+   void setClumpSpecAtPu(const vector<spustuff> &pu, vector<spu> &SM, int iPUIndex, int iSpecIndex, int iSetClump, int thread)
    {
       if (pu[iPUIndex].richness > 0)
          for (int i=0;i<pu[iPUIndex].richness;i++)
@@ -28,7 +28,7 @@ namespace marxan {
                SM[pu[iPUIndex].offset + i].clump[thread] = iSetClump; //TODO verify thread change
    }
 
-   void ClearClump(int isp, sclumps &target, vector<spustuff> &pu, vector<spu> &SM, int thread) {
+   void ClearClump(int isp, sclumps &target, const vector<spustuff> &pu, vector<spu> &SM, int thread) {
 
       /* Remove all links from this clump */
       for (int i : target.head) {
@@ -40,7 +40,7 @@ namespace marxan {
       target.head.clear();
    }
 
-   int ClumpCut(int isp,vector<spustuff> &pu,
+   int ClumpCut(int isp, vector<spustuff> &pu,
          vector<sspecies> &spec, sclumps &clump,
          int &clumppu, vector<sconnections> &connections, vector<spu> &SM,
          double &totalamount,int &totalocc,
@@ -77,7 +77,7 @@ namespace marxan {
          return 0;
       }
 
-      for (sneighbour pnbr: connections[clumppu].first)
+      for (const sneighbour &pnbr: connections[clumppu].first)
       {
          if (rtnClumpSpecAtPu(pu,SM,pnbr.nbr,isp,thread) == clump.clumpid)
          {
@@ -518,7 +518,7 @@ namespace marxan {
    /* Returns 1 if the species is a 'bad species' and -1 if it is a 'good species' */
    /* Also sticks the penalty into spec[isp].penalty */
    int CalcPenaltyType4(int isp,int puno, vector<spu> &SM,vector<sconnections> &connections,
-      vector<sspecies> &spec,vector<spustuff> &pu,double cm,int clumptype, int thread) {
+      vector<sspecies> &spec, vector<spustuff> &pu,double cm,int clumptype, int thread) {
       
       vector<sclumps> newno;
       int j,ipu,iputotal = 0;
@@ -950,7 +950,7 @@ namespace marxan {
       return amount;
    }
 
-   int ValidPU(int ipu,int isp, vector<sclumps> &newno,vector<sspecies> &spec,vector<spustuff> &pu,
+   int ValidPU(int ipu,int isp, const vector<sclumps> &newno,vector<sspecies> &spec,vector<spustuff> &pu,
             vector<spu> &SM,int imode, int thread) {
 
       // Returns true if ipu is acceptable as a planning unit
@@ -968,7 +968,7 @@ namespace marxan {
          
          // iterate through newno to find if there's any clumpId equal to given ipu.
          // if there is check if amount meets target. 
-         for (sclumps clump: newno) {
+         for (const sclumps &clump: newno) {
             if (ipu == clump.clumpid) {
                if (clump.amount < spec[isp].target2) {
                   return 0;
@@ -981,7 +981,7 @@ namespace marxan {
       }
       
       // Find clump
-      for (sclumps clump: spec[isp].head) {
+      for (const sclumps& clump: spec[isp].head) {
          if (SM[i].clump[thread] == clump.clumpid) {
             pclump = clump;
             found = true;
@@ -1004,7 +1004,7 @@ namespace marxan {
       }
    }
 
-   bool CheckDistance(int i, int j, vector<spustuff> &pu, double squaretarget) {
+   bool CheckDistance(int i, int j, const vector<spustuff> &pu, double squaretarget) {
       // compare x1*x2+y1*y2 with squaretarget
       if ((pu[i].xloc-pu[j].xloc)*(pu[i].xloc-pu[j].xloc) + (pu[i].yloc-pu[j].yloc)* (pu[i].yloc-pu[j].yloc) >= squaretarget)
          return true;
@@ -1012,7 +1012,7 @@ namespace marxan {
          return false;
    } // Is Distant returns true if PU's are big enough distance apart
 
-   int CountSeparation(int isp, vector<sclumps> &newno,
+   int CountSeparation(int isp, const vector<sclumps> &newno,
    vector<spustuff> &pu,vector<spu> &SM,vector<sspecies> &spec,int imode, int thread)
    {
       // imode 0 = count separation on current

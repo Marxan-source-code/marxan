@@ -45,12 +45,12 @@ void checkAndUpdateTargetProportion(double target, double amount, double& shortf
 
 // Sums all connectivity edges for a pu.
 inline
-double connectionCost1(sconnections &connections, double cm, int asymmetricconnectivity)
+double connectionCost1(const sconnections &connections, double cm, int asymmetricconnectivity)
 {
     double fcost;
 
     fcost = connections.fixedcost;
-    for (auto &p : connections.first)
+    for (const auto &p : connections.first)
     {
         if (asymmetricconnectivity)
         {
@@ -256,7 +256,7 @@ void computeExpectedAndVariance(int ipu, vector<spustuff> &pu,vector<spu> &SM, v
 
 // compute cost + connectivity for a single planning unit
 inline
-double computePlanningUnitValue(spustuff &pu, sconnections &connections, double cm, int asymmetricconnectivity)
+double computePlanningUnitValue(const spustuff &pu,const sconnections &connections, double cm, int asymmetricconnectivity)
 {
     double theValue;
 
@@ -268,7 +268,7 @@ double computePlanningUnitValue(spustuff &pu, sconnections &connections, double 
 
 // Returns both index and species amount for a planning unit
 inline
-pair<int,double> returnAmountSpecAtPu(spustuff &pu, vector<spu> &SM, int iSpecIndex)
+pair<int,double> returnAmountSpecAtPu(const spustuff &pu, const vector<spu> &SM, int iSpecIndex)
 {
     if (pu.richness > 0)
         for (int i=0;i<pu.richness;i++)
@@ -313,8 +313,9 @@ void computeSpecProp(int spno, vector<sspecies> &spec, int puno, vector<spustuff
 
 // Computes penalty for a species given a reserve, based on only fixed pu
 inline
-void computeFixedPenaltyForSpec(vector<int> &R, vector<spustuff> &pu, vector<spu> &SM, vector<sconnections> &connections, int spIndex, 
-    double& ftarget, int& itargetocc, double& penalty, double cm, int asymmetricconnectivity) {
+void computeFixedPenaltyForSpec(const vector<int> &R, const vector<spustuff> &pu, const vector<spu> &SM, const vector<sconnections> &connections, int spIndex, 
+    double& ftarget, int& itargetocc, double& penalty, double cm, int asymmetricconnectivity) 
+{
     ftarget = 0, itargetocc = 0, penalty = 0;
 
     for (int j=0;j<pu.size();j++)
