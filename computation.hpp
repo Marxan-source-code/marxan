@@ -266,15 +266,23 @@ double computePlanningUnitValue(const spustuff &pu,const sconnections &connectio
     return(theValue);
 }
 
+
 // Returns both index and species amount for a planning unit
 inline
 pair<int,double> returnAmountSpecAtPu(const spustuff &pu, const vector<spu> &SM, int iSpecIndex)
 {
     if (pu.richness > 0)
-        for (int i=0;i<pu.richness;i++)
-            if (SM[pu.offset + i].spindex == iSpecIndex)
-                return pair<int,double>(pu.offset + i, SM[pu.offset + i].amount);
-
+    {
+        auto start_it = SM.begin() + pu.offset;
+        auto end_it = start_it + pu.richness;
+        auto spindex_cmp = [](const spu& lhs, int rhs) -> bool { return lhs.spindex < rhs; };
+        auto elem_it = std::lower_bound(start_it, end_it, iSpecIndex, spindex_cmp);
+        if (elem_it != end_it)
+        {
+            size_t index = elem_it - SM.begin();
+            return pair<int, double>(index, elem_it->amount);
+        }
+    }
     return pair<int, double>(-1, 0);
 } 
 
