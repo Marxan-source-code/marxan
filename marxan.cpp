@@ -1329,7 +1329,7 @@ double computeChangePenalty(int ipu,int puno, vector<sspecies>& spec, vector<spu
                 else
                 {
                     if (spec[isp].target)
-                        newamount = computeSpeciesPlanningUnitPenalty(ipu, isp, spec, pu, SM, imode) / spec[isp].target;
+                        newamount = computeSpeciesPlanningUnitPenalty( isp, spec, SM, ism, imode) / spec[isp].target;
                     if (spec[isp].targetocc)
                     {
                         tamount = (double)(spec[isp].targetocc - spec[isp].occurrence - imode) /
