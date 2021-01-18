@@ -126,7 +126,7 @@ double MaxRareScore(int ipu,int puno,vector<sspecies> &spec,vector<spu> &SM,
     vector<int> &R,vector<sconnections> &connections,vector<spustuff> &pu,double cm,vector<double> &Rare,int clumptype, int thread)
 {
     int ism, isp, rareno = -1;
-    double rarest, rarescore;
+    double rarest = 0.0, rarescore;
 
     if (pu[ipu].richness)
         for (int i = 0; i < pu[ipu].richness; i++)

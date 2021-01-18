@@ -40,7 +40,7 @@ vector<string> GetFieldNames(string readname, string fname, FILE*& fp, int& ivar
     int numvars = varList.size();
 
     /* Find and Open File */
-    if((fp = fopen(readname.c_str(),"r"))==NULL) {
+    if((fp =  fopen(readname.c_str(),"r"))==NULL) {
         displayWarningMessage("Warning: File %s not found.\n", fname.c_str());
         return fieldNames; // return empty list
     }

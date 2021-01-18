@@ -523,7 +523,7 @@ namespace marxan {
       vector<sclumps> newno;
       int j,ipu,iputotal = 0;
       int ineighbours = 0,iclumpno,badspecies = 0;
-      double totalamount,dummy = 0;
+      double totalamount = 0,dummy = 0;
       int idummy;
       double cost = 0.0, connection = 0.0, rAmount = 0.0;
 
