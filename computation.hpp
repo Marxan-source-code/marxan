@@ -276,7 +276,7 @@ pair<int,double> returnAmountSpecAtPu(const spustuff &pu, const vector<spu> &SM,
         auto end_it = start_it + pu.richness;
         auto spindex_cmp = [](const spu& lhs, int rhs) -> bool { return lhs.spindex < rhs; };
         auto elem_it = std::lower_bound(start_it, end_it, iSpecIndex, spindex_cmp);
-        if (elem_it != end_it)
+        if (elem_it != end_it && elem_it->spindex == iSpecIndex)
         {
             size_t index = elem_it - SM.begin();
             return pair<int, double>(index, elem_it->amount);
