@@ -266,7 +266,6 @@ double computePlanningUnitValue(const spustuff &pu,const sconnections &connectio
     return(theValue);
 }
 
-
 // Returns both index and species amount for a planning unit
 inline
 pair<int,double> returnAmountSpecAtPu(const spustuff &pu, const vector<spu> &SM, int iSpecIndex)
@@ -277,7 +276,7 @@ pair<int,double> returnAmountSpecAtPu(const spustuff &pu, const vector<spu> &SM,
         auto end_it = start_it + pu.richness;
         auto spindex_cmp = [](const spu& lhs, int rhs) -> bool { return lhs.spindex < rhs; };
         auto elem_it = std::lower_bound(start_it, end_it, iSpecIndex, spindex_cmp);
-        if (elem_it != end_it)
+        if (elem_it != end_it && elem_it->spindex == iSpecIndex)
         {
             size_t index = elem_it - SM.begin();
             return pair<int, double>(index, elem_it->amount);
@@ -288,9 +287,17 @@ pair<int,double> returnAmountSpecAtPu(const spustuff &pu, const vector<spu> &SM,
 
 // compute penalty for a species for changing status of a single planning unit
 inline
-double computeSpeciesPlanningUnitPenalty(int ipu,int isp,vector<sspecies> &spec,vector<spustuff> &pu, vector<spu> &SM,int imode)
+double computeSpeciesPlanningUnitPenalty(int ipu,int isp, const vector<sspecies> &spec, const vector<spustuff> &pu, vector<spu> &SM, int imode)
 {
     double newpen = max(0.0, spec[isp].target - spec[isp].amount - returnAmountSpecAtPu(pu[ipu],SM,isp).second*imode);
+    return(newpen);
+}
+
+// compute penalty for a species for changing status of a single planning unit
+inline
+double computeSpeciesPlanningUnitPenalty( int isp, const vector<sspecies>& spec, const vector<spu>& SM, int ism, int imode)
+{
+    double newpen = max(0.0, spec[isp].target - spec[isp].amount - SM[ism].amount * imode);
     return(newpen);
 }
 
