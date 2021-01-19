@@ -20,12 +20,12 @@ namespace marxan {
    }
 
    // sets the clump number of a species at a planning unit
-   void setClumpSpecAtPu(const vector<spustuff> &pu, vector<spu> &SM, int iPUIndex, int iSpecIndex, int iSetClump, int thread)
+   void setClumpSpecAtPu(const spustuff &pu, vector<spu> &SM, int iSpecIndex, int iSetClump, int thread)
    {
-      if (pu[iPUIndex].richness > 0)
-         for (int i=0;i<pu[iPUIndex].richness;i++)
-            if (SM[pu[iPUIndex].offset + i].spindex == iSpecIndex)
-               SM[pu[iPUIndex].offset + i].clump[thread] = iSetClump; //TODO verify thread change
+      if (pu.richness > 0)
+         for (int i=0;i<pu.richness;i++)
+            if (SM[pu.offset + i].spindex == iSpecIndex)
+               SM[pu.offset + i].clump[thread] = iSetClump; //TODO verify thread change
    }
 
    void ClearClump(int isp, sclumps &target, const vector<spustuff> &pu, vector<spu> &SM, int thread) {
@@ -33,7 +33,7 @@ namespace marxan {
       /* Remove all links from this clump */
       for (int i : target.head) {
          if (rtnClumpSpecAtPu(pu[i], SM, isp, thread) == target.clumpid) {/* in case pu is in new clump */
-            setClumpSpecAtPu(pu,SM,i,isp,0, thread);
+            setClumpSpecAtPu(pu[i], SM, isp, 0, thread);
          }
       }
 
@@ -269,7 +269,7 @@ namespace marxan {
          iclumpno = spec[isp].head.back().clumpid+1;
       }
 
-      setClumpSpecAtPu(pu,SM,ipu,isp,iclumpno, thread);
+      setClumpSpecAtPu(pu[ipu], SM, isp, iclumpno, thread);
 
       // Set up new clump to insert
       sclumps temp;
@@ -318,7 +318,7 @@ namespace marxan {
                   ind++;
                }
 
-               setClumpSpecAtPu(pu,SM,ipu,isp,iClump,thread);
+               setClumpSpecAtPu(pu[ipu], SM, isp, iClump, thread);
                spec[isp].head[ind].head.push_back(ipu);
 
                // Remove old value for this clump
@@ -348,7 +348,7 @@ namespace marxan {
 
                   sclumps& pnewclump = spec[isp].head[ind2];
                   for (int puid: spec[isp].head[ind2].head) {
-                     setClumpSpecAtPu(pu,SM,puid,isp,pclump.clumpid, thread);
+                     setClumpSpecAtPu(pu[puid], SM, isp, pclump.clumpid, thread);
                   }
                      
                   // cut out this clump and join it to pclump
@@ -426,7 +426,7 @@ namespace marxan {
       /* Locate the correct clumppu */
       auto cppuIt = find(oldclump.head.begin(), oldclump.head.end(), ipu);
       cppu = *cppuIt;
-      setClumpSpecAtPu(pu,SM,cppu,isp,0, thread);
+      setClumpSpecAtPu(pu[cppu], SM, isp, 0, thread);
 
       oldamount = PartialPen4(isp, oldclump.amount, spec, clumptype);
       spec[isp].amount -= oldamount;
@@ -478,7 +478,7 @@ namespace marxan {
                   auto eraseIt = find(oldclump.head.begin(), oldclump.head.end(), pnbr.nbr);
                   oldclump.head.erase(eraseIt);
 
-                  setClumpSpecAtPu(pu,SM,id2,isp,pclump.clumpid, thread);
+                  setClumpSpecAtPu(pu[id2], SM, isp, pclump.clumpid, thread);
                   rAmount = returnAmountSpecAtPu(pu[id2],SM,isp).second;
                   pclump.amount += rAmount;
                   pclump.occs += (rAmount>0);
@@ -638,7 +638,7 @@ namespace marxan {
             if (i)   /* This is a clump which can be safely removed */
             {  /* cut clump if uneccessary or it is too small */
                for (int puid: pclump.head) {
-                  setClumpSpecAtPu(pu,SM,puid,isp,0, thread);
+                  setClumpSpecAtPu(pu[puid], SM, isp, 0, thread);
                }
 
                totalamount -= pclump.amount;
@@ -693,7 +693,7 @@ namespace marxan {
                } /* Does it cut the clump? these are not allowed to remove */
                if (i)  /* Is this removable? */
                {        /* remove pcpu */
-                  setClumpSpecAtPu(pu,SM,oldPu,isp,0, thread);
+                  setClumpSpecAtPu(pu[oldPu], SM, isp, 0, thread);
                   totalamount -= rAmount;
                   pclump.amount -= rAmount;
                   // pu effectively removed by not including in newPu
