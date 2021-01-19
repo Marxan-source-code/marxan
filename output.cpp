@@ -538,7 +538,7 @@ double computeTotalConnection2(int puno, vector<int>& R, vector<sconnections>& c
     {
         if (R[i] == 1 || R[i] == 2)
         {
-            connectiontemp += ConnectionCost2(i, connections, R, 1, 0, 1, asymmetricconnectivity, fOptimiseConnectivityIn);
+            connectiontemp += ConnectionCost2(connections[i], R, 1, 0, 1, asymmetricconnectivity, fOptimiseConnectivityIn);
         }
     }
     return connectiontemp;

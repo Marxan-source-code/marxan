@@ -351,15 +351,15 @@ inline
 //                   imode = -1 we are removing the planning unit from a reserve, calling from Annealing
 //                        or 1  we are adding the planning unit to a reserve, or it is already in reserve
 //      It seems that the behaviour of this function is undefined/unsupported if imode2=0 and imode=-1
-double ConnectionCost2(int ipu, vector<sconnections> &connections, vector<int> &R, int imode, int imode2, double cm, 
+double ConnectionCost2(const sconnections& connection, const vector<int> &R, int imode, int imode2, double cm,
     int asymmetricconnectivity, int fOptimiseConnectivityIn)
 {
-    double fcost  = connections[ipu].fixedcost * imode;
+    double fcost  = connection.fixedcost * imode;
     int R_pu1;
 
     if (asymmetricconnectivity)
     {
-        for (sneighbour &p : connections[ipu].first)
+        for (const sneighbour &p : connection.first)
         {
             if (imode2) // calling from Annealing
             {
@@ -411,7 +411,7 @@ double ConnectionCost2(int ipu, vector<sconnections> &connections, vector<int> &
     }
     else
     {
-        for (sneighbour &p : connections[ipu].first) // treatment for symmetric connectivity
+        for (const sneighbour &p : connection.first) // treatment for symmetric connectivity
         {
             if (fOptimiseConnectivityIn == 1)
             { // optimise for "Connectivity In"
