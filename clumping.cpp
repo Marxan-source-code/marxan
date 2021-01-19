@@ -9,12 +9,12 @@
 namespace marxan {
 
    // returns the clump number of a species at a planning unit, if the species doesn't occur here, returns 0
-   int rtnClumpSpecAtPu(const vector<spustuff> &pu, const vector<spu> &SM, int iPUIndex, int iSpecIndex, int thread)
+   int rtnClumpSpecAtPu(const spustuff &pu, const vector<spu> &SM, int iSpecIndex, int thread)
    {
-      if (pu[iPUIndex].richness > 0)
-         for (int i=0;i<pu[iPUIndex].richness;i++)
-            if (SM[pu[iPUIndex].offset + i].spindex == iSpecIndex)
-               return SM[pu[iPUIndex].offset + i].clump[thread]; //TODO verify thread change
+      if (pu.richness > 0)
+         for (int i=0;i<pu.richness;i++)
+            if (SM[pu.offset + i].spindex == iSpecIndex)
+               return SM[pu.offset + i].clump[thread]; //TODO verify thread change
 
       return 0;
    }
@@ -32,7 +32,7 @@ namespace marxan {
 
       /* Remove all links from this clump */
       for (int i : target.head) {
-         if (rtnClumpSpecAtPu(pu,SM,i,isp, thread) == target.clumpid) {/* in case pu is in new clump */
+         if (rtnClumpSpecAtPu(pu[i], SM, isp, thread) == target.clumpid) {/* in case pu is in new clump */
             setClumpSpecAtPu(pu,SM,i,isp,0, thread);
          }
       }
@@ -79,7 +79,7 @@ namespace marxan {
 
       for (const sneighbour &pnbr: connections[clumppu].first)
       {
-         if (rtnClumpSpecAtPu(pu,SM,pnbr.nbr,isp,thread) == clump.clumpid)
+         if (rtnClumpSpecAtPu(pu[pnbr.nbr],SM,isp,thread) == clump.clumpid)
          {
             ineighbour++;
             newhead.push_back(pnbr.nbr);
@@ -131,7 +131,7 @@ namespace marxan {
             for (sneighbour pnbr :connections[id2].first)
             {
                // if neighbour in clump but not cut out one  
-               if (rtnClumpSpecAtPu(pu,SM,pnbr.nbr,isp, thread) == clump.clumpid && pnbr.nbr != clumppu)  
+               if (rtnClumpSpecAtPu(pu[pnbr.nbr], SM, isp, thread) == clump.clumpid && pnbr.nbr != clumppu)
                {
                   if (find(clumplist.begin(), clumplist.end(), pnbr.nbr) == clumplist.end()) {
                      // add item to clumplist if not already in 
@@ -303,7 +303,7 @@ namespace marxan {
 
       for (sneighbour pnbr: connections[ipu].first) {
          // Check all the neighbours to see if any are already in clumps */
-         iClump = rtnClumpSpecAtPu(pu,SM,pnbr.nbr,isp, thread);
+         iClump = rtnClumpSpecAtPu(pu[pnbr.nbr], SM, isp, thread);
          if (iClump > 0) {
             // Neighbour that is part of clump
             int ind;
@@ -409,7 +409,7 @@ namespace marxan {
        /* Find the correct clump to remove */
       bool found = false;
       int foundInd = 0;
-      int idToFind =  rtnClumpSpecAtPu(pu,SM,ipu,isp, thread);
+      int idToFind =  rtnClumpSpecAtPu(pu[ipu], SM, isp, thread);
       for (sclumps tempClump : spec[isp].head) {
          if (tempClump.clumpid == idToFind) {
             found = true;
@@ -474,7 +474,7 @@ namespace marxan {
          /* Continue until you've added every conceivable neighbour */
          for (int id2: pclump.head) {
             for (sneighbour& pnbr: connections[id2].first) {
-               if (rtnClumpSpecAtPu(pu,SM,pnbr.nbr,isp, thread) == oldclump.clumpid) {
+               if (rtnClumpSpecAtPu(pu[pnbr.nbr], SM, isp, thread) == oldclump.clumpid) {
                   auto eraseIt = find(oldclump.head.begin(), oldclump.head.end(), pnbr.nbr);
                   oldclump.head.erase(eraseIt);
 
@@ -720,7 +720,7 @@ namespace marxan {
                {
                   for (sneighbour& pnbr: connections[oldPu].first)
                   {
-                     if (rtnClumpSpecAtPu(pu,SM,pnbr.nbr,isp,thread) != iclumpno)
+                     if (rtnClumpSpecAtPu(pu[pnbr.nbr], SM, isp, thread) != iclumpno)
                         connection += pnbr.cost;
                   } /** Counting each individual connection **/
             } /** Counting connection strength if neccessary **/
@@ -792,7 +792,7 @@ namespace marxan {
       if (connections[ipu].nbrno > 0) {
          pnbr = connections[ipu].first;
          for (sneighbour& neighbour: pnbr) {
-            iClump = rtnClumpSpecAtPu(pu,SM,neighbour.nbr,isp, thread);
+            iClump = rtnClumpSpecAtPu(pu[neighbour.nbr], SM, isp, thread);
             if (iClump) {
                iclumpid = 1;
                
@@ -890,7 +890,7 @@ namespace marxan {
 
       /* locate the clump and clumppu of the target site ipu */
       for (sclumps clumpTemp : spec[isp].head) {
-         if (clumpTemp.clumpid == rtnClumpSpecAtPu(pu,SM,ipu,isp, thread)) {
+         if (clumpTemp.clumpid == rtnClumpSpecAtPu(pu[ipu], SM, isp, thread)) {
             pclump = clumpTemp;
             break;
          }
