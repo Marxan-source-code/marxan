@@ -9,42 +9,42 @@
 namespace marxan {
 
    // returns the clump number of a species at a planning unit, if the species doesn't occur here, returns 0
-   int rtnClumpSpecAtPu(const spustuff &pu, const vector<spu> &SM, int iSpecIndex, int thread)
+   int rtnClumpSpecAtPu(const spustuff &pu, const vector<spu> &SM, const vector<spu_out>& SM_out, int iSpecIndex)
    {
       if (pu.richness > 0)
          for (int i=0;i<pu.richness;i++)
             if (SM[pu.offset + i].spindex == iSpecIndex)
-               return SM[pu.offset + i].clump[thread]; //TODO verify thread change
+               return SM_out[pu.offset + i].clump;
 
       return 0;
    }
 
    // sets the clump number of a species at a planning unit
-   void setClumpSpecAtPu(const spustuff &pu, vector<spu> &SM, int iSpecIndex, int iSetClump, int thread)
+   void setClumpSpecAtPu(const spustuff &pu, const vector<spu> &SM, vector<spu_out>& SM_out, int iSpecIndex, int iSetClump)
    {
       if (pu.richness > 0)
          for (int i=0;i<pu.richness;i++)
             if (SM[pu.offset + i].spindex == iSpecIndex)
-               SM[pu.offset + i].clump[thread] = iSetClump; //TODO verify thread change
+               SM_out[pu.offset + i].clump = iSetClump; //TODO verify thread change
    }
 
-   void ClearClump(int isp, sclumps &target, const vector<spustuff> &pu, vector<spu> &SM, int thread) {
+   void ClearClump(int isp, sclumps &target, const vector<spustuff> &pu, const vector<spu> &SM, vector<spu_out>& SM_out) {
 
       /* Remove all links from this clump */
       for (int i : target.head) {
-         if (rtnClumpSpecAtPu(pu[i], SM, isp, thread) == target.clumpid) {/* in case pu is in new clump */
-            setClumpSpecAtPu(pu[i], SM, isp, 0, thread);
+         if (rtnClumpSpecAtPu(pu[i], SM, SM_out, isp) == target.clumpid) {/* in case pu is in new clump */
+            setClumpSpecAtPu(pu[i], SM, SM_out, isp, 0);
          }
       }
 
       target.head.clear();
    }
 
-   int ClumpCut(int isp, vector<spustuff> &pu,
-         vector<sspecies> &spec, sclumps &clump,
-         int &clumppu, vector<sconnections> &connections, vector<spu> &SM,
+   int ClumpCut(int isp, const vector<spustuff> &pu,
+         const vector<sspecies> &spec, const sclumps &clump,
+         const int &clumppu, const vector<sconnections> &connections, const vector<spu> &SM, const vector<spu_out>& SM_out,
          double &totalamount,int &totalocc,
-         int &iseparation, int imode, int clumptype, int thread) {
+         int &iseparation, int imode, int clumptype) {
 
       int ineighbour = 0,iclumps = 0;
       vector<int> newhead, head;
@@ -72,14 +72,14 @@ namespace marxan {
       {
          if (imode)
          {
-            iseparation = CountSeparation(isp,spclump,pu,SM,spec,0, thread);
+            iseparation = CountSeparation(isp, spclump, pu, SM, SM_out, spec, 0);
          }
          return 0;
       }
 
       for (const sneighbour &pnbr: connections[clumppu].first)
       {
-         if (rtnClumpSpecAtPu(pu[pnbr.nbr],SM,isp,thread) == clump.clumpid)
+         if (rtnClumpSpecAtPu(pu[pnbr.nbr], SM, SM_out, isp) == clump.clumpid)
          {
             ineighbour++;
             newhead.push_back(pnbr.nbr);
@@ -100,7 +100,7 @@ namespace marxan {
                }
             }
 
-            iseparation = CountSeparation(isp,spclump,pu,SM,spec,0, thread);
+            iseparation = CountSeparation(isp,spclump,pu,SM, SM_out,spec,0);
          } else {
             iseparation = spec[isp].sepnum;
          }
@@ -131,7 +131,7 @@ namespace marxan {
             for (sneighbour pnbr :connections[id2].first)
             {
                // if neighbour in clump but not cut out one  
-               if (rtnClumpSpecAtPu(pu[pnbr.nbr], SM, isp, thread) == clump.clumpid && pnbr.nbr != clumppu)
+               if (rtnClumpSpecAtPu(pu[pnbr.nbr], SM, SM_out, isp) == clump.clumpid && pnbr.nbr != clumppu)
                {
                   if (find(clumplist.begin(), clumplist.end(), pnbr.nbr) == clumplist.end()) {
                      // add item to clumplist if not already in 
@@ -173,7 +173,7 @@ namespace marxan {
       }  // Continue clump formation whilst there are members in the list
 
       if (imode) {
-         iseparation = CountSeparation(isp,spclump,pu,SM,spec,0, thread);
+         iseparation = CountSeparation(isp, spclump, pu, SM, SM_out, spec, 0);
       }
       else
       {
@@ -184,8 +184,8 @@ namespace marxan {
    }
    
    /*************** Setting Clumps for Species Aggregation Rule**********/
-   void SetSpeciesClumps(int puno,vector<int> &R,vector<sspecies> &spec,vector<spustuff> &pu,
-                     vector<spu> &SM,vector<sconnections> &connections,int clumptype, int thread) {
+   void SetSpeciesClumps(int puno, const vector<int> &R, vector<sspecies> &spec, const vector<spustuff> &pu,
+                     const vector<spu> &SM, vector<spu_out>& SM_out, const vector<sconnections> &connections,int clumptype) {
       int isp, ism;
       for (int ipu=0;ipu<puno;ipu++)
       {
@@ -198,9 +198,9 @@ namespace marxan {
                if (spec[isp].target2)
                {
                   spec[isp].clumps = 0;
-                  if ((R[ipu]==1 || R[ipu]==2) && SM[ism].amount > 0 && SM[ism].clump[thread] == 0)
+                  if ((R[ipu]==1 || R[ipu]==2) && SM[ism].amount > 0 && SM_out[ism].clump == 0)
                   {
-                     AddNewPU(ipu,isp,connections,spec,pu,SM,clumptype, thread);
+                     AddNewPU(ipu, isp, connections, spec, pu, SM, SM_out, clumptype);
                   } // Add a New planning unit
                } // For each type 4 species
             }
@@ -223,11 +223,11 @@ namespace marxan {
 
    // Clear Clumps
    // This is for clean up purposes
-   void ClearClumps(int spno,vector<sspecies> &spec,vector<spustuff> &pu, vector<spu> &SM, int thread) {
+   void ClearClumps(int spno, vector<sspecies> &spec, const vector<spustuff> &pu, const vector<spu> &SM, vector<spu_out>& SM_out) {
       for (int i=0;i<spno;i++)
       {
          for (sclumps& clump: spec[i].head) {
-            ClearClump(i,clump,pu,SM, thread);
+            ClearClump(i,clump,pu,SM, SM_out);
          }
 
          spec[i].head.clear();
@@ -236,7 +236,7 @@ namespace marxan {
    }
 
    // Add New Clump
-   sclumps AddNewClump(int isp,int ipu,vector<sspecies> &spec,vector<spustuff> &pu, vector<spu> &SM, int thread) {
+   sclumps AddNewClump(int isp, int ipu, vector<sspecies> &spec, const vector<spustuff> &pu, const vector<spu> &SM, vector<spu_out>& SM_out) {
       int iclumpno = 0;
       double rAmount;
 
@@ -248,7 +248,7 @@ namespace marxan {
       bool found = false;
       sclumps prev;
       prev.clumpid = -1; // placeholder initial value
-      for (sclumps& pclump: spec[isp].head) {
+      for (const sclumps& pclump: spec[isp].head) {
          if (prev.clumpid == -1) {
             prev = pclump;
             continue;
@@ -269,7 +269,7 @@ namespace marxan {
          iclumpno = spec[isp].head.back().clumpid+1;
       }
 
-      setClumpSpecAtPu(pu[ipu], SM, isp, iclumpno, thread);
+      setClumpSpecAtPu(pu[ipu], SM, SM_out, isp, iclumpno);
 
       // Set up new clump to insert
       sclumps temp;
@@ -293,17 +293,16 @@ namespace marxan {
    }
 
    // Add New Planning Unit for a given Species
-   void AddNewPU(int ipu,int isp,vector<sconnections> &connections,vector<sspecies> &spec,vector<spustuff> &pu,
-               vector<spu> &SM, int clumptype, int thread) {
+   void AddNewPU(int ipu, int isp, const vector<sconnections> &connections, vector<sspecies> &spec, const vector<spustuff> &pu,
+               const vector<spu> &SM, vector<spu_out>& SM_out, int clumptype) {
       int ineighbours = 0;
       int iclumpno, iClump;
       sclumps temp;
-      struct sclumppu *pnewclumppu;
       double ftemp, rAmount;
 
-      for (sneighbour pnbr: connections[ipu].first) {
+      for (const sneighbour& pnbr: connections[ipu].first) {
          // Check all the neighbours to see if any are already in clumps */
-         iClump = rtnClumpSpecAtPu(pu[pnbr.nbr], SM, isp, thread);
+         iClump = rtnClumpSpecAtPu(pu[pnbr.nbr], SM, SM_out, isp);
          if (iClump > 0) {
             // Neighbour that is part of clump
             int ind;
@@ -318,7 +317,7 @@ namespace marxan {
                   ind++;
                }
 
-               setClumpSpecAtPu(pu[ipu], SM, isp, iClump, thread);
+               setClumpSpecAtPu(pu[ipu], SM, SM_out, isp, iClump);
                spec[isp].head[ind].head.push_back(ipu);
 
                // Remove old value for this clump
@@ -348,7 +347,7 @@ namespace marxan {
 
                   sclumps& pnewclump = spec[isp].head[ind2];
                   for (int puid: spec[isp].head[ind2].head) {
-                     setClumpSpecAtPu(pu[puid], SM, isp, pclump.clumpid, thread);
+                     setClumpSpecAtPu(pu[puid], SM, SM_out, isp, pclump.clumpid);
                   }
                      
                   // cut out this clump and join it to pclump
@@ -375,7 +374,7 @@ namespace marxan {
       // Adding a New clump
       if (!ineighbours)
       {
-         AddNewClump(isp,ipu,spec,pu,SM, thread);
+         AddNewClump(isp, ipu, spec, pu, SM, SM_out);
          ftemp = PartialPen4(isp,rAmount,spec,clumptype);
          spec[isp].amount += ftemp;
          spec[isp].occurrence += (ftemp>0);
@@ -393,8 +392,8 @@ namespace marxan {
    /************** REM PU ****************************************/
    /*********** Remove a planning unit. Note it is similar to CutClump but actually does action **/
    /**************************************************************/
-   void RemPu(int ipu, int isp,vector<sconnections> &connections, vector<sspecies> &spec,vector<spustuff> &pu,
-         vector<spu> &SM,int clumptype, int thread) {
+   void RemPu(int ipu, int isp, const vector<sconnections> &connections, vector<sspecies> &spec, const vector<spustuff> &pu,
+         const vector<spu> &SM, vector<spu_out>& SM_out, int clumptype) {
       
       int ineighbours = 0;
       //struct slink{int id;struct slink *next;} *head = NULL, *newhead, *thead;
@@ -409,7 +408,7 @@ namespace marxan {
        /* Find the correct clump to remove */
       bool found = false;
       int foundInd = 0;
-      int idToFind =  rtnClumpSpecAtPu(pu[ipu], SM, isp, thread);
+      int idToFind =  rtnClumpSpecAtPu(pu[ipu], SM, SM_out, isp);
       for (sclumps tempClump : spec[isp].head) {
          if (tempClump.clumpid == idToFind) {
             found = true;
@@ -426,7 +425,7 @@ namespace marxan {
       /* Locate the correct clumppu */
       auto cppuIt = find(oldclump.head.begin(), oldclump.head.end(), ipu);
       cppu = *cppuIt;
-      setClumpSpecAtPu(pu[cppu], SM, isp, 0, thread);
+      setClumpSpecAtPu(pu[cppu], SM, SM_out, isp, 0);
 
       oldamount = PartialPen4(isp, oldclump.amount, spec, clumptype);
       spec[isp].amount -= oldamount;
@@ -434,7 +433,7 @@ namespace marxan {
 
       /* Building the neighbour list */
       vector<int> head;
-      for (sneighbour pnbr: connections[cppu].first) {
+      for (const sneighbour& pnbr: connections[cppu].first) {
          ineighbours++;
          head.push_back(pnbr.nbr);
       }
@@ -468,17 +467,17 @@ namespace marxan {
       vector<int> modifiedHead = head; // copy assignment
       for (int id: head) {
          /* take first element as seed for new clump number */
-         pclump = AddNewClump(isp,id,spec,pu,SM, thread);
+         pclump = AddNewClump(isp, id, spec, pu, SM, SM_out);
 
          // TODO - revisit this logic
          /* Continue until you've added every conceivable neighbour */
          for (int id2: pclump.head) {
-            for (sneighbour& pnbr: connections[id2].first) {
-               if (rtnClumpSpecAtPu(pu[pnbr.nbr], SM, isp, thread) == oldclump.clumpid) {
+            for (const sneighbour& pnbr: connections[id2].first) {
+               if (rtnClumpSpecAtPu(pu[pnbr.nbr], SM, SM_out, isp) == oldclump.clumpid) {
                   auto eraseIt = find(oldclump.head.begin(), oldclump.head.end(), pnbr.nbr);
                   oldclump.head.erase(eraseIt);
 
-                  setClumpSpecAtPu(pu[id2], SM, isp, pclump.clumpid, thread);
+                  setClumpSpecAtPu(pu[id2], SM, SM_out, isp, pclump.clumpid);
                   rAmount = returnAmountSpecAtPu(pu[id2],SM,isp).second;
                   pclump.amount += rAmount;
                   pclump.occs += (rAmount>0);
@@ -500,25 +499,24 @@ namespace marxan {
       /* Remove old clump */
       /* Worry about change in amount and hence score */
       spec[isp].head.erase(spec[isp].head.begin() + foundInd);
-      ClearClump(isp,oldclump,pu,SM, thread);
+      ClearClump(isp, oldclump, pu, SM, SM_out);
    }
 
    /*** Remove Clump Check ***/
    /** returns 0 if any member of clump is non-removable, Ie status == 2 **/
-   int RemClumpCheck(sclumps &pclump,vector<spustuff> &pu) {
+   int RemClumpCheck(const sclumps &pclump, const vector<spustuff> &pu) {
       for (int pcpu: pclump.head) {
          if (pu[pcpu].status == 2)
             return 0;
       }
-
       return 1;
    }
 
    /********* Set Penalties for a given Type 4 Species ***/
    /* Returns 1 if the species is a 'bad species' and -1 if it is a 'good species' */
    /* Also sticks the penalty into spec[isp].penalty */
-   int CalcPenaltyType4(int isp,int puno, vector<spu> &SM,vector<sconnections> &connections,
-      vector<sspecies> &spec, vector<spustuff> &pu,double cm,int clumptype, int thread) {
+   int CalcPenaltyType4(int isp, int puno, const vector<spu> &SM, vector<spu_out>& SM_out,  const vector<sconnections> &connections,
+      vector<sspecies> &spec, const vector<spustuff> &pu, double cm, int clumptype) {
       
       vector<sclumps> newno;
       int j,ipu,iputotal = 0;
@@ -541,7 +539,7 @@ namespace marxan {
             if (pu[i].status==3) continue; /* not allowed to consider this one */
             if (pu[i].status==2)
             { /* add to clumps and remove from list */
-               AddNewPU(i,isp,connections,spec,pu,SM,clumptype, thread);
+               AddNewPU(i, isp, connections, spec, pu, SM, SM_out, clumptype);
                continue;
             } /* checking if PU forced into reserve */
             iputotal++;
@@ -552,7 +550,7 @@ namespace marxan {
       /* Check first to see if I've already satisfied targets for this species */
       SpeciesAmounts4(isp,spec,clumptype);
       if (spec[isp].sepnum>0)
-         spec[isp].separation = CountSeparation2(isp,0,newno,puno,R,pu,SM,spec,0,thread);
+         spec[isp].separation = CountSeparation2(isp, 0, newno, puno, R, pu, SM, SM_out, spec, 0);
       if ((spec[isp].amount >= spec[isp].target) && (spec[isp].occurrence >= spec[isp].targetocc) && (spec[isp].separation >= spec[isp].sepnum))
       {
          spec[isp].amount = 0;
@@ -561,7 +559,7 @@ namespace marxan {
 
          /** Clean out all the clump numbers for this species.*/
          for (sclumps& c: spec[isp].head) {
-            ClearClump(isp,c,pu,SM, thread);
+            ClearClump(isp, c, pu, SM, SM_out);
          }
          spec[isp].clumps = 0;
 
@@ -578,12 +576,12 @@ namespace marxan {
 
             // Add pu to system
             R[chosenPu] = 1;
-            AddNewPU(chosenPu,isp,connections,spec,pu,SM,clumptype, thread);
+            AddNewPU(chosenPu, isp, connections, spec, pu, SM, SM_out, clumptype);
 
             /*** Check to see if I should continue by calculating current holdings **/
             SpeciesAmounts4(isp,spec,clumptype);
             if (spec[isp].sepnum>0)
-               spec[isp].separation = CountSeparation2(isp,0,newno,puno,R,pu,SM,spec,0, thread);
+               spec[isp].separation = CountSeparation2(isp, 0, newno, puno, R, pu, SM, SM_out, spec, 0);
 
          } while ((spec[isp].amount < spec[isp].target || spec[isp].separation < spec[isp].sepnum || spec[isp].occurrence < spec[isp].targetocc)
                   && iputotal >= 1  );
@@ -611,7 +609,7 @@ namespace marxan {
          while (count < spec[isp].head.size()) {
             sclumps& pclump = spec[isp].head[count];
             int i = 0;
-            if (RemClumpCheck(pclump,pu)) {
+            if (RemClumpCheck(pclump, pu)) {
                i = 1;
             }
             if (i)
@@ -627,7 +625,7 @@ namespace marxan {
             if (i && spec[isp].sepnum)
             {
                vector<sclumps> tempSepVector(spec[isp].head.begin() + count, spec[isp].head.end()); // In LL implementation, this would have been current point onwards.
-               j = CountSeparation2(isp,0, tempSepVector,puno,R,pu,SM,spec,-1, thread); //TODO - revise vector that gets passed in here
+               j = CountSeparation2(isp, 0, tempSepVector, puno, R, pu, SM, SM_out, spec, -1); //TODO - revise vector that gets passed in here
                if ((j < spec[isp].separation) && (j < spec[isp].sepnum))
                   i = 0;
 
@@ -638,7 +636,7 @@ namespace marxan {
             if (i)   /* This is a clump which can be safely removed */
             {  /* cut clump if uneccessary or it is too small */
                for (int puid: pclump.head) {
-                  setClumpSpecAtPu(pu[puid], SM, isp, 0, thread);
+                  setClumpSpecAtPu(pu[puid], SM, SM_out, isp, 0);
                }
 
                totalamount -= pclump.amount;
@@ -682,18 +680,18 @@ namespace marxan {
                   vector<sclumps> temp;
                   sclumps pnewclump = {oldPu, 0, 0};
                   temp.push_back(pnewclump);
-                  j = CountSeparation2(isp,oldPu,temp,puno,R,pu,SM,spec,-1, thread);
+                  j = CountSeparation2(isp, oldPu, temp, puno, R, pu, SM, SM_out, spec, -1);
                   if ((j < spec[isp].separation) && (j < spec[isp].sepnum))
                      i = 0;
                } /* How does count sep fare? */
                if (i)
                {
-                  if (ClumpCut(isp,pu,spec,pclump,oldPu,connections,SM, dummy, idummy, j,0,clumptype, thread))
+                  if (ClumpCut(isp, pu, spec, pclump, oldPu, connections, SM, SM_out, dummy, idummy, j,0,clumptype))
                      i = 0;
                } /* Does it cut the clump? these are not allowed to remove */
                if (i)  /* Is this removable? */
                {        /* remove pcpu */
-                  setClumpSpecAtPu(pu[oldPu], SM, isp, 0, thread);
+                  setClumpSpecAtPu(pu[oldPu], SM, SM_out, isp, 0);
                   totalamount -= rAmount;
                   pclump.amount -= rAmount;
                   // pu effectively removed by not including in newPu
@@ -718,9 +716,9 @@ namespace marxan {
                } /* only count fixed costs if PU not forced into reserve */
                if (connections[oldPu].nbrno)
                {
-                  for (sneighbour& pnbr: connections[oldPu].first)
+                  for (const sneighbour& pnbr: connections[oldPu].first)
                   {
-                     if (rtnClumpSpecAtPu(pu[pnbr.nbr], SM, isp, thread) != iclumpno)
+                     if (rtnClumpSpecAtPu(pu[pnbr.nbr], SM, SM_out, isp) != iclumpno)
                         connection += pnbr.cost;
                   } /** Counting each individual connection **/
             } /** Counting connection strength if neccessary **/
@@ -747,7 +745,7 @@ namespace marxan {
       /** Clean out all the clump numbers for this species.*/
       for (sclumps& clump: spec[isp].head)
       {
-         ClearClump(isp,clump,pu,SM,thread);
+         ClearClump(isp, clump, pu, SM, SM_out);
       }  /** Remove each clump ***/
       spec[isp].clumps = 0;
 
@@ -755,7 +753,7 @@ namespace marxan {
    }
 
    /**** Partial Penalty for type 4 species ***/
-   double PartialPen4(int isp,double amount, vector<sspecies> &spec,int clumptype) {
+   double PartialPen4(int isp, double amount, const vector<sspecies> &spec, int clumptype) {
       if (amount >= spec[isp].target2)
       {
          return (amount);    /* I'm not a partial penalty */
@@ -778,8 +776,8 @@ namespace marxan {
    }
 
    /*** Value for Adding a Planning Unit ****/
-   double ValueAdd(int isp,int ipu,int puno, vector<int> &R,vector<sconnections> &connections,vector<spustuff> &pu,
-                  vector<spu> &SM,vector<sspecies> &spec,int clumptype, int thread) {
+   double ValueAdd(int isp, int ipu, int puno, const vector<int> &R, const vector<sconnections> &connections, const vector<spustuff> &pu,
+       const vector<spu> &SM, const vector<spu_out>& SM_out, const vector<sspecies> &spec,int clumptype) {
 
       int ineighbours = 0,iclumpid,iseparation;
       vector<sneighbour> pnbr;
@@ -792,7 +790,7 @@ namespace marxan {
       if (connections[ipu].nbrno > 0) {
          pnbr = connections[ipu].first;
          for (sneighbour& neighbour: pnbr) {
-            iClump = rtnClumpSpecAtPu(pu[neighbour.nbr], SM, isp, thread);
+            iClump = rtnClumpSpecAtPu(pu[neighbour.nbr], SM, SM_out, isp);
             if (iClump) {
                iclumpid = 1;
                
@@ -859,7 +857,7 @@ namespace marxan {
       occs = occs - oldoccs;
 
       if (spec[isp].sepnum) {
-         iseparation = CountSeparation2(isp,0,sepclump,puno,R,pu,SM,spec,1, thread);  /* imode = 1 doesn't do anything*/
+         iseparation = CountSeparation2(isp, 0, sepclump, puno, R, pu, SM, SM_out, spec, 1);  /* imode = 1 doesn't do anything*/
       }
 
       /* Return the effective amount for this species */
@@ -880,8 +878,8 @@ namespace marxan {
    }
 
    /** Value Remove. The amount of species loss for removing a single pu */
-   double ValueRem(int ipu,int isp,vector<sspecies> &spec,vector<sconnections> &connections,
-                  vector<spustuff> &pu,vector<spu> &SM,int clumptype, int thread) {
+   double ValueRem(int ipu,int isp, const vector<sspecies> &spec, const vector<sconnections> &connections,
+                  const vector<spustuff> &pu, const  vector<spu> &SM, const  vector<spu_out>& SM_out, int clumptype) {
       double newamount = 0,amount,shortfall=0;
       sclumps pclump;
       int ppu;
@@ -890,7 +888,7 @@ namespace marxan {
 
       /* locate the clump and clumppu of the target site ipu */
       for (sclumps clumpTemp : spec[isp].head) {
-         if (clumpTemp.clumpid == rtnClumpSpecAtPu(pu[ipu], SM, isp, thread)) {
+         if (clumpTemp.clumpid == rtnClumpSpecAtPu(pu[ipu], SM, SM_out, isp)) {
             pclump = clumpTemp;
             break;
          }
@@ -906,9 +904,9 @@ namespace marxan {
 
       /* debugmem2 = debugmem; debugging line */
       if (spec[isp].sepnum)
-         ClumpCut(isp,pu,spec,pclump,ppu,connections,SM, newamount, newocc, iseparation,1, clumptype, thread);
+         ClumpCut(isp, pu, spec, pclump, ppu, connections, SM, SM_out, newamount, newocc, iseparation,1, clumptype);
       else
-         ClumpCut(isp,pu,spec,pclump,ppu,connections,SM, newamount, newocc, iseparation,0, clumptype, thread);
+         ClumpCut(isp, pu, spec, pclump, ppu, connections,SM, SM_out, newamount, newocc, iseparation, 0, clumptype);
 
       if (spec[isp].target)
       {
@@ -934,24 +932,24 @@ namespace marxan {
    /***************   NewPenalty4   *********************/
    /* Calculates the new penalty for adding or removing a PU for species which have
       clumping requirements */  
-   double NewPenalty4(int ipu,int isp,int puno,vector<sspecies> &spec,vector<spustuff> &pu,vector<spu> &SM,
-               vector<int> &R,vector<sconnections> &connections,int imode,int clumptype, int thread) {
+   double NewPenalty4(int ipu, int isp, int puno, const vector<sspecies> &spec, const vector<spustuff> &pu, const vector<spu> &SM, const vector<spu_out>& SM_out,
+               const vector<int> &R, const vector<sconnections> &connections, int imode, int clumptype) {
       double amount;
 
       if (imode == 1) {
          if (spec[isp].penalty == 0)
                return (0);  /* Targets have all already been met */
-         amount = ValueAdd(isp,ipu,puno,R,connections,pu,SM,spec,clumptype, thread);
+         amount = ValueAdd(isp, ipu, puno, R, connections, pu, SM, SM_out, spec, clumptype);
       }
       else {
             /* determine change in this amount */
-         amount = ValueRem(ipu,isp,spec,connections,pu,SM,clumptype, thread);
+         amount = ValueRem(ipu, isp, spec, connections, pu, SM, SM_out, clumptype);
       } /** removing a planning unit **/
       return amount;
    }
 
-   int ValidPU(int ipu,int isp, const vector<sclumps> &newno,vector<sspecies> &spec,vector<spustuff> &pu,
-            vector<spu> &SM,int imode, int thread) {
+   int ValidPU(int ipu,int isp, const vector<sclumps> &newno, const vector<sspecies> &spec, const vector<spustuff> &pu,
+            const vector<spu> &SM, const vector<spu_out>& SM_out, int imode) {
 
       // Returns true if ipu is acceptable as a planning unit
       int i =  returnAmountSpecAtPu(pu[ipu],SM,isp).first;
@@ -962,7 +960,7 @@ namespace marxan {
       {
          if (imode == -2)
          {
-            if (SM[i].clump[thread] == newno[0].clumpid)
+            if (SM_out[i].clump == newno[0].clumpid)
                return(0); // This whole clump is to be removed
          }
          
@@ -982,7 +980,7 @@ namespace marxan {
       
       // Find clump
       for (const sclumps& clump: spec[isp].head) {
-         if (SM[i].clump[thread] == clump.clumpid) {
+         if (SM_out[i].clump == clump.clumpid) {
             pclump = clump;
             found = true;
          }
@@ -1013,7 +1011,7 @@ namespace marxan {
    } // Is Distant returns true if PU's are big enough distance apart
 
    int CountSeparation(int isp, const vector<sclumps> &newno,
-   vector<spustuff> &pu,vector<spu> &SM,vector<sspecies> &spec,int imode, int thread)
+        const vector<spustuff> &pu, const vector<spu> &SM, const vector<spu_out>& SM_out, const vector<sspecies> &spec, int imode)
    {
       // imode 0 = count separation on current
       // imode 1 = count separation if ipu were included
@@ -1034,7 +1032,7 @@ namespace marxan {
             throw runtime_error("CountSeparation Error: newno is empty and imode==1");
          }
 
-         if (ValidPU(newno[0].clumpid,isp,newno,spec,pu,SM,imode, thread))
+         if (ValidPU(newno[0].clumpid, isp, newno, spec, pu, SM, SM_out, imode))
          {
             ptemp.push_back(newno[0].clumpid);
          }
@@ -1042,7 +1040,7 @@ namespace marxan {
 
       for (sclumps pclump : spec[isp].head) {
          for (int ppu : pclump.head) {
-            if (ValidPU(ppu,isp,newno,spec,pu,SM,imode, thread)) {
+            if (ValidPU(ppu, isp, newno, spec, pu, SM, SM_out, imode)) {
                ptemp.push_back(ppu);
             }
          } // Add all valid species bearing PU's to list
@@ -1073,8 +1071,8 @@ namespace marxan {
     maximum separation distance rather than just assuming a sep distance of three */
    /* ipu and newno used when imode <> 0. When counting as if ipu were added or removed
       ipu used for non-clumping and newno for clumping species */
-   int CountSeparation2(int isp,int ipu, vector<sclumps> &newno,int puno,vector<int> &R,
-      vector<spustuff> &pu,vector<spu> &SM,vector<sspecies> &spec,int imode, int thread) {
+   int CountSeparation2(int isp, int ipu, const vector<sclumps> &newno, int puno, const vector<int> &R,
+      const vector<spustuff> &pu, const vector<spu> &SM, const vector<spu_out>& SM_out, const vector<sspecies> &spec, int imode) {
 
       vector<sseplist> Dist;
       vector<int> head;
@@ -1090,7 +1088,7 @@ namespace marxan {
       Dist.resize(spec[isp].sepnum);
 
       // First scan through sites. Grab first valid and place rest in lists
-      head = makelist(isp,ipu,puno,R,newno,spec,pu,SM,imode, thread);
+      head = makelist(isp, ipu, puno, R, newno, spec, pu, SM, SM_out, imode);
 
       if (head.empty())
       {
@@ -1110,7 +1108,7 @@ namespace marxan {
       }  // There was only one item in the list
 
       // Deal out link list
-      sepcount = SepDealList(head,Dist,pu,spec, Dist[0].head[0], 0, targetdist, isp);
+      sepcount = SepDealList(head, Dist, pu, spec, Dist[0].head[0], 0, targetdist, isp);
       if (sepcount >= spec[isp].sepnum-1)
       {
          return(spec[isp].sepnum);
@@ -1171,8 +1169,8 @@ namespace marxan {
    // Make List
    // This makes a list of all the valid PUs which occur on the reserve and on which species
    // isp is present (or NULL), in the form of a slink link list
-   vector<int> makelist(int isp,int ipu, int puno,vector<int> &R, vector<sclumps> &newno,vector<sspecies> &spec,
-                       vector<spustuff> &pu,vector<spu> &SM,int imode, int thread) {
+   vector<int> makelist(int isp,int ipu, int puno, const vector<int> &R, const vector<sclumps> &newno, const vector<sspecies> &spec,
+                       const vector<spustuff> &pu, const vector<spu> &SM, const vector<spu_out>& SM_out, int imode) {
 
       // Note! Changes made so that we append to end instead of inserting to beginning of linked list. 
       vector<int> head;
@@ -1186,15 +1184,15 @@ namespace marxan {
                throw runtime_error("Error makelist - newno is null when imode==1.");
             }
 
-            if (ValidPU(newno[0].clumpid,isp,newno,spec,pu,SM,imode, thread))
+            if (ValidPU(newno[0].clumpid,isp,newno,spec,pu,SM, SM_out, imode))
             {
                head.push_back(newno[0].clumpid);
             }
          }
 
-         for (sclumps& pclump: spec[isp].head) {
+         for (const sclumps& pclump: spec[isp].head) {
             for (int ppu: pclump.head) {
-               if (ValidPU(ppu,isp,newno,spec,pu,SM,imode, thread))
+               if (ValidPU(ppu, isp, newno, spec, pu, SM, SM_out, imode))
                {
                   head.push_back(ppu);
                }  // Add all valid species bearing PU's to list
@@ -1223,8 +1221,8 @@ namespace marxan {
    // Sep Deal List
    // This funciton is called by count separation2. It takes a link list of sites and 'deals' them
    //  out on to the seplist
-   int SepDealList(vector<int> &head, vector<sseplist> &Dist, vector<spustuff> &pu,
-      vector<sspecies> &spec,int first,int sepnum,double targetdist,int isp) {
+   int SepDealList(const vector<int> &head, vector<sseplist> &Dist, const vector<spustuff> &pu,
+      const vector<sspecies> &spec, int first, int sepnum, double targetdist, int isp) {
       
       // Currsep is the current separation maximum it is 0 up to sepnum
       // first is only needed if maximum is at 0, sepnum is the target separation

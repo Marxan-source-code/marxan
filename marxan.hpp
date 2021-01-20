@@ -57,9 +57,15 @@ namespace marxan {
     {
         double amount; // amount of species in pu
         double prob; // optional field that does ???
-        vector<int> clump; // array of clump terms by thread
         int spindex; // index/id of species
     } spu;
+
+    //Separate output fields for multithreading 
+    typedef struct spu_out
+    {
+        int clump; 
+    } spu_out;
+
 
     extern vector<spu> SMGlobal;
 
