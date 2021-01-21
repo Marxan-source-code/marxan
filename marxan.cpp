@@ -1287,7 +1287,7 @@ double computeChangePenalty(int ipu,int puno, vector<sspecies>& spec, vector<spu
         {
             ism = pu[ipu].offset + i;
             isp = SM[ism].spindex;
-            if (SM[ism].amount)  /** Only worry about PUs where species occurs and target != 0 **/
+            if (SM[ism].amount != 0.0)  /** Only worry about PUs where species occurs and target != 0 **/
             {
                 fractionAmount = 0;
                 newamount = 0; /* Shortfall */
@@ -1459,7 +1459,7 @@ void computeReserveValue(int puno,int spno, vector<int> &R, vector<spustuff> &pu
         {
             reserve.cost += pu[j].cost;
             reserve.pus += 1;
-            rConnectivityValue = ConnectionCost2(j,connections,R,1,0,cm, asymmetricconnectivity, fOptimiseConnectivityIn);
+            rConnectivityValue = ConnectionCost2(connections[j],R,1,0,cm, asymmetricconnectivity, fOptimiseConnectivityIn);
             reserve.connection += rConnectivityValue;
 
             #ifdef DEBUG_RESERVECOST
@@ -1548,7 +1548,7 @@ void computeChangeScore(int iIteration,int ipu,int spno,int puno,vector<spustuff
 #endif
 
     change.cost = pu[ipu].cost * imode; /* Cost of this PU on it's own */
-    change.connection = ConnectionCost2(ipu, connections, R, imode, 1, cm, asymmetricconnectivity, fOptimiseConnectivityIn);
+    change.connection = ConnectionCost2(connections[ipu], R, imode, 1, cm, asymmetricconnectivity, fOptimiseConnectivityIn);
 
 
     change.penalty = computeChangePenalty(ipu, puno, spec, pu, SM, R, connections, imode, clumptype, change.shortfall, thread);
@@ -1637,7 +1637,7 @@ void computeQuantumChangeScore(int spno,int puno, vector<spustuff>& pu, vector<s
 #endif
 
         change.cost += pu[j].cost * imode; /* Cost of this PU on it's own */
-        change.connection += ConnectionCost2(j, connections, R, imode, 1, cm, asymmetricconnectivity, fOptimiseConnectivityIn);
+        change.connection += ConnectionCost2(connections[j], R, imode, 1, cm, asymmetricconnectivity, fOptimiseConnectivityIn);
         if (threshtype == 1)
         {
             tchangeconnection = change.connection;
