@@ -302,7 +302,7 @@ double SumIrr(int ipu, const vector<double> &Rare, const vector<spustuff> &pu, c
 
 // Main Heuristic Engine
 void Heuristics(int spno, int puno, const vector<spustuff> &pu, const vector<sconnections> &connections,
-        const vector<int> &R, double cm, const vector<sspecies> &spec, const vector<spu> &SM, const vector<spu_out>& SM_out, scost &reserve,
+        vector<int> &R, double cm, vector<sspecies> &spec, const vector<spu> &SM, vector<spu_out>& SM_out, scost &reserve,
         double costthresh, double tpf1, double tpf2, int imode,int clumptype, stringstream& logBuffer)
 // imode = 1: 2: 3: 4:
 // imode = 5: 6: Prod Irreplaceability, 7: Sum Irreplaceability
@@ -352,7 +352,7 @@ void Heuristics(int spno, int puno, const vector<spustuff> &pu, const vector<sco
                     currscore = GreedyScore(i, puno, spno, spec, SM, SM_out, connections, R, pu, cm, clumptype);
                 if (imode == 1)
                 {
-                    computeChangeScore(-1, i, spno, puno, pu, connections, spec, SM, R, cm, 1, change, reserve,
+                    computeChangeScore(-1, i, spno, puno, pu, connections, spec, SM, SM_out, R, cm, 1, change, reserve,
                                        costthresh, tpf1, tpf2, 1, clumptype);
                     currscore = change.total;
                 }
@@ -401,9 +401,9 @@ void Heuristics(int spno, int puno, const vector<spustuff> &pu, const vector<sco
 
             if (bestscore)
             {
-                computeChangeScore(-1, bestpu, spno, puno, pu, connections, spec, SM, R, cm, 1, change, reserve,
-                                   costthresh, tpf1, tpf2, 1, clumptype, thread);
-                doChange(bestpu, puno, R, reserve, change, pu, SM, spec, connections, 1, clumptype, thread, logBuffer);
+                computeChangeScore(-1, bestpu, spno, puno, pu, connections, spec, SM, SM_out, R, cm, 1, change, reserve,
+                                   costthresh, tpf1, tpf2, 1, clumptype);
+                doChange(bestpu, puno, R, reserve, change, pu, SM, SM_out, spec, connections, 1, clumptype, logBuffer);
 
                 // Different Heuristics might have different penalty effects
                 // Old fashioned penalty and missing counting

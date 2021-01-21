@@ -264,13 +264,13 @@ int computePenaltiesOptimise(int puno,int spno, vector<spustuff> &pu, vector<ssp
 void computeReserveValue(int puno,int spno, vector<int> &R, vector<spustuff> &pu,
                          vector<sconnections> &connections, vector<spu> &SM,
                          double cm, vector<sspecies> &spec, int aggexist, scost &reserve,int clumptype, int thread, stringstream& logBuffer);
-void computeChangeScore(int iIteration,int ipu,int spno,int puno,vector<spustuff> &pu, vector<sconnections> &connections,
-                        vector<sspecies> &spec, vector<spu> &SM, vector<int> &R, double cm, int imode,
-                        scost &change, scost &reserve,double costthresh,double tpf1, double tpf2,
-                        double timeprop,int clumptype, int thread);
-void doChange(int ipu,int puno,vector<int> &R, scost &reserve, scost &change,
-              vector<spustuff> &pu,vector<spu> &SM,vector<sspecies> &spec,vector<sconnections> &connections,
-              int imode,int clumptype, int thread, stringstream& logBuffer);
+void computeChangeScore(int iIteration, int ipu, int spno, int puno, const vector<spustuff>& pu, const vector<sconnections>& connections,
+    vector<sspecies>& spec, const vector<spu>& SM, vector<spu_out>& SM_out, const vector<int>& R, double cm, int imode,
+    scost& change, scost& reserve, double costthresh, double tpf1, double tpf2,
+    double timeprop, int clumptype);
+void doChange(int ipu, int puno, vector<int>& R, scost& reserve, scost& change,
+    const vector<spustuff>& pu, const vector<spu>& SM, vector<spu_out>& SM_out, vector<sspecies>& spec, const vector<sconnections>& connections,
+    int imode, int clumptype, stringstream& logBuffer);
 
 stringstream displayValueForPUs(int puno, int spno,vector<int> &R, scost &reserve,
                         vector<sspecies> &spec,double misslevel);
@@ -404,12 +404,12 @@ void SpeciesAmounts(int spno,int puno, vector<sspecies>& spec, vector<spustuff>&
                     vector<int>& R,int clumptype);
 void SpeciesAmounts4(int isp,vector<sspecies> &spec,int clumptype);
 
-//void Heuristics(int spno,int puno,vector<spustuff> &pu,vector<sconnections> &connections,
-//        vector<int> &R, double cm, vector<sspecies> &spec, vector<spu> &SM, scost &reserve,
-//        double costthresh, double tpf1,double tpf2, int imode,int clumptype, int thread, stringstream& logBuffer);
+void Heuristics(int spno, int puno, const vector<spustuff>& pu, const vector<sconnections>& connections,
+    vector<int>& R, double cm, vector<sspecies>& spec, const vector<spu>& SM, vector<spu_out>& SM_out, scost& reserve,
+    double costthresh, double tpf1, double tpf2, int imode, int clumptype, stringstream& logBuffer);
 
-double ChangeProbability1D(int iIteration, int ipu, int spno,int puno,vector<sspecies> &spec,vector<spustuff> &pu,vector<spu> &SM,int imode);
-double ChangeProbability2D(int iIteration, int ipu, int spno,int puno,vector<sspecies> &spec,vector<spustuff> &pu,vector<spu> &SM,int imode);
+double ChangeProbability1D(int iIteration, int ipu, int spno, int puno, vector<sspecies>& spec, const vector<spustuff>& pu, const vector<spu>& SM, int imode);
+double ChangeProbability2D(int iIteration, int ipu, int spno, int puno, vector<sspecies>& spec, const vector<spustuff>& pu, const vector<spu>& SM, int imode);
 void ComputeP_AllPUsSelected_1D(string &savename,int puno,int spno,vector<spustuff> &pu,vector<spu> &SM,vector<sspecies> &spec);
 void ComputeP_AllPUsSelected_2D(string &savename,int puno,int spno,vector<spustuff> &pu,vector<spu> &SM,vector<sspecies> &spec);
 double ComputeProbability1D(vector<double> &ExpectedAmount1D, vector<double> &VarianceInExpectedAmount1D,

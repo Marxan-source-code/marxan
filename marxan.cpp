@@ -1534,10 +1534,10 @@ double thresholdPenalty(double tpf1,double tpf2,double timeprop)
     return(tpf1*exp(tpf2*timeprop));
 }
 
-void computeChangeScore(int iIteration,int ipu,int spno,int puno,vector<spustuff> &pu, vector<sconnections> &connections,
-                        vector<sspecies> &spec, vector<spu>& SM, vector<int> &R, double cm, int imode,
-                        scost &change, scost &reserve,double costthresh,double tpf1, double tpf2,
-                        double timeprop,int clumptype, int thread)
+void computeChangeScore(int iIteration,int ipu,int spno,int puno, const vector<spustuff> &pu, const vector<sconnections> &connections,
+                        vector<sspecies> &spec, const vector<spu>& SM, vector<spu_out>& SM_out, const vector<int> &R, double cm, int imode,
+                        scost &change, scost &reserve, double costthresh, double tpf1, double tpf2,
+                        double timeprop,int clumptype)
 // imode = 1 add PU, imode = -1 remove PU
 {
     double threshpen = 0;
@@ -1722,9 +1722,9 @@ int isGoodQuantumChange(struct scost change,double rProbAcceptance, uniform_real
 }
 
 // change the status of a single planning unit
-void doChange(int ipu,int puno,vector<int> &R, scost &reserve, scost &change,
-              vector<spustuff> &pu,vector<spu>& SM,vector<sspecies> &spec,vector<sconnections> &connections,
-              int imode,int clumptype, int thread, stringstream& logBuffer)
+void doChange(int ipu, int puno, vector<int> &R, scost &reserve, scost &change,
+              const vector<spustuff> &pu, const vector<spu>& SM, vector<spu_out>& SM_out, vector<sspecies> &spec, const vector<sconnections> &connections,
+              int imode,int clumptype, stringstream& logBuffer)
 {
     int i, ism, isp;
     double rAmount;
@@ -1750,11 +1750,11 @@ void doChange(int ipu,int puno,vector<int> &R, scost &reserve, scost &change,
             { // Type 4 species and this will impact them
                 if (imode == 1)
                 {
-                    AddNewPU(ipu, isp, connections, spec, pu, SM, clumptype, thread);
+                    AddNewPU(ipu, isp, connections, spec, pu, SM, SM_out, clumptype);
                 }
                 else
                 {
-                    RemPu(ipu, isp, connections, spec, pu, SM, clumptype, thread);
+                    RemPu(ipu, isp, connections, spec, pu, SM, SM_out, clumptype);
                 }
                 if (spec[isp].occurrence < 0)
                 {
@@ -1790,7 +1790,7 @@ void doChange(int ipu,int puno,vector<int> &R, scost &reserve, scost &change,
                 if ((imode == 1 && spec[isp].separation < spec[isp].sepnum) || (imode == -1 && spec[isp].separation > 1))
                 {
                     vector<sclumps> tempSclumps;
-                    spec[isp].separation = CountSeparation2(isp, 0, tempSclumps, puno, R, pu, SM, spec, 0, thread);
+                    spec[isp].separation = CountSeparation2(isp, 0, tempSclumps, puno, R, pu, SM, SM_out, spec, 0);
                 }
         }
     }
