@@ -54,7 +54,7 @@ pair<char, FILE*> GetFileAndDelimiter(string filename, int delimiterMode, bool a
 }
 
 // debug output for probability 1D
-void writeProb1DDebugTable(int spno,string savename, vector<double> ExpectedAmount1D, vector<double> VarianceInExpectedAmount1D, vector<sspecies> spec)
+void writeProb1DDebugTable(int spno,string savename, const vector<double>& ExpectedAmount1D, const vector<double>& VarianceInExpectedAmount1D, const vector<sspecies>& spec)
 {
    FILE *fp;
    int i, iHeavisideStepFunction;
@@ -76,7 +76,7 @@ void writeProb1DDebugTable(int spno,string savename, vector<double> ExpectedAmou
 }
 
 // debug output for probability 2D
-void writeProb2DDebugTable(int spno,string savename, vector<double> ExpectedAmount2D, vector<double> VarianceInExpectedAmount2D, vector<sspecies> spec)
+void writeProb2DDebugTable(int spno,string savename, const vector<double>& ExpectedAmount2D, const vector<double>& VarianceInExpectedAmount2D, vector<sspecies> spec)
 {
    FILE *fp;
    int i, iHeavisideStepFunction;
@@ -99,7 +99,7 @@ void writeProb2DDebugTable(int spno,string savename, vector<double> ExpectedAmou
 }
 
 // debug output for probability 1D
-void writeProb1DDetailDebugTable(string savename,int puno,int spno, vector<spustuff>& pu,  vector<spu>& SM, vector<int>& R)
+void writeProb1DDetailDebugTable(string savename,int puno,int spno, const vector<spustuff>& pu, const vector<spu>& SM, const vector<int>& R)
 {
    FILE *fp;
    int i,ipu,ism,isp;
@@ -153,7 +153,7 @@ void writeProb1DDetailDebugTable(string savename,int puno,int spno, vector<spust
 }
 
 // debug output for probability 2D
-void writeProb2DDetailDebugTable(string savename,int puno,vector<spustuff>& pu, vector<spu>& SM, vector<int>& R)
+void writeProb2DDetailDebugTable(string savename, int puno, const vector<spustuff>& pu, const vector<spu>& SM, const vector<int>& R)
 {
    FILE *fp;
    int i,ipu,ism,isp;
@@ -392,7 +392,7 @@ void appendTraceFile(string sMess,...)
 }
 
 // create a debug file
-void createDebugFile(string sFileName,string sHeader, sfname& fnames)
+void createDebugFile(string sFileName, string sHeader, const sfname& fnames)
 {
     FILE* fdebugtrace;
     string writename = fnames.outputdir + sFileName;
@@ -405,7 +405,7 @@ void createDebugFile(string sFileName,string sHeader, sfname& fnames)
 }
 
 // append message to a debug file
-void appendDebugFile(string sFileName, string sLine, sfname& fnames)
+void appendDebugFile(string sFileName, string sLine, const sfname& fnames)
 {
     FILE* fdebugtrace;
     string writename = fnames.outputdir + sFileName;
@@ -485,7 +485,7 @@ void createLogFile(int my_savelog, string my_savelogname)
 
 
 // write an asymmetric connection file
-void writeAsymmetricConnectionFile(int puno, vector<sconnections> connections, vector<spustuff> pu, sfname fnames)
+void writeAsymmetricConnectionFile(int puno, const vector<sconnections>& connections, const vector<spustuff>& pu, sfname fnames)
 {
    int i;
    FILE *fp;
@@ -499,7 +499,7 @@ void writeAsymmetricConnectionFile(int puno, vector<sconnections> connections, v
    fprintf(fp,"idA,idB,connectionorigon\n");
    for (i=0;i<puno;i++)
    {
-      for (sneighbour& p: connections[i].first)
+      for (const sneighbour& p: connections[i].first)
          fprintf(fp,"%i,%i,%i,%lf\n",pu[i].id,pu[p.nbr].id,p.connectionorigon,p.cost);
    }
 
@@ -532,7 +532,7 @@ void writeSparseMatrix(int iSMno,int puno, vector<spustuff>& PU, vector<sspecies
    fclose(fp);
 }
 
-double computeTotalConnection2(int puno, vector<int>& R, vector<sconnections>& connections) {
+double computeTotalConnection2(int puno, const vector<int>& R, const vector<sconnections>& connections) {
     double connectiontemp = 0.0;
     for (int i = 0; i < puno; i++)
     {
@@ -545,7 +545,7 @@ double computeTotalConnection2(int puno, vector<int>& R, vector<sconnections>& c
 }
 
 // write a summary file
-void writeSummary(string savename, vector<string>& summaries, int imode)
+void writeSummary(string savename, const vector<string>& summaries, int imode)
 {
    pair<char, FILE*> fileInfo = GetFileAndDelimiter(savename, imode);
    FILE *fp = fileInfo.second; // Imode = 1, REST output, Imode = 2, Arcview output
@@ -559,7 +559,7 @@ void writeSummary(string savename, vector<string>& summaries, int imode)
       fprintf(fp,"%c\"Probability2D\"",sDelimiter);
    fprintf(fp,"%c\"Shortfall\"%c\"Missing_Values\"%c\"MPM\"\n",sDelimiter,sDelimiter,sDelimiter);
    
-   for (string& line: summaries) {
+   for (const string& line: summaries) {
       fprintf(fp, "%s", line.c_str());
    }
 
@@ -567,7 +567,7 @@ void writeSummary(string savename, vector<string>& summaries, int imode)
 } // writeSummary
 
 // caculate and format summary text for a run
-string computeSummary(int puno,int spno, vector<int>& R, vector<sspecies>& spec, scost& reserve,
+string computeSummary(int puno,int spno, const vector<int>& R, const vector<sspecies>& spec, const scost& reserve,
                    int itn, double misslevel, int imode)
 {
    stringstream ss;
@@ -612,7 +612,7 @@ string computeSummary(int puno,int spno, vector<int>& R, vector<sspecies>& spec,
 
 // write the contents of the spec data structure.
 // used to validate if the input spec file has been read as intended.
-void writeSpec(int spno, vector<sspecies>& spec, string savename)
+void writeSpec(int spno, const vector<sspecies>& spec, string savename)
 {
    FILE *fp = GetFileAndDelimiter(savename, 0).second;
 
@@ -632,7 +632,7 @@ void writeSpec(int spno, vector<sspecies>& spec, string savename)
 }
 
 // write the contents of the pu data structure. used to validate if the input pu file has been read as intended
-void writePu(int puno, vector<spustuff>& pu, string savename)
+void writePu(int puno, const vector<spustuff>& pu, string savename)
 {
    FILE *fp = GetFileAndDelimiter(savename, 0).second; // 0 is placeholder
 
@@ -646,7 +646,7 @@ void writePu(int puno, vector<spustuff>& pu, string savename)
 }
 
 // write the penalty calculated for each species
-void writePenalty(int spno, vector<sspecies>& spec, string savename,int iOutputType)
+void writePenalty(int spno, const vector<sspecies>& spec, string savename,int iOutputType)
 {
    pair<char, FILE*> fileInfo = GetFileAndDelimiter(savename, iOutputType);
    FILE *fp = fileInfo.second; // Imode = 1, REST output, Imode = 2, Arcview output
@@ -662,7 +662,7 @@ void writePenalty(int spno, vector<sspecies>& spec, string savename,int iOutputT
 }
 
 // write the set of planning units used to calculate penalty
-void writePenaltyPlanningUnits(int puno, vector<spustuff> &pu, vector<int> &Rtemp, string savename,int iOutputType)
+void writePenaltyPlanningUnits(int puno, const vector<spustuff> &pu, const vector<int> &Rtemp, string savename,int iOutputType)
 {
    pair<char, FILE*> fileInfo = GetFileAndDelimiter(savename, iOutputType);
    FILE *fp = fileInfo.second; // Imode = 1, REST output, Imode = 2, Arcview output
@@ -678,7 +678,7 @@ void writePenaltyPlanningUnits(int puno, vector<spustuff> &pu, vector<int> &Rtem
 }
 
 // create a solutions matrix file
-void createSolutionsMatrix(int puno,vector<spustuff> &pu, string savename_ism,int iOutputType,int iIncludeHeaders)
+void createSolutionsMatrix(int puno, const vector<spustuff> &pu, string savename_ism,int iOutputType,int iIncludeHeaders)
 {
    pair<char, FILE*> fileInfo = GetFileAndDelimiter(savename_ism, iOutputType);
    FILE *fp = fileInfo.second;
@@ -698,7 +698,7 @@ void createSolutionsMatrix(int puno,vector<spustuff> &pu, string savename_ism,in
 }
 
 // append an entry to a solutions matrix file
-void appendSolutionsMatrix(int iRun,int puno, vector<int>& R, string savename,int iOutputType, int iIncludeHeaders)
+void appendSolutionsMatrix(int iRun,int puno, const vector<int>& R, string savename, int iOutputType, int iIncludeHeaders)
 {
    pair<char, FILE*> fileInfo = GetFileAndDelimiter(savename, iOutputType, true);
    FILE *fp = fileInfo.second;
@@ -729,7 +729,7 @@ void appendSolutionsMatrix(int iRun,int puno, vector<int>& R, string savename,in
 }
 
 // create a solution file: output_r0001.csv, output_best.csv
-void writeSolution(int puno, vector<int>& R, vector<spustuff>& pu, string savename,int imode, sfname& fnames)
+void writeSolution(int puno, const vector<int>& R, const vector<spustuff>& pu, string savename,int imode, const sfname& fnames)
 {
    int i;
    FILE *fp = GetFileAndDelimiter(savename, imode).second; /* Imode = 1, REST output, Imode = 2, Arcview output */
@@ -828,7 +828,7 @@ void writeScenario(int puno,int spno,double prop,double cm,
 } // writeScenario
 
 // write a species file - the missing values file: output_mv1.csv output_mvbest.csv
-void writeSpecies(int spno, vector<sspecies>& spec, string savename,int imode,double misslevel)
+void writeSpecies(int spno, vector<sspecies>& spec, string savename, int imode, double misslevel)
 {
    int isp, iHeavisideStepFunction;
    string temp = "";
@@ -927,7 +927,7 @@ void writeSpecies(int spno, vector<sspecies>& spec, string savename,int imode,do
 }  // Output missing species information with new information
 
 // write summed solution file output_ssoln.csv
-void writeSumSoln(int puno, vector<int>& sumsoln, vector<spustuff>& pu, string savename, int imode)
+void writeSumSoln(int puno, const vector<int>& sumsoln, const vector<spustuff>& pu, string savename, int imode)
 {
    pair<char, FILE*> fileInfo = GetFileAndDelimiter(savename, imode);
    FILE *fp = fileInfo.second; // Imode = 1, REST output, Imode = 2, Arcview output
@@ -945,7 +945,7 @@ void writeSumSoln(int puno, vector<int>& sumsoln, vector<spustuff>& pu, string s
 }
 
 // write planning unit richness to a file output_richness.csv
-void writeRichness(int puno, vector<spustuff>& pu, string savename,int iOutputType)
+void writeRichness(int puno, const vector<spustuff>& pu, string savename,int iOutputType)
 {
    pair<char, FILE*> fileInfo = GetFileAndDelimiter(savename, iOutputType);
    FILE *fp = fileInfo.second;
@@ -960,7 +960,7 @@ void writeRichness(int puno, vector<spustuff>& pu, string savename,int iOutputTy
 }
 
 // compute total area available, reserved, excluded. write it to a file if verbosity > 3.
-void computeTotalAreas(int puno,int spno, vector<spustuff>& pu, vector<sspecies>& spec, vector<spu>& SM)
+void computeTotalAreas(int puno,int spno, const vector<spustuff>& pu, const vector<sspecies>& spec, const vector<spu>& SM)
 {
    if (verbosity > 3)
    {
@@ -983,7 +983,7 @@ void computeTotalAreas(int puno,int spno, vector<spustuff>& pu, vector<sspecies>
 }
 
 // compute total area available, reserved, excluded. write it to a file output_totalareas.csv
-void writeTotalAreas(int puno,int spno, vector<spustuff>& pu, vector<sspecies>& spec, vector<spu>& SM, string savename,int iOutputType)
+void writeTotalAreas(int puno, int spno, const vector<spustuff>& pu, const vector<sspecies>& spec, const vector<spu>& SM, string savename,int iOutputType)
 {
    vector<int> TotalOccurrences(spno, 0), TO_2(spno, 0), TO_3(spno, 0);
    vector<double> TotalAreas(spno, 0), TA_2(spno, 0), TA_3(spno, 0);
@@ -1006,7 +1006,7 @@ void writeTotalAreas(int puno,int spno, vector<spustuff>& pu, vector<sspecies>& 
 }
 
 // write vector R (status of each planning unit) to file. debug aid for annealing algorithms
-void writeR(int iMessage, string sMessage,int puno, vector<int>& R, vector<spustuff>& pu, sfname& fnames)
+void writeR(int iMessage, string sMessage,int puno, const vector<int>& R, const vector<spustuff>& pu, const sfname& fnames)
 {
    FILE *fp;
    string messagebuffer = sMessage + to_string(iMessage);
@@ -1032,7 +1032,7 @@ void writeR(int iMessage, string sMessage,int puno, vector<int>& R, vector<spust
 
 // debug output for probability 1D
 void writeChangeProbability1DDebugTable(string savename,int iIteration,int ipu,int spno,
-   vector<sspecies>& spec, vector<spustuff>& pu, vector<spu>& SM, int imode)
+   const vector<sspecies>& spec, const vector<spustuff>& pu, const vector<spu>& SM, int imode)
 {
    FILE *fp;
    int ism,isp;
@@ -1103,7 +1103,7 @@ void writeChangeProbability1DDebugTable(string savename,int iIteration,int ipu,i
 
 // debug output for probability 2D
 void writeChangeProbability2DDebugTable(string savename,int iIteration,int ipu,int spno,
-   vector<sspecies>& spec, vector<spustuff>& pu, vector<spu>& SM, int imode)
+   const vector<sspecies>& spec, const vector<spustuff>& pu, const vector<spu>& SM, int imode)
 {
    FILE *fp;
    int ism,isp;
@@ -1174,7 +1174,7 @@ void writeChangeProbability2DDebugTable(string savename,int iIteration,int ipu,i
 }
 
 // debug output for probability 1D
-void writeProbData(int puno, vector<spustuff> pu, sfname& fnames)
+void writeProbData(int puno, const vector<spustuff>& pu, const sfname& fnames)
 {
    string writename, sLine, sVarVal;
    FILE *fp;
@@ -1204,8 +1204,8 @@ void copyFile(string sInputFile, string sOutputFile)
 
 // Display statistics for a configuration of planning unit
 // This returns a full formatted string that can be printed
-stringstream displayValueForPUs(int puno, int spno, vector<int>& R, scost& reserve,
-                        vector<sspecies>& spec, double misslevel)
+stringstream displayValueForPUs(int puno, int spno, const vector<int>& R, const scost& reserve,
+                        const vector<sspecies>& spec, double misslevel)
 {
    stringstream displayValue;
    int i, isp = 0;
@@ -1245,7 +1245,7 @@ void displayUsage(string programName)
 }
 
 // if a weighted connectivity file is in use, construct one. written for Maria Beger. Not documented.
-void writeWeightedConnectivityFile(sfname& fnames)
+void writeWeightedConnectivityFile(const sfname& fnames)
 {
    string readname1, readname2, writename, sFileName, sWeighting, sId1, sId2, sConnection, sAsymmetric;
    FILE *fpnames, *fpInputConnection, *fpOutputConnection;
