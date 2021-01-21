@@ -274,7 +274,7 @@ void doChange(int ipu,int puno,vector<int> &R, scost &reserve, scost &change,
 
 stringstream displayValueForPUs(int puno, int spno,vector<int> &R, scost &reserve,
                         vector<sspecies> &spec,double misslevel);
-void TimePassed(void);
+//void TimePassed(void);
 
 #ifndef annealingheader
 #define annealingheader
@@ -295,18 +295,18 @@ void quantumAnnealing(int spno, int puno, vector<sconnections> &connections,vect
 #endif
 
 
-void ClearClumps(int spno,vector<sspecies> &spec,vector<spustuff> &pu, vector<spu> &SM, int thread);
+void ClearClumps(int spno, vector<sspecies>& spec, const vector<spustuff>& pu, const vector<spu>& SM, vector<spu_out>& SM_out);
 
-int NameToPUID(int puno,int name, vector<spustuff> &pu);
-int NameToSPID(int spno,int name,vector<sspecies> &spec);
+//int NameToPUID(int puno,int name, vector<spustuff> &pu);
+//int NameToSPID(int spno,int name,vector<sspecies> &spec);
 
-void applyUserPenalties(vector<sspecies> &spec,int spno);
+//void applyUserPenalties(vector<sspecies> &spec,int spno);
 
-void writeSparseMatrix(int iSMno,int puno, vector<spustuff> &pu, vector<sspecies> &spec, vector<spu> &SM,sfname fnames);
+//void writeSparseMatrix(int iSMno,int puno, vector<spustuff> &pu, vector<sspecies> &spec, vector<spu> &SM,sfname fnames);
 void appendTraceFile(string sMess,...);
 
 void secondaryExit(void);
-void SaveSeed(int iseed);
+//void SaveSeed(int iseed);
 
 void iterativeImprovement(int puno,int spno,vector<spustuff> &pu, vector<sconnections> &connections,
                           vector<sspecies> &spec,vector<spu> &SM,vector<int> &R, double cm,
@@ -333,10 +333,10 @@ void readSparseMatrixSpOrder(int &iSMSize, vector<spusporder> &SM, int puno, int
 int readSpecies(int &spno, vector<sspecies>& spec, sfname& fnames);
 int readSpeciesBlockDefinition(int& gspno, vector<sgenspec>& gspec, sfname& fnames);
 
-void SetVerbosity(int verb);
+//void SetVerbosity(int verb);
 void displayTimePassed(chrono::high_resolution_clock::time_point start);
 
-void SetLogFile(int my_savelog, string my_savelogname);
+//void SetLogFile(int my_savelog, string my_savelogname);
 
 void displayErrorMessage(string sMess,...);
 void displayWarningMessage(string sMess,...);
@@ -404,9 +404,9 @@ void SpeciesAmounts(int spno,int puno, vector<sspecies>& spec, vector<spustuff>&
                     vector<int>& R,int clumptype);
 void SpeciesAmounts4(int isp,vector<sspecies> &spec,int clumptype);
 
-void Heuristics(int spno,int puno,vector<spustuff> &pu,vector<sconnections> &connections,
-        vector<int> &R, double cm, vector<sspecies> &spec, vector<spu> &SM, scost &reserve,
-        double costthresh, double tpf1,double tpf2, int imode,int clumptype, int thread, stringstream& logBuffer);
+//void Heuristics(int spno,int puno,vector<spustuff> &pu,vector<sconnections> &connections,
+//        vector<int> &R, double cm, vector<sspecies> &spec, vector<spu> &SM, scost &reserve,
+//        double costthresh, double tpf1,double tpf2, int imode,int clumptype, int thread, stringstream& logBuffer);
 
 double ChangeProbability1D(int iIteration, int ipu, int spno,int puno,vector<sspecies> &spec,vector<spustuff> &pu,vector<spu> &SM,int imode);
 double ChangeProbability2D(int iIteration, int ipu, int spno,int puno,vector<sspecies> &spec,vector<spustuff> &pu,vector<spu> &SM,int imode);

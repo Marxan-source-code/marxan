@@ -1010,19 +1010,19 @@ void setDefaultRunOptions(int runopts, srunoptions &runoptions)
 
 // compute initial penalties for species with a greedy algorithm.
 // If species has spatial requirements then CalcPenaltyType4 is used instead
-int computePenalties(int puno,int spno, vector<spustuff> &pu, vector<sspecies> &spec,
-                     vector<sconnections> &connections,  vector<spu>& SM, vector<int> &PUtemp, int aggexist, double cm, int clumptype, int thread)
+int computePenalties(int puno,int spno, const vector<spustuff> &pu, vector<sspecies> &spec,
+                     const vector<sconnections> &connections, const vector<spu>& SM, vector<spu_out>& SM_out, vector<int> &PUtemp, int aggexist, double cm, int clumptype)
 {
     int i,j,ibest,imaxtarget,itargetocc;
     double ftarget,fbest,fbestrat,fcost,ftemp, rAmount, rAmountBest;
     int badspecies = 0,goodspecies = 0;
-    initialiseReserve(0,pu,PUtemp, rngEngine); // Initialize reserve to 0 and fixed. 
+    initialiseReserve(0, pu, PUtemp, rngEngine); // Initialize reserve to 0 and fixed. 
 
     for (i=0;i<spno;i++)
     {
         if (spec[i].target2 || spec[i].sepnum)
         {
-            j = CalcPenaltyType4(i,puno,SM,connections,spec,pu,cm,clumptype, thread);
+            j = CalcPenaltyType4(i,puno,SM, SM_out, connections,spec,pu,cm,clumptype);
             badspecies += (j>0);
             goodspecies += (j<0);
 
