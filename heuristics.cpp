@@ -6,8 +6,8 @@
 // functions that read from input files
 namespace marxan {
 
-double GreedyPen(int ipu, int puno, int spno, vector<sspecies> &spec,vector<int> &R,vector<spustuff> &pu,
-                 vector<spu> &SM,int clumptype, int thread)
+double GreedyPen(int ipu, int puno, int spno, const vector<sspecies> &spec, const vector<int> &R, const vector<spustuff> &pu,
+                 const vector<spu> &SM, const vector<spu_out>& SM_out, int clumptype)
 {
     double famount = 0.0, fold, newamount;
 
@@ -17,9 +17,9 @@ double GreedyPen(int ipu, int puno, int spno, vector<sspecies> &spec,vector<int>
         if (fold > 0)
         {
             if (spec[i].target2)
-                newamount = NewPenalty4(ipu, i, puno, spec, pu, SM, R, connections, 1, clumptype, thread);
+                newamount = NewPenalty4(ipu, i, puno, spec, pu, SM, SM_out, R, connections, 1, clumptype);
             else
-                newamount = computeSpeciesPlanningUnitPenalty(ipu, i, spec, pu, SM, 1);
+                newamount = computeSpeciesPlanningUnitPenalty(ipu, i, spec, pu, SM,  1);
 
             famount += (newamount - fold) * spec[i].spf;
         } // Add new penalty if species isn't already in the system
@@ -28,12 +28,12 @@ double GreedyPen(int ipu, int puno, int spno, vector<sspecies> &spec,vector<int>
     return (famount); // Negative means decrease in amount missing
 } // Greedy Species Penalty
 
-double GreedyScore(int ipu,int puno,int spno, vector<sspecies>& spec,vector<spu> &SM,vector<sconnections> &connections,
-                   vector<int> &R,vector<spustuff> &pu,double cm,int clumptype, int thread)
+double GreedyScore(int ipu,int puno, int spno, const vector<sspecies>& spec, const vector<spu> &SM, const vector<spu_out>& SM_out, const vector<sconnections> &connections,
+                   const vector<int> &R, const vector<spustuff> &pu, double cm,int clumptype)
 {
     double currpen, currcost, currscore;
 
-    currpen = GreedyPen(ipu, puno, spno, spec, R, pu, SM, clumptype, thread);
+    currpen = GreedyPen(ipu, puno, spno, spec, R, pu, SM, SM_out, clumptype);
     currcost = pu[ipu].cost + ConnectionCost2(connections[ipu], R, 1, 1, cm, asymmetricconnectivity, fOptimiseConnectivityIn);
     if (currcost <= 0)
     {
@@ -49,7 +49,7 @@ double GreedyScore(int ipu,int puno,int spno, vector<sspecies>& spec,vector<spu>
 
 /*********** Rarity Settup. Sets up rare score for each species ******/
 /**** score is total abundance / smallest species abundance *********/
-void SetRareness(int puno, int spno, vector<double> &Rare,vector<int> &R,vector<spustuff> &pu,vector<spu> &SM, stringstream& logBuffer) 
+void SetRareness(int puno, int spno, vector<double> &Rare, const vector<int> &R, const vector<spustuff> &pu, const vector<spu> &SM, stringstream& logBuffer) 
 {
     double smallest = 0;
     vector<double> fcount(spno, 0);
@@ -92,8 +92,8 @@ void SetRareness(int puno, int spno, vector<double> &Rare,vector<int> &R,vector<
 }  // SetRareness
 
 // RareScore The score for a particular conservation value on a particular PU
-double RareScore(int isp,int ipu,int puno,vector<sspecies> &spec,vector<spu> &SM, vector<int> &R,
-    vector<sconnections> &connections, vector<spustuff> &pu, double cm,int clumptype, int thread)
+double RareScore(int isp, int ipu, int puno, const vector<sspecies> &spec, const vector<spu> &SM, const vector<spu_out>& SM_out, const vector<int> &R,
+    const vector<sconnections> &connections, const vector<spustuff> &pu, double cm,int clumptype)
 {
     double currpen, currcost, currscore;
     double fold, newamount;
@@ -101,7 +101,7 @@ double RareScore(int isp,int ipu,int puno,vector<sspecies> &spec,vector<spu> &SM
     if (fold > 0)
     {
         if (spec[isp].target2)
-            newamount = NewPenalty4(ipu, isp, puno, spec, pu, SM, R, connections, 1, clumptype, thread);
+            newamount = NewPenalty4(ipu, isp, puno, spec, pu, SM, SM_out, R, connections, 1, clumptype);
         else
             newamount = computeSpeciesPlanningUnitPenalty(ipu, isp, spec, pu, SM, 1);
         currpen = newamount - fold;
@@ -122,8 +122,8 @@ double RareScore(int isp,int ipu,int puno,vector<sspecies> &spec,vector<spu> &SM
 } // RareScore
 
 // Max Rare Score Heuristic. PU scores based on rarest beast on PU
-double MaxRareScore(int ipu,int puno,vector<sspecies> &spec,vector<spu> &SM,
-    vector<int> &R,vector<sconnections> &connections,vector<spustuff> &pu,double cm,vector<double> &Rare,int clumptype, int thread)
+double MaxRareScore(int ipu,int puno, const vector<sspecies> &spec, const vector<spu> &SM, const vector<spu_out>& SM_out,
+    const vector<int> &R, const vector<sconnections> &connections, const vector<spustuff> &pu, double cm, const vector<double> &Rare, int clumptype)
 {
     int ism, isp, rareno = -1;
     double rarest = 0.0, rarescore;
@@ -142,7 +142,7 @@ double MaxRareScore(int ipu,int puno,vector<sspecies> &spec,vector<spu> &SM,
         }
 
     if (rareno > -1)
-        rarescore = RareScore(rareno, ipu, puno, spec, SM, R, connections, pu, cm, clumptype, thread) / rarest;
+        rarescore = RareScore(rareno, ipu, puno, spec, SM, SM_out, R, connections, pu, cm, clumptype) / rarest;
     else
         rarescore = 1.0 / delta;
 
@@ -150,8 +150,8 @@ double MaxRareScore(int ipu,int puno,vector<sspecies> &spec,vector<spu> &SM,
 } // Max Rare Score
 
 // Best Rarity Score. Determines each species rare score
-double BestRareScore(int ipu,int puno,vector<sspecies> &spec,vector<spu> &SM,
-    vector<int> &R,vector<sconnections> &connections,vector<spustuff> &pu,double cm,vector<double> &Rare,int clumptype, int thread)
+double BestRareScore(int ipu, int puno, const vector<sspecies> &spec, const vector<spu> &SM, const vector<spu_out>& SM_out,
+    const vector<int> &R, const vector<sconnections> &connections, const vector<spustuff> &pu, double cm, const vector<double> &Rare,int clumptype)
 {
     int i, ism, isp, rareno = -1;
     double rarest = 0, rarescore;
@@ -163,7 +163,7 @@ double BestRareScore(int ipu,int puno,vector<sspecies> &spec,vector<spu> &SM,
             isp = SM[ism].spindex;
             if (SM[ism].amount && (spec[isp].target > spec[isp].amount || (spec[isp].sepdistance && spec[isp].separation < 3)))
             {
-                rarescore = RareScore(isp, ipu, puno, spec, SM, R, connections, pu, cm, clumptype, thread) / Rare[isp];
+                rarescore = RareScore(isp, ipu, puno, spec, SM, SM_out, R, connections, pu, cm, clumptype) / Rare[isp];
                 if (rarescore > rarest || rareno < 0)
                 {
                     rarest = rarescore;
@@ -176,8 +176,8 @@ double BestRareScore(int ipu,int puno,vector<sspecies> &spec,vector<spu> &SM,
 } // Best Rare Score
 
 // Average Rare Score. Rare Score for each scoring species/number scoring species
-double AveRareScore(int ipu,int puno,vector<sspecies> &spec,vector<spu> &SM,
-    vector<int> &R,vector<sconnections> &connections,vector<spustuff> &pu,double cm,vector<double> &Rare,int clumptype, int thread)
+double AveRareScore(int ipu,int puno, const vector<sspecies> &spec, const vector<spu> &SM, const vector<spu_out>& SM_out,
+    const vector<int> &R, const vector<sconnections> &connections, const vector<spustuff> &pu, double cm, const vector<double> &Rare,int clumptype)
 {
     int i, ism, isp, rareno = 0;
     double rarescore = 0;
@@ -191,7 +191,7 @@ double AveRareScore(int ipu,int puno,vector<sspecies> &spec,vector<spu> &SM,
                 (spec[isp].target > spec[isp].amount ||
                  (spec[isp].sepdistance && spec[isp].separation < 3)))
             {
-                rarescore += RareScore(isp, ipu, puno, spec, SM, R, connections, pu, cm, clumptype, thread) / Rare[isp];
+                rarescore += RareScore(isp, ipu, puno, spec, SM, SM_out, R, connections, pu, cm, clumptype) / Rare[isp];
                 rareno++;
             }
         }
@@ -199,9 +199,9 @@ double AveRareScore(int ipu,int puno,vector<sspecies> &spec,vector<spu> &SM,
     return (rarescore / rareno);
 } // Ave Rare Score
 
-double SumRareScore(int ipu,int puno,vector<sspecies> &spec,vector<spu> &SM,
-    vector<int> &R,vector<sconnections> &connections,vector<spustuff> &pu,double cm,
-    vector<double> &Rare,int clumptype, int thread, stringstream& logBuffer)
+double SumRareScore(int ipu,int puno, const vector<sspecies> &spec, const vector<spu> &SM, const vector<spu_out>& SM_out,
+    const vector<int> &R, const vector<sconnections> &connections, const vector<spustuff> &pu, double cm,
+    const vector<double> &Rare, int clumptype, stringstream& logBuffer)
 {
     int i, ism, isp;
     double rarescore = 0;
@@ -227,7 +227,7 @@ double SumRareScore(int ipu,int puno,vector<sspecies> &spec,vector<spu> &SM,
             if (SM[ism].amount &&
                 (spec[isp].target > spec[isp].amount ||
                  (spec[isp].sepdistance && spec[isp].separation < 3)))
-                rarescore += RareScore(isp, ipu, puno, spec, SM, R, connections, pu, cm, clumptype, thread) / Rare[isp];
+                rarescore += RareScore(isp, ipu, puno, spec, SM, SM_out, R, connections, pu, cm, clumptype) / Rare[isp];
         }
 
 #ifdef DEBUG_HEURISTICS
@@ -238,7 +238,7 @@ double SumRareScore(int ipu,int puno,vector<sspecies> &spec,vector<spu> &SM,
 } // Sum Rare Score
 
 // Set Abundances
-void SetAbundance(int puno,vector<double> &Rare,vector<spustuff> &pu,vector<spu> &SM)
+void SetAbundance(int puno, vector<double> &Rare, const vector<spustuff> &pu, const vector<spu> &SM)
 {
     int i, j, ism, isp;
 
@@ -253,7 +253,7 @@ void SetAbundance(int puno,vector<double> &Rare,vector<spustuff> &pu,vector<spu>
 } // Set Abundance
 
 // Irreplaceability For site for species
-double Irreplaceability(int ipu,int isp, vector<double> &Rare,vector<spustuff> &pu,vector<spu> &SM, vector<sspecies> &spec) 
+double Irreplaceability(int ipu,int isp, const vector<double> &Rare, const vector<spustuff> &pu, const vector<spu> &SM, const vector<sspecies> &spec)
 {
     double buffer, effamount;
 
@@ -266,7 +266,7 @@ double Irreplaceability(int ipu,int isp, vector<double> &Rare,vector<spustuff> &
 }
 
 // Product Irreplaceability for a single site
-double ProdIrr(int ipu,vector<double> &Rare,vector<spustuff> &pu,vector<spu> &SM, vector<sspecies> &spec)
+double ProdIrr(int ipu, const vector<double> &Rare, const vector<spustuff> &pu, const vector<spu> &SM, const vector<sspecies> &spec)
 {
     int i, ism, isp;
     double product = 1;
@@ -283,7 +283,7 @@ double ProdIrr(int ipu,vector<double> &Rare,vector<spustuff> &pu,vector<spu> &SM
     return (1 - product);
 } // Product Irreplaceability
 
-double SumIrr(int ipu,vector<double> &Rare,vector<spustuff> &pu,vector<spu> &SM, vector<sspecies> &spec)
+double SumIrr(int ipu, const vector<double> &Rare, const vector<spustuff> &pu, const vector<spu> &SM, const vector<sspecies> &spec)
 {
     int i, ism, isp;
     double sum = 0;
@@ -301,9 +301,9 @@ double SumIrr(int ipu,vector<double> &Rare,vector<spustuff> &pu,vector<spu> &SM,
 } // Sum Irreplaceability
 
 // Main Heuristic Engine
-void Heuristics(int spno,int puno,vector<spustuff> &pu,vector<sconnections> &connections,
-        vector<int> &R, double cm, vector<sspecies> &spec, vector<spu> &SM, scost &reserve,
-        double costthresh, double tpf1,double tpf2, int imode,int clumptype, int thread, stringstream& logBuffer)
+void Heuristics(int spno, int puno, const vector<spustuff> &pu, const vector<sconnections> &connections,
+        const vector<int> &R, double cm, const vector<sspecies> &spec, const vector<spu> &SM, const vector<spu_out>& SM_out, scost &reserve,
+        double costthresh, double tpf1, double tpf2, int imode,int clumptype, stringstream& logBuffer)
 // imode = 1: 2: 3: 4:
 // imode = 5: 6: Prod Irreplaceability, 7: Sum Irreplaceability
 {
@@ -349,24 +349,24 @@ void Heuristics(int spno,int puno,vector<spustuff> &pu,vector<sconnections> &con
                 // Set the score for the given Planning Unit
                 currscore = 1; // null if no other mode set
                 if (imode == 0)
-                    currscore = GreedyScore(i, puno, spno, spec, SM, connections, R, pu, cm, clumptype, thread);
+                    currscore = GreedyScore(i, puno, spno, spec, SM, SM_out, connections, R, pu, cm, clumptype);
                 if (imode == 1)
                 {
                     computeChangeScore(-1, i, spno, puno, pu, connections, spec, SM, R, cm, 1, change, reserve,
-                                       costthresh, tpf1, tpf2, 1, clumptype, thread);
+                                       costthresh, tpf1, tpf2, 1, clumptype);
                     currscore = change.total;
                 }
                 if (imode == 2)
                 {
-                    currscore = MaxRareScore(i, puno, spec, SM, R, connections, pu, cm, Rare, clumptype, thread);
+                    currscore = MaxRareScore(i, puno, spec, SM, SM_out, R, connections, pu, cm, Rare, clumptype);
                 }
                 if (imode == 3)
                 {
-                    currscore = BestRareScore(i, puno, spec, SM, R, connections, pu, cm, Rare, clumptype, thread);
+                    currscore = BestRareScore(i, puno, spec, SM, SM_out, R, connections, pu, cm, Rare, clumptype);
                 }
                 if (imode == 4)
                 {
-                    currscore = AveRareScore(i, puno, spec, SM, R, connections, pu, cm, Rare, clumptype, thread);
+                    currscore = AveRareScore(i, puno, spec, SM, SM_out, R, connections, pu, cm, Rare, clumptype);
                 }
                 if (imode == 5)
                 {
@@ -375,7 +375,7 @@ void Heuristics(int spno,int puno,vector<spustuff> &pu,vector<sconnections> &con
                     logBuffer << "Heuristics pu " << i << " of " << puno << "\n";
 #endif
 
-                    currscore = SumRareScore(i, puno, spec, SM, R, connections, pu, cm, Rare, clumptype, thread, logBuffer);
+                    currscore = SumRareScore(i, puno, spec, SM, SM_out, R, connections, pu, cm, Rare, clumptype, logBuffer);
 
 #ifdef DEBUG_HEURISTICS
                     logBuffer << "Heuristics after SumRareScore\n";

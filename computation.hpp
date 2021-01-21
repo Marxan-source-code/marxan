@@ -287,7 +287,7 @@ pair<int,double> returnAmountSpecAtPu(const spustuff &pu, const vector<spu> &SM,
 
 // compute penalty for a species for changing status of a single planning unit
 inline
-double computeSpeciesPlanningUnitPenalty(int ipu,int isp, const vector<sspecies> &spec, const vector<spustuff> &pu, vector<spu> &SM, int imode)
+double computeSpeciesPlanningUnitPenalty(int ipu,int isp, const vector<sspecies> &spec, const vector<spustuff> &pu, const vector<spu> &SM, int imode)
 {
     double newpen = max(0.0, spec[isp].target - spec[isp].amount - returnAmountSpecAtPu(pu[ipu],SM,isp).second*imode);
     return(newpen);
