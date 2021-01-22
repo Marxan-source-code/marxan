@@ -137,7 +137,10 @@ void executeRunLoop(int iSparseMatrixFileLength, long int repeats,int puno,int s
         scost change = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
         vector<int> R(puno);
+        
         vector<sspecies> spec = specGlobal; // make local copy of original spec
+
+        vector<spu_out> SM_out( SMGlobal.size() ); // make local copy output part of SMGlobal.
 
         appendLogBuffer << "\n Start run loop run " << i << endl;
         try {
@@ -148,7 +151,7 @@ void executeRunLoop(int iSparseMatrixFileLength, long int repeats,int puno,int s
                 {
                     appendLogBuffer << "before initialiseConnollyAnnealing run " << i << endl;
 
-                    initialiseConnollyAnnealing(puno, spno, pu, connections, spec, SMGlobal, cm, anneal, aggexist, R, prop, clumptype, i, thread, appendLogBuffer);
+                    initialiseConnollyAnnealing(puno, spno, pu, connections, spec, SMGlobal, SM_out, cm, anneal, aggexist, R, prop, clumptype, i, appendLogBuffer);
                     
                     appendLogBuffer << "after initialiseConnollyAnnealing run " << i << endl;
                 }
@@ -157,7 +160,7 @@ void executeRunLoop(int iSparseMatrixFileLength, long int repeats,int puno,int s
                 {
                     appendLogBuffer << "before initialiseAdaptiveAnnealing run " << i << endl;
 
-                    initialiseAdaptiveAnnealing(puno, spno, prop, R, pu, connections, SMGlobal, cm, spec, aggexist, anneal, clumptype, thread, appendLogBuffer);
+                    initialiseAdaptiveAnnealing(puno, spno, prop, R, pu, connections, SMGlobal, SM_out, cm, spec, aggexist, anneal, clumptype, appendLogBuffer);
 
                     appendLogBuffer << "after initialiseAdaptiveAnnealing run " << i << endl;
                 }
@@ -172,13 +175,13 @@ void executeRunLoop(int iSparseMatrixFileLength, long int repeats,int puno,int s
             SpeciesAmounts(spno,puno,spec,pu,SMGlobal,R,clumptype); // Re-added this from v2.4 because spec amounts need to be refreshed when initializing
 
             if (aggexist)
-                ClearClumps(spno, spec, pu, SMGlobal, thread);
+                ClearClumps(spno, spec, pu, SMGlobal, SM_out);
 
             appendLogBuffer << "after computeReserveValue run " << i << endl;
 
             if (verbosity > 1)
             {
-                computeReserveValue(puno, spno, R, pu, connections, SMGlobal, cm, spec, aggexist, reserve, clumptype, thread, appendLogBuffer);
+                computeReserveValue(puno, spno, R, pu, connections, SMGlobal, SM_out, cm, spec, aggexist, reserve, clumptype, appendLogBuffer);
                 runConsoleOutput << "Run " << i << " Init: " << displayValueForPUs(puno, spno, R, reserve, spec, misslevel).str();
             }
             if (verbosity > 5)
@@ -190,13 +193,13 @@ void executeRunLoop(int iSparseMatrixFileLength, long int repeats,int puno,int s
             {
                 appendLogBuffer << "before thermalAnnealing run " << i << endl;
 
-                thermalAnnealing(spno, puno, connections, R, cm, spec, pu, SMGlobal, reserve,
+                thermalAnnealing(spno, puno, connections, R, cm, spec, pu, SMGlobal, SM_out, reserve,
                                 repeats, i, savename, misslevel,
-                                aggexist, costthresh, tpf1, tpf2, clumptype, anneal, thread, appendLogBuffer);
+                                aggexist, costthresh, tpf1, tpf2, clumptype, anneal, appendLogBuffer);
 
                 if (verbosity > 1)
                 {
-                    computeReserveValue(puno,spno,R,pu,connections,SMGlobal,cm,spec,aggexist,reserve,clumptype, thread, appendLogBuffer);
+                    computeReserveValue(puno,spno,R,pu,connections,SMGlobal, SM_out, cm, spec, aggexist, reserve, clumptype, appendLogBuffer);
                     runConsoleOutput << "Run " << i << " ThermalAnnealing: " << displayValueForPUs(puno,spno,R,reserve,spec,misslevel).str();
                 }
 
@@ -207,13 +210,13 @@ void executeRunLoop(int iSparseMatrixFileLength, long int repeats,int puno,int s
             {
                 appendLogBuffer << "before quantumAnnealing run " << i << endl;
 
-                quantumAnnealing(spno, puno, connections, R, cm, spec, pu, SMGlobal, change, reserve,
+                quantumAnnealing(spno, puno, connections, R, cm, spec, pu, SMGlobal, SM_out, change, reserve,
                                 repeats, i, savename, misslevel,
-                                aggexist, costthresh, tpf1, tpf2, clumptype, anneal, thread);
+                                aggexist, costthresh, tpf1, tpf2, clumptype, anneal);
 
                 if (verbosity >1)
                 {
-                    computeReserveValue(puno,spno,R,pu,connections,SMGlobal,cm,spec,aggexist,reserve,clumptype, thread, appendLogBuffer);
+                    computeReserveValue(puno, spno, R, pu, connections, SMGlobal, SM_out, cm, spec, aggexist, reserve, clumptype, appendLogBuffer);
                     runConsoleOutput << "Run " << i << "  QuantumAnnealing: " << displayValueForPUs(puno,spno,R,reserve,spec,misslevel).str();
 
                 }
@@ -225,12 +228,12 @@ void executeRunLoop(int iSparseMatrixFileLength, long int repeats,int puno,int s
             {
                 appendLogBuffer << "before Heuristics run " << i << endl;
 
-                Heuristics(spno, puno, pu, connections, R, cm, spec, SMGlobal, reserve,
-                        costthresh, tpf1, tpf2, heurotype, clumptype, thread, appendLogBuffer);
+                Heuristics(spno, puno, pu, connections, R, cm, spec, SMGlobal, SM_out, reserve,
+                        costthresh, tpf1, tpf2, heurotype, clumptype, appendLogBuffer);
 
                 if (verbosity > 1 && (runopts == 2 || runopts == 5))
                 {
-                    computeReserveValue(puno,spno,R,pu,connections,SMGlobal,cm,spec,aggexist,reserve,clumptype, thread, appendLogBuffer);
+                    computeReserveValue(puno,spno,R,pu,connections,SMGlobal,cm,spec,aggexist,reserve,clumptype,  appendLogBuffer);
                     runConsoleOutput << "Run " << i << "  Heuristic: " << displayValueForPUs(puno, spno, R, reserve, spec, misslevel).str();
                 }
 
@@ -242,20 +245,20 @@ void executeRunLoop(int iSparseMatrixFileLength, long int repeats,int puno,int s
                 appendLogBuffer << "before iterativeImprovement run " << i << endl;
 
                 iterativeImprovement(puno, spno, pu, connections, spec, SMGlobal, R, cm,
-                                    reserve, change, costthresh, tpf1, tpf2, clumptype, i, savename, thread, appendLogBuffer);
+                                    reserve, change, costthresh, tpf1, tpf2, clumptype, i, savename,  appendLogBuffer);
 
                 if (itimptype == 3)
                     iterativeImprovement(puno, spno, pu, connections, spec, SMGlobal, R, cm,
-                                        reserve, change, costthresh, tpf1, tpf2, clumptype, i, savename, thread, appendLogBuffer);
+                                        reserve, change, costthresh, tpf1, tpf2, clumptype, i, savename,  appendLogBuffer);
 
                 appendLogBuffer << "after iterativeImprovement run " << i << endl;
 
                 if (aggexist)
-                    ClearClumps(spno, spec, pu, SMGlobal, thread);
+                    ClearClumps(spno, spec, pu, SMGlobal);
 
                 if (verbosity > 1)
                 {
-                    computeReserveValue(puno, spno, R, pu, connections, SMGlobal, cm, spec, aggexist, reserve, clumptype, thread, appendLogBuffer);
+                    computeReserveValue(puno, spno, R, pu, connections, SMGlobal, cm, spec, aggexist, reserve, clumptype,  appendLogBuffer);
                     runConsoleOutput << "Run " << i << " Iterative Improvement: " << displayValueForPUs(puno, spno, R, reserve, spec, misslevel).str();
                 }
 
@@ -284,7 +287,7 @@ void executeRunLoop(int iSparseMatrixFileLength, long int repeats,int puno,int s
             displayProgress1(runConsoleOutput.str());
 
             // compute and store objective function score for this reserve system
-            computeReserveValue(puno, spno, R, pu, connections, SMGlobal, cm, spec, aggexist, change, clumptype, thread, appendLogBuffer);
+            computeReserveValue(puno, spno, R, pu, connections, SMGlobal, cm, spec, aggexist, change, clumptype,  appendLogBuffer);
 
             // remember the bestScore and bestRun
             if (change.total < bestScore)
@@ -327,7 +330,7 @@ void executeRunLoop(int iSparseMatrixFileLength, long int repeats,int puno,int s
             }
 
             if (aggexist)
-                ClearClumps(spno, spec, pu, SMGlobal, thread);
+                ClearClumps(spno, spec, pu, SMGlobal);
 
         }
         catch (exception& e) {
@@ -1120,7 +1123,7 @@ int computePenalties(int puno,int spno, const vector<spustuff> &pu, vector<sspec
     // Clear clumps in case I needed them for target4 species
 
     if (aggexist)
-        ClearClumps(spno,spec,pu,SM, thread);
+        ClearClumps(spno,spec,pu,SM);
 
     if (goodspecies)
         displayProgress1("%i species are already adequately represented.\n",goodspecies);
@@ -1131,7 +1134,7 @@ int computePenalties(int puno,int spno, const vector<spustuff> &pu, vector<sspec
 // compute initial penalties for species with a greedy algorithm.
 int computePenaltiesOptimise(int puno,int spno, vector<spustuff> &pu, vector<sspecies> &spec,
                              vector<sconnections> &connections, vector<spu>& SM, vector<spusporder> &SMsp,
-                             vector<int> &PUtemp, int aggexist, double cm, int clumptype, int thread)
+                             vector<int> &PUtemp, int aggexist, double cm, int clumptype)
 {
     int i,j,ibest,imaxtarget,itargetocc,ism,ipu;
     double ftarget,fbest,fbestrat,fcost,ftemp, rAmount, r_ibest_amount;
@@ -1147,7 +1150,7 @@ int computePenaltiesOptimise(int puno,int spno, vector<spustuff> &pu, vector<ssp
 
         if (spec[i].target2 || spec[i].sepnum)
         {
-            j = CalcPenaltyType4(i,puno,SM,connections,spec,pu,cm,clumptype, thread);
+            j = CalcPenaltyType4(i,puno,SM,connections,spec,pu,cm,clumptype);
             badspecies += (j>0);
             goodspecies += (j<0);
             continue;
@@ -1251,7 +1254,7 @@ int computePenaltiesOptimise(int puno,int spno, vector<spustuff> &pu, vector<ssp
     
     // Clear clumps in case I needed them for target4 species
     if (aggexist)
-        ClearClumps(spno,spec,pu,SM, thread);
+        ClearClumps(spno,spec,pu,SM);
 
     if (goodspecies)
         displayProgress1("%i species are already adequately represented.\n",goodspecies);
@@ -1262,8 +1265,8 @@ int computePenaltiesOptimise(int puno,int spno, vector<spustuff> &pu, vector<ssp
 } // computePenaltiesOptimise
 
 // compute change in the species representation for adding or removing a single planning unit or set of planning units
-double computeChangePenalty(int ipu,int puno, vector<sspecies>& spec, vector<spustuff>& pu, vector<spu>& SM,
-                          vector<int>& R, vector<sconnections>& connections, int imode, int clumptype, double& rShortfall, int thread)
+double computeChangePenalty(int ipu, int puno, vector<sspecies>& spec, const vector<spustuff>& pu, const vector<spu>& SM, vector<spu_out>& SM_out,
+                          const vector<int>& R, const vector<sconnections>& connections, int imode, int clumptype, double& rShortfall)
 {
     int i, ism, isp;
     double fractionAmount, penalty, newamount, tamount;
@@ -1324,7 +1327,7 @@ double computeChangePenalty(int ipu,int puno, vector<sspecies>& spec, vector<spu
                 {
                     /* clumping species */
                     /* New Pen 4 includes occurrences, amounts and separation target */
-                    newamount = NewPenalty4(ipu, isp, puno, spec, pu, SM, R, connections, imode, clumptype, thread);
+                    newamount = NewPenalty4(ipu, isp, puno, spec, pu, SM, R, connections, imode, clumptype);
                 }
                 else
                 {
@@ -1339,7 +1342,7 @@ double computeChangePenalty(int ipu,int puno, vector<sspecies>& spec, vector<spu
                     if (spec[isp].target && spec[isp].targetocc)
                         newamount /= 2;
                     if (spec[isp].sepnum)
-                        newamount += computeSepPenalty(CountSeparation2(isp, ipu, tempSclumps, puno, R, pu, SM, spec, imode, thread),
+                        newamount += computeSepPenalty(CountSeparation2(isp, ipu, tempSclumps, puno, R, pu, SM, spec, imode),
                                                 spec[isp].sepnum); /* I need a new function here */
 #ifdef ANNEALING_TEST
                     if (ipu == (puno - 1))
@@ -1382,8 +1385,8 @@ double computeChangePenalty(int ipu,int puno, vector<sspecies>& spec, vector<spu
 
 // compute objective function value of a reserve system
 void computeReserveValue(int puno,int spno, vector<int> &R, vector<spustuff> &pu,
-                         vector<sconnections> &connections, vector<spu>& SM,
-                         double cm, vector<sspecies> &spec, int aggexist, scost &reserve,int clumptype, int thread, stringstream& logBuffer)
+                         vector<sconnections> &connections, vector<spu>& SM, vector<spu_out>& SM_out,
+                         double cm, vector<sspecies> &spec, int aggexist, scost &reserve,int clumptype, stringstream& logBuffer)
 {
     vector<sclumps> tempSclumps;
     int i,j;
@@ -1414,7 +1417,7 @@ void computeReserveValue(int puno,int spno, vector<int> &R, vector<spustuff> &pu
     reserve.probability2D = 0;
 
     if (aggexist)
-        SetSpeciesClumps(puno,R,spec,pu,SM,connections,clumptype, thread);
+        SetSpeciesClumps(puno, R, spec, pu, SM, SM_out, connections, clumptype);
         
     // traverse species, computing penalty for each species
     for (i=0;i<spno;i++)
@@ -1445,7 +1448,7 @@ void computeReserveValue(int puno,int spno, vector<int> &R, vector<spustuff> &pu
 
         if (spec[i].sepnum)
         {
-            spec[i].separation = CountSeparation2(i,0,tempSclumps,puno,R,pu,SM,spec,0, thread);
+            spec[i].separation = CountSeparation2(i, 0, tempSclumps, puno, R, pu, SM, SM_out, spec, 0);
             reserve.penalty += computeSepPenalty(spec[i].separation,spec[i].sepnum) *
                                 spec[i].spf*spec[i].penalty;
         }
@@ -1551,7 +1554,7 @@ void computeChangeScore(int iIteration,int ipu,int spno,int puno, const vector<s
     change.connection = ConnectionCost2(connections[ipu], R, imode, 1, cm, asymmetricconnectivity, fOptimiseConnectivityIn);
 
 
-    change.penalty = computeChangePenalty(ipu, puno, spec, pu, SM, R, connections, imode, clumptype, change.shortfall, thread);
+    change.penalty = computeChangePenalty(ipu, puno, spec, pu, SM, SM_out, R, connections, imode, clumptype, change.shortfall);
 
     if (costthresh)
     {
@@ -1600,7 +1603,7 @@ void computeChangeScore(int iIteration,int ipu,int spno,int puno, const vector<s
 void computeQuantumChangeScore(int spno,int puno, vector<spustuff>& pu, vector<sconnections>& connections,
                                vector<sspecies>& spec, vector<spu>& SM, vector<int>& R,double cm,
                                scost& change, scost& reserve, double costthresh, double tpf1, double tpf2,
-                               double timeprop,int clumptype,int iFluctuationCount, vector<int>& PUChosen, int thread)
+                               double timeprop,int clumptype,int iFluctuationCount, vector<int>& PUChosen)
 // imode = 1 add PU, imode = -1 remove PU
 {
     // We query a whole bunch of changes in one, passed in by Quantum annealing.
@@ -1646,7 +1649,7 @@ void computeQuantumChangeScore(int spno,int puno, vector<spustuff>& pu, vector<s
             reserve.connection = 0;
         }
 
-        change.penalty += computeChangePenalty(j, puno, spec, pu, SM, R, connections, imode, clumptype, change.shortfall, thread);
+        change.penalty += computeChangePenalty(j, puno, spec, pu, SM, R, connections, imode, clumptype, change.shortfall);
 
         if (costthresh)
         {
@@ -1801,7 +1804,7 @@ void doChange(int ipu, int puno, vector<int> &R, scost &reserve, scost &change,
 // change the status of a set of planning units
 void doQuantumChange(int puno, vector<int>& R, scost& reserve, scost& change,
                      vector<spustuff>& pu,vector<spu>& SM, vector<sspecies> spec, vector<sconnections>& connections,
-                     int clumptype, int iFluctuationCount, vector<int>& PUChosen, int thread)
+                     int clumptype, int iFluctuationCount, vector<int>& PUChosen)
 {
     // We accept a whole bunch of changes in one, passed in by Quantum annealing.
     vector<sclumps> tempSclumps;
@@ -1843,9 +1846,9 @@ void doQuantumChange(int puno, vector<int>& R, scost& reserve, scost& change,
                 { // Type 4 species and this will impact them
                     if (imode == 1)
                     {
-                        AddNewPU(ipu,isp,connections,spec,pu,SM,clumptype, thread);
+                        AddNewPU(ipu,isp,connections,spec,pu,SM,clumptype);
                     } else {
-                        RemPu(ipu,isp,connections,spec,pu,SM,clumptype, thread);
+                        RemPu(ipu,isp,connections,spec,pu,SM,clumptype);
                     }
                     if (spec[isp].occurrence < 0)
                     {
@@ -1871,7 +1874,7 @@ void doQuantumChange(int puno, vector<int>& R, scost& reserve, scost& change,
 
                 if (spec[isp].sepnum>0) // Count separation but only if it is possible that it has changed
                     if ((imode ==1 && spec[isp].separation < spec[isp].sepnum) || (imode == -1 && spec[isp].separation >1))
-                        spec[isp].separation = CountSeparation2(isp,0,tempSclumps,puno,R,pu,SM,spec,0, thread);
+                        spec[isp].separation = CountSeparation2(isp,0,tempSclumps,puno,R,pu,SM,spec,0);
             }
         }
     }
@@ -1914,9 +1917,9 @@ void handleOptions(int argc,char *argv[], string sInputFileName)
     }
 }
 
-void initialiseConnollyAnnealing(int puno,int spno,vector<spustuff> &pu, vector<sconnections> &connections, vector<sspecies> &spec,
-                                 vector<spu>& SM,double cm, sanneal &anneal,int aggexist,
-                                 vector<int> &R,double prop,int clumptype,int irun, int thread, stringstream& logBuffer)
+void initialiseConnollyAnnealing(int puno,int spno, const vector<spustuff> &pu, const vector<sconnections> &connections, vector<sspecies> &spec,
+        const vector<spu>& SM, vector<spu_out>& SM_out, double cm, const sanneal &anneal,int aggexist,
+        vector<int> &R,double prop,int clumptype,int irun, stringstream& logBuffer)
 {
     long int i,ipu,imode, iOldR;
     double deltamin = 0,deltamax = 0;
@@ -1947,13 +1950,13 @@ void initialiseConnollyAnnealing(int puno,int spno,vector<spustuff> &pu, vector<
     #endif
 
     if (aggexist)
-        ClearClumps(spno,spec,pu,SM, thread);
+        ClearClumps(spno,spec,pu,SM);
 
     #ifdef DEBUG_PROB1D
     logBuffer << "initialiseConnollyAnnealing C - before compute reserve\n";
     #endif
 
-    computeReserveValue(puno,spno,R,pu,connections,SM,cm,spec,aggexist, reserve,clumptype, thread, logBuffer);
+    computeReserveValue( puno, spno, R, pu, connections, SM, SM_out, cm,spec,aggexist, reserve,clumptype, logBuffer);
 
     #ifdef DEBUG_PROB1D
     logBuffer << "initialiseConnollyAnnealing D - after compute reserve\n";
@@ -1966,8 +1969,8 @@ void initialiseConnollyAnnealing(int puno,int spno,vector<spustuff> &pu, vector<
         iOldR = R[ipu];
         imode = R[ipu]==1?-1:1;
 
-        computeChangeScore(-1,ipu,spno,puno,pu,connections,spec,SM,R,cm,imode,change,reserve,0,0,0,0,clumptype, thread);
-        doChange(ipu,puno,R,reserve,change,pu,SM,spec,connections,imode,clumptype, thread, logBuffer);
+        computeChangeScore(-1,ipu,spno,puno,pu,connections,spec,SM,R,cm,imode,change,reserve,0,0,0,0,clumptype);
+        doChange(ipu,puno,R,reserve,change,pu,SM,spec,connections,imode,clumptype, logBuffer);
         if (change.total > deltamax)
             deltamax = change.total;
         if (change.total >localdelta && (deltamin < localdelta || change.total < deltamin))
@@ -1989,8 +1992,8 @@ void initialiseConnollyAnnealing(int puno,int spno,vector<spustuff> &pu, vector<
 } // initialiseConnollyAnnealing
 
 // initialise adaptive annealing (where anneal type = 3)
-void initialiseAdaptiveAnnealing(int puno,int spno,double prop,vector<int> &R,vector<spustuff> &pu,vector<sconnections> &connections,
-                                 vector<spu>& SM,double cm,vector<sspecies> &spec,int aggexist,sanneal &anneal,int clumptype, int thread, stringstream& logBuffer)
+void initialiseAdaptiveAnnealing(int puno,int spno, double prop, vector<int> &R, const vector<spustuff> &pu, const vector<sconnections> &connections,
+                                 const vector<spu>& SM, vector<spu_out>& SM_out, const double cm, vector<sspecies> &spec, int aggexist, const sanneal &anneal, int clumptype, stringstream& logBuffer)
 {
     long int i,isamples;
     double sum = 0,sum2 = 0;
@@ -2003,7 +2006,7 @@ void initialiseAdaptiveAnnealing(int puno,int spno,double prop,vector<int> &R,ve
     {  /* Generate Random Reserve */
         initialiseReserve(prop, pu, R, rngEngine);
         /* Score Random reserve */
-        computeReserveValue(puno,spno,R,pu,connections,SM,cm,spec,aggexist,cost,clumptype, thread, logBuffer);
+        computeReserveValue(puno, spno, R, pu, connections, SM, SM_out, cm, spec, aggexist, cost, clumptype, logBuffer);
         /* Add Score to Sum */
         sum += cost.total;
         sum2 += cost.total*cost.total;
@@ -2038,10 +2041,10 @@ void reduceTemperature(sanneal& anneal)
 }
 
 // run simulated thermal annealing selection algorithm
-void thermalAnnealing(int spno, int puno, vector<sconnections> &connections,vector<int> &R, double cm,
-                      vector<sspecies>& spec, vector<spustuff> &pu, vector<spu>& SM, scost &reserve,
-                      long int repeats,int irun,string savename,double misslevel,
-                      int aggexist,double costthresh, double tpf1, double tpf2,int clumptype, sanneal &anneal, int thread, stringstream& logBuffer)
+void thermalAnnealing(int spno, int puno, const vector<sconnections> &connections, const vector<int> &R, double cm,
+                      vector<sspecies>& spec, const vector<spustuff> &pu, const vector<spu>& SM, vector<spu_out>& SM_out, scost &reserve,
+                      long int repeats, int irun, string savename, double misslevel,
+                      int aggexist,double costthresh, double tpf1, double tpf2,int clumptype, sanneal &anneal, stringstream& logBuffer)
 {
     scost change = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
     long int itime = 0,ipu = -1,i,itemp, snapcount = 0,ichanges = 0, iPreviousR,iGoodChange = 0;
@@ -2124,8 +2127,8 @@ void thermalAnnealing(int spno, int puno, vector<sconnections> &connections,vect
         }
 
         itemp = R[ipu] == 1 ? -1 : 1;  /* Add or Remove PU ? */
-        computeChangeScore(itime,ipu,spno,puno,pu,connections,spec,SM,R,cm,itemp, change,reserve,
-                           costthresh,tpf1,tpf2,(double) itime/ (double) anneal.iterations,clumptype, thread);
+        computeChangeScore(itime,ipu,spno,puno,pu,connections, spec, SM, SM_out, R,cm,itemp, change, reserve,
+                           costthresh, tpf1, tpf2,(double) itime/ (double) anneal.iterations,clumptype);
 
         /* Need to calculate Appropriate temperature in isGoodChange or another function */
         /* Upgrade temperature */
@@ -2159,7 +2162,7 @@ void thermalAnnealing(int spno, int puno, vector<sconnections> &connections,vect
         if (fnames.savesnapsteps && !(itime % fnames.savesnapfrequency))
         {
             tempname2 = savename + "_snap" + sRun + to_string(++snapcount) + getFileNameSuffix(fnames.savesnapchanges);
-            writeSolution(puno,R,pu,tempname2,fnames.savesnapsteps,fnames);
+            writeSolution(puno, R, pu, tempname2, fnames.savesnapsteps,fnames);
         } /* Save snapshot every savesnapfreq timesteps */
 
         iPreviousR = R[ipu];
@@ -2169,7 +2172,7 @@ void thermalAnnealing(int spno, int puno, vector<sconnections> &connections,vect
         {
             ++ichanges;
             
-            doChange(ipu,puno,R,reserve,change,pu,SM,spec,connections,itemp,clumptype, thread, logBuffer);
+            doChange(ipu, puno, R, reserve, change, pu, SM, SM_out, spec,connections, itemp, clumptype, logBuffer);
 
             if (fnames.savesnapchanges && !(ichanges % fnames.savesnapfrequency))
             {
@@ -2219,7 +2222,7 @@ void thermalAnnealing(int spno, int puno, vector<sconnections> &connections,vect
 
     /** Post Processing  **********/
     if (aggexist)
-        ClearClumps(spno,spec,pu,SM, thread);
+        ClearClumps(spno,spec,pu,SM);
 
     if (verbosity > 4)
         fclose(fp);
@@ -2234,7 +2237,7 @@ void thermalAnnealing(int spno, int puno, vector<sconnections> &connections,vect
 void quantumAnnealing(int spno, int puno, vector<sconnections> &connections,vector<int> &R, double cm,
                       vector<sspecies>& spec, vector<spustuff> &pu, vector<spu>& SM, scost &change, scost &reserve,
                       long int repeats,int irun,string savename,double misslevel,
-                      int aggexist,double costthresh, double tpf1, double tpf2,int clumptype, sanneal &anneal, int thread)
+                      int aggexist,double costthresh, double tpf1, double tpf2,int clumptype, sanneal &anneal)
 {
     long int itime,i,j,itemp=0,snapcount,ichanges = 0, iGoodChange;
     long int iRowCounter, iRowLimit, iFluctuationCount;
@@ -2352,7 +2355,7 @@ void quantumAnnealing(int spno, int puno, vector<sconnections> &connections,vect
             // compute objective function score with these bits flipped
             computeQuantumChangeScore(spno,puno,pu,connections,spec,SM,R,cm,change,reserve,
                                       costthresh,tpf1,tpf2,(double) itime/ (double) anneal.iterations,
-                                      clumptype,iFluctuationCount,PUChosen, thread);
+                                      clumptype,iFluctuationCount,PUChosen);
 
             // we only accept good changes
             if (fnames.savesnapsteps && !(itime % fnames.savesnapfrequency))
@@ -2365,7 +2368,7 @@ void quantumAnnealing(int spno, int puno, vector<sconnections> &connections,vect
                 iGoodChange = 1;
 
                 ++ichanges;
-                doQuantumChange(puno,R,reserve,change,pu,SM,spec,connections,clumptype,iFluctuationCount,PUChosen, thread);
+                doQuantumChange(puno,R,reserve,change,pu,SM,spec,connections,clumptype,iFluctuationCount,PUChosen);
                 if (fnames.savesnapchanges && !(ichanges % fnames.savesnapfrequency))
                 {
                     tempname2 = savename + "_snap" + sRun + to_string(++snapcount) + getFileNameSuffix(fnames.savesnapchanges);
@@ -2420,7 +2423,7 @@ void quantumAnnealing(int spno, int puno, vector<sconnections> &connections,vect
 
     /** Post Processing  **********/
     if (aggexist)
-        ClearClumps(spno,spec,pu,SM,thread);
+        ClearClumps(spno, spec, pu, SM);
 
     #ifdef DEBUGTRACEFILE
     if (verbosity > 4)
@@ -2447,7 +2450,7 @@ void secondaryExit(void)
 void iterativeImprovement(int puno,int spno,vector<spustuff> &pu, vector<sconnections> &connections,
                           vector<sspecies> &spec,vector<spu>& SM,vector<int> &R, double cm,
                           scost &reserve, scost &change,double costthresh,double tpf1, double tpf2,
-                          int clumptype,int irun,string savename, int thread, stringstream& logBuffer)
+                          int clumptype,int irun,string savename, stringstream& logBuffer)
 {
     int puvalid =0,i,j,ipu=0,imode,ichoice, iRowCounter, iRowLimit;
     vector<int> iimparray;
@@ -2522,11 +2525,11 @@ void iterativeImprovement(int puno,int spno,vector<spustuff> &pu, vector<sconnec
             {
                imode = R[ichoice] == 1 ? -1 : 1;
                computeChangeScore(-1,ichoice,spno,puno,pu,connections,spec,SM,R,cm,imode,change,reserve,
-                                  costthresh,tpf1,tpf2,1,clumptype, thread);
+                                  costthresh,tpf1,tpf2,1,clumptype);
                if (change.total < 0)
                {
                   displayProgress2("It Imp has changed %i with change value %lf \n",ichoice,change.total);
-                  doChange(ichoice,puno,R,reserve,change,pu,SM,spec,connections,imode,clumptype, thread, logBuffer);
+                  doChange(ichoice,puno,R,reserve,change,pu,SM,spec,connections,imode,clumptype, logBuffer);
                }   // I've just made a good change
             }
 

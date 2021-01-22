@@ -261,9 +261,9 @@ int computePenaltiesOptimise(int puno,int spno, vector<spustuff> &pu, vector<ssp
                              vector<int> &PUtemp, int aggexist, double cm, int clumptype, int thread);
 
 //double ConnectionCost2(sconnections &connection, vector<int> &R, int imode, int imode2, double cm);
-void computeReserveValue(int puno,int spno, vector<int> &R, vector<spustuff> &pu,
-                         vector<sconnections> &connections, vector<spu> &SM,
-                         double cm, vector<sspecies> &spec, int aggexist, scost &reserve,int clumptype, int thread, stringstream& logBuffer);
+void computeReserveValue(int puno, int spno, vector<int>& R, vector<spustuff>& pu,
+    vector<sconnections>& connections, vector<spu>& SM, vector<spu_out>& SM_out,
+    double cm, vector<sspecies>& spec, int aggexist, scost& reserve, int clumptype, stringstream& logBuffer);
 void computeChangeScore(int iIteration, int ipu, int spno, int puno, const vector<spustuff>& pu, const vector<sconnections>& connections,
     vector<sspecies>& spec, const vector<spu>& SM, vector<spu_out>& SM_out, const vector<int>& R, double cm, int imode,
     scost& change, scost& reserve, double costthresh, double tpf1, double tpf2,
@@ -279,9 +279,9 @@ stringstream displayValueForPUs(int puno, int spno,vector<int> &R, scost &reserv
 #ifndef annealingheader
 #define annealingheader
 
-void initialiseConnollyAnnealing(int puno,int spno,vector<spustuff> &pu, vector<sconnections> &connections, vector<sspecies> &spec,
-                                 vector<spu> &SM,double cm, sanneal &anneal,int aggexist,
-                                 vector<int> &R,double prop,int clumptype,int irun, int thread, stringstream& logBuffer);
+void initialiseConnollyAnnealing(int puno, int spno, const vector<spustuff>& pu, const vector<sconnections>& connections, vector<sspecies>& spec,
+    const vector<spu>& SM, vector<spu_out>& SM_out, double cm, const sanneal& anneal, int aggexist,
+    vector<int>& R, double prop, int clumptype, int irun, stringstream& logBuffer);
 void initialiseAdaptiveAnnealing(int puno,int spno,double prop,vector<int> &R,vector<spustuff> &pu,vector<sconnections> &connections,
                                  vector<spu> &SM,double cm,vector<sspecies> &spec,int aggexist,sanneal &anneal,int clumptype, int thread, stringstream& logBuffer);
 void thermalAnnealing(int spno, int puno, vector<sconnections> &connections,vector<int> &R, double cm,
