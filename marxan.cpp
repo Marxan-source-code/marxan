@@ -739,7 +739,7 @@ int executeMarxan(string sInputFileName)
 
     if (fnames.savebest)
     {
-        tempname2 = savename + "best" + getFileNameSuffix(fnames.savebest);
+        tempname2 = savename + "_best" + getFileNameSuffix(fnames.savebest);
         writeSolution(puno,bestR,pu,tempname2,fnames.savebest,fnames);
 
         appendTraceFile("Best solution is run %i\n",bestRun);
@@ -748,7 +748,7 @@ int executeMarxan(string sInputFileName)
 
     if (fnames.savespecies && fnames.savebest)
     {
-        tempname2 = savename + "mvbest" + getFileNameSuffix(fnames.savespecies);
+        tempname2 = savename + "_mvbest" + getFileNameSuffix(fnames.savespecies);
 
          // TODO ADBAI - need to write best spec, NOT spec_global
         writeSpecies(spno,bestSpec,tempname2,fnames.savespecies,misslevel);
