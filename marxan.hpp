@@ -63,7 +63,8 @@ namespace marxan {
     //Separate output fields for multithreading 
     typedef struct spu_out
     {
-        int clump; 
+        int clump;
+        spu_out() { clump = 0; }
     } spu_out;
 
 
@@ -254,15 +255,15 @@ namespace marxan {
 
 void setBlockDefinitions(int gspno,int spno,int puno, vector<sgenspec> &gspec, vector<sspecies> &spec, vector<spustuff> &PU, vector<spu> &SM);
 void setDefaultRunOptions(int runopts, srunoptions &runoptions);
-int computePenalties(int puno,int spno, vector<spustuff> &pu, vector<sspecies> &spec,
-                     vector<sconnections> &connections, vector<spu> &SM, vector<int> &PUtemp, int aggexist, double cm, int clumptype, int thread);
-int computePenaltiesOptimise(int puno,int spno, vector<spustuff> &pu, vector<sspecies> &spec,
-                             vector<sconnections> &connections, vector<spu> &SM, vector<spusporder> &SMsp,
-                             vector<int> &PUtemp, int aggexist, double cm, int clumptype, int thread);
+int computePenalties(int puno, int spno, const vector<spustuff>& pu, vector<sspecies>& spec,
+    const vector<sconnections>& connections, const vector<spu>& SM, vector<spu_out>& SM_out, vector<int>& PUtemp, int aggexist, double cm, int clumptype);
+int computePenaltiesOptimise(int puno, int spno, vector<spustuff>& pu, vector<sspecies>& spec,
+    vector<sconnections>& connections, vector<spu>& SM, vector<spu_out>& SM_out, vector<spusporder>& SMsp,
+    vector<int>& PUtemp, int aggexist, double cm, int clumptype);
 
 //double ConnectionCost2(sconnections &connection, vector<int> &R, int imode, int imode2, double cm);
-void computeReserveValue(int puno, int spno, vector<int>& R, vector<spustuff>& pu,
-    vector<sconnections>& connections, vector<spu>& SM, vector<spu_out>& SM_out,
+void computeReserveValue(int puno, int spno, const vector<int>& R, const vector<spustuff>& pu,
+    const vector<sconnections>& connections, const vector<spu>& SM, vector<spu_out>& SM_out,
     double cm, vector<sspecies>& spec, int aggexist, scost& reserve, int clumptype, stringstream& logBuffer);
 void computeChangeScore(int iIteration, int ipu, int spno, int puno, const vector<spustuff>& pu, const vector<sconnections>& connections,
     vector<sspecies>& spec, const vector<spu>& SM, vector<spu_out>& SM_out, const vector<int>& R, double cm, int imode,
@@ -272,26 +273,26 @@ void doChange(int ipu, int puno, vector<int>& R, scost& reserve, scost& change,
     const vector<spustuff>& pu, const vector<spu>& SM, vector<spu_out>& SM_out, vector<sspecies>& spec, const vector<sconnections>& connections,
     int imode, int clumptype, stringstream& logBuffer);
 
-stringstream displayValueForPUs(int puno, int spno,vector<int> &R, scost &reserve,
-                        vector<sspecies> &spec,double misslevel);
+stringstream displayValueForPUs(int puno, int spno, const vector<int>& R, const scost& reserve,
+    const vector<sspecies>& spec, double misslevel);
 //void TimePassed(void);
 
 #ifndef annealingheader
 #define annealingheader
 
 void initialiseConnollyAnnealing(int puno, int spno, const vector<spustuff>& pu, const vector<sconnections>& connections, vector<sspecies>& spec,
-    const vector<spu>& SM, vector<spu_out>& SM_out, double cm, const sanneal& anneal, int aggexist,
+    const vector<spu>& SM, vector<spu_out>& SM_out, double cm, sanneal& anneal, int aggexist,
     vector<int>& R, double prop, int clumptype, int irun, stringstream& logBuffer);
-void initialiseAdaptiveAnnealing(int puno,int spno,double prop,vector<int> &R,vector<spustuff> &pu,vector<sconnections> &connections,
-                                 vector<spu> &SM,double cm,vector<sspecies> &spec,int aggexist,sanneal &anneal,int clumptype, int thread, stringstream& logBuffer);
-void thermalAnnealing(int spno, int puno, vector<sconnections> &connections,vector<int> &R, double cm,
-                      vector<sspecies>& spec, vector<spustuff> &pu, vector<spu> &SM, scost &reserve,
-                      long int repeats,int irun,string savename,double misslevel,
-                      int aggexist,double costthresh, double tpf1, double tpf2,int clumptype, sanneal &anneal, int thread, stringstream& logBuffer);
-void quantumAnnealing(int spno, int puno, vector<sconnections> &connections,vector<int> &R, double cm,
-                      vector<sspecies>& spec, vector<spustuff> &pu, vector<spu> &SM, scost &change, scost &reserve,
-                      long int repeats,int irun,string savename,double misslevel,
-                      int aggexist,double costthresh, double tpf1, double tpf2,int clumptype, sanneal &anneal, int thread);
+void initialiseAdaptiveAnnealing(int puno, int spno, double prop, vector<int>& R, const vector<spustuff>& pu, const vector<sconnections>& connections,
+    const vector<spu>& SM, vector<spu_out>& SM_out, const double cm, vector<sspecies>& spec, int aggexist, sanneal& anneal, int clumptype, stringstream& logBuffer);
+void thermalAnnealing(int spno, int puno, const vector<sconnections>& connections, vector<int>& R, double cm,
+    vector<sspecies>& spec, const vector<spustuff>& pu, const vector<spu>& SM, vector<spu_out>& SM_out, scost& reserve,
+    long int repeats, int irun, string savename, double misslevel,
+    int aggexist, double costthresh, double tpf1, double tpf2, int clumptype, sanneal& anneal, stringstream& logBuffer);
+void quantumAnnealing(int spno, int puno, const vector<sconnections>& connections, vector<int>& R, double cm,
+    vector<sspecies>& spec, const vector<spustuff>& pu, const vector<spu>& SM, vector<spu_out>& SM_out, scost& change, scost& reserve,
+    long int repeats, int irun, string savename, double misslevel,
+    int aggexist, double costthresh, double tpf1, double tpf2, int clumptype, sanneal & anneal);
 #endif
 
 
@@ -308,10 +309,10 @@ void appendTraceFile(string sMess,...);
 void secondaryExit(void);
 //void SaveSeed(int iseed);
 
-void iterativeImprovement(int puno,int spno,vector<spustuff> &pu, vector<sconnections> &connections,
-                          vector<sspecies> &spec,vector<spu> &SM,vector<int> &R, double cm,
-                          scost &reserve, scost &change,double costthresh,double tpf1, double tpf2,
-                          int clumptype,int irun,string savename, int thread, stringstream& logBuffer);
+void iterativeImprovement(int puno, int spno, const vector<spustuff>& pu, const vector<sconnections>& connections,
+    vector<sspecies>& spec, const vector<spu>& SM, vector<spu_out>& SM_out, vector<int>& R, double cm,
+    scost& reserve, scost& change, double costthresh, double tpf1, double tpf2,
+    int clumptype, int irun, string savename, stringstream& logBuffer);
 
 // input reading
 int readConnections(int& puno, vector<sconnections>& connections, vector<spustuff>& pu,
@@ -347,33 +348,33 @@ void displayProgress3(string sMess,...);
 void displayShutdownMessage(chrono::high_resolution_clock::time_point start);
 void displayUsage(string programName);
 
-void appendSolutionsMatrix(int iRun,int puno, vector<int>& R, string savename,int iOutputType, int iIncludeHeaders);
-string computeSummary(int puno,int spno, vector<int>& R, vector<sspecies>& spec, scost& reserve,
-                   int itn, double misslevel, int imode);
-void computeTotalAreas(int puno,int spno, vector<spustuff>& pu, vector<sspecies>& spec, vector<spu>& SM);
+void appendSolutionsMatrix(int iRun, int puno, const vector<int>& R, string savename, int iOutputType, int iIncludeHeaders);
+string computeSummary(int puno, int spno, const vector<int>& R, const vector<sspecies>& spec, const scost& reserve,
+    int itn, double misslevel, int imode);
+void computeTotalAreas(int puno, int spno, const vector<spustuff>& pu, const vector<sspecies>& spec, const vector<spu>& SM);
 void createLogFile(int my_savelog, string my_savelogname);
-void createSolutionsMatrix(int puno,vector<spustuff> &pu, string savename_ism,int iOutputType,int iIncludeHeaders);
+void createSolutionsMatrix(int puno, const vector<spustuff>& pu, string savename_ism, int iOutputType, int iIncludeHeaders);
 void createTraceFile(void);
 void displayStartupMessage(void);
-void writeAsymmetricConnectionFile(int puno, vector<sconnections> connections, vector<spustuff> pu, sfname fnames);
-void writePenalty(int spno, vector<sspecies>& spec, string savename,int iOutputType);
-void writePenaltyPlanningUnits(int puno, vector<spustuff> &pu, vector<int> &Rtemp, string savename,int iOutputType);
-void writePu(int puno, vector<spustuff>& pu, string savename);
-void writeR(int iMessage, string sMessage,int puno, vector<int>& R, vector<spustuff>& pu, sfname& fnames);
-void writeRichness(int puno, vector<spustuff>& pu, string savename,int iOutputType);
+void writeAsymmetricConnectionFile(int puno, const vector<sconnections>& connections, const vector<spustuff>& pu, sfname fnames);
+void writePenalty(int spno, const vector<sspecies>& spec, string savename, int iOutputType);
+void writePenaltyPlanningUnits(int puno, const vector<spustuff>& pu, const vector<int>& Rtemp, string savename, int iOutputType);
+void writePu(int puno, const vector<spustuff>& pu, string savename);
+void writeR(int iMessage, string sMessage,int puno, const vector<int>& R, const vector<spustuff>& pu, const sfname& fnames);
+void writeRichness(int puno, const vector<spustuff>& pu, string savename, int iOutputType);
 void writeScenario(int puno,int spno,double prop,double cm,
                     sanneal& anneal,int seedinit,long int repeats,int clumptype,
                     int runopts,int heurotype,double costthresh, double tpf1, double tpf2,
                     string savename);
 void writeSecondarySyncFile(void);
 void writeSecondarySyncFileRun(int iSyncRun);
-void writeSolution(int puno, vector<int>& R, vector<spustuff>& pu, string savename,int imode, sfname& fnames);
-void writeSpec(int spno, vector<sspecies>& spec, string savename);
-void writeSpecies(int spno, vector<sspecies>& spec, string savename,int imode,double misslevel);
-void writeSummary(string savename, vector<string>& summaries, int imode);
-void writeSumSoln(int puno, vector<int>& sumsoln, vector<spustuff>& pu, string savename, int imode);
-void writeTotalAreas(int puno,int spno, vector<spustuff>& pu, vector<sspecies>& spec, vector<spu>& SM, string savename,int iOutputType);
-void writeWeightedConnectivityFile(sfname& fnames);
+void writeSolution(int puno, const vector<int>& R, const vector<spustuff>& pu, string savename, int imode, const sfname& fnames);
+void writeSpec(int spno, const vector<sspecies>& spec, string savename);
+void writeSpecies(int spno, vector<sspecies>& spec, string savename, int imode, double misslevel);
+void writeSummary(string savename, const vector<string>& summaries, int imode);
+void writeSumSoln(int puno, const vector<int>& sumsoln, const vector<spustuff>& pu, string savename, int imode);
+void writeTotalAreas(int puno, int spno, const vector<spustuff>& pu, const vector<sspecies>& spec, const vector<spu>& SM, string savename, int iOutputType);
+void writeWeightedConnectivityFile(const sfname& fnames);
 
 typedef struct sseplist{
     int size;
@@ -400,25 +401,25 @@ int SepDealList(const vector<int>& head, vector<sseplist>& Dist, const vector<sp
     const vector<sspecies>& spec, int first, int sepnum, double targetdist, int isp);
 void SetSpeciesClumps(int puno, const vector<int>& R, vector<sspecies>& spec, const vector<spustuff>& pu,
     const vector<spu>& SM, vector<spu_out>& SM_out, const vector<sconnections>& connections, int clumptype);
-void SpeciesAmounts(int spno,int puno, vector<sspecies>& spec, vector<spustuff>& pu, vector<spu>& SM,
-                    vector<int>& R,int clumptype);
+void SpeciesAmounts(int spno, int puno, vector<sspecies>& spec, const vector<spustuff>& pu, vector<spu>& SM,
+    vector<int>& R, int clumptype);
 void SpeciesAmounts4(int isp,vector<sspecies> &spec,int clumptype);
 
 void Heuristics(int spno, int puno, const vector<spustuff>& pu, const vector<sconnections>& connections,
     vector<int>& R, double cm, vector<sspecies>& spec, const vector<spu>& SM, vector<spu_out>& SM_out, scost& reserve,
     double costthresh, double tpf1, double tpf2, int imode, int clumptype, stringstream& logBuffer);
 
+double ComputeProbability1D(const vector<double>& ExpectedAmount1D, const vector<double>& VarianceInExpectedAmount1D,
+    int spno, vector<sspecies>& spec);
+double ComputeProbability2D(vector<double>& ExpectedAmount2D, vector<double>& VarianceInExpectedAmount2D,
+    int spno, vector<sspecies>& spec);
 double ChangeProbability1D(int iIteration, int ipu, int spno, int puno, vector<sspecies>& spec, const vector<spustuff>& pu, const vector<spu>& SM, int imode);
 double ChangeProbability2D(int iIteration, int ipu, int spno, int puno, vector<sspecies>& spec, const vector<spustuff>& pu, const vector<spu>& SM, int imode);
-void ComputeP_AllPUsSelected_1D(string &savename,int puno,int spno,vector<spustuff> &pu,vector<spu> &SM,vector<sspecies> &spec);
-void ComputeP_AllPUsSelected_2D(string &savename,int puno,int spno,vector<spustuff> &pu,vector<spu> &SM,vector<sspecies> &spec);
-double ComputeProbability1D(vector<double> &ExpectedAmount1D, vector<double> &VarianceInExpectedAmount1D,
-                            int spno,vector<sspecies> &spec);
-double ComputeProbability2D(vector<double> &ExpectedAmount2D, vector<double> &VarianceInExpectedAmount2D,
-                            int spno,vector<sspecies> &spec);
-void ReturnProbabilityAmounts1D(vector<double> &ExpectedAmount1D, vector<double> &VarianceInExpectedAmount1D,int ipu,
-                                int puno,vector<spustuff> &pu,vector<spu> &SM);
-void ReturnProbabilityAmounts2D(vector<double> &ExpectedAmount2D,vector<double> &VarianceInExpectedAmount2D,int ipu,
-                                int puno,vector<spustuff> &pu,vector<spu> &SM);
+void ComputeP_AllPUsSelected_1D(const string& savename, int puno, int spno, const vector<spustuff>& pu, const vector<spu>& SM, const vector<sspecies>& spec);
+void ComputeP_AllPUsSelected_2D(const string& savename, int puno, int spno, const vector<spustuff>& pu, const vector<spu>& SM, const vector<sspecies>& spec);
+void ReturnProbabilityAmounts1D(vector<double>& ExpectedAmount1D, vector<double>& VarianceInExpectedAmount1D, int ipu,
+    int puno, const vector<spustuff>& pu, const vector<spu>& SM);
+void ReturnProbabilityAmounts2D(vector<double>& ExpectedAmount2D, vector<double>& VarianceInExpectedAmount2D, int ipu,
+    int puno, const vector<spustuff>& pu, const vector<spu>& SM);
 
 } // namespace marxan

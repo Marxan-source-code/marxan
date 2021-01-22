@@ -226,13 +226,13 @@ void ReturnProbabilityAmounts1D(vector<double> &ExpectedAmount1D, vector<double>
    computeExpectedAndVariance(ipu, pu, SM, VarianceInExpectedAmount1D, ExpectedAmount1D);
 }
 
-void ReturnProbabilityAmounts2D(vector<double> &ExpectedAmount2D,vector<double> &VarianceInExpectedAmount2D,int ipu,
-                                int puno,vector<spustuff> &pu,vector<spu> &SM)
+void ReturnProbabilityAmounts2D(vector<double> &ExpectedAmount2D, vector<double> &VarianceInExpectedAmount2D,int ipu,
+                                int puno, const vector<spustuff> &pu, const vector<spu> &SM)
 {
    computeExpectedAndVariance(ipu, pu, SM, VarianceInExpectedAmount2D, ExpectedAmount2D);
 }
 
-double ComputeProbability1D(vector<double> &ExpectedAmount1D, vector<double> &VarianceInExpectedAmount1D,
+double ComputeProbability1D(const vector<double> &ExpectedAmount1D, const vector<double> &VarianceInExpectedAmount1D,
                             int spno,vector<sspecies> &spec) 
 {
    // compute Probability for all reserved planning units
