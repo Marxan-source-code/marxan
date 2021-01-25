@@ -143,6 +143,7 @@ namespace marxan {
         int nbr; // puid of neighbour
         double cost;
         int connectionorigon; // for asymmetric connections, whether connection starts from this node.
+        sneighbour(int nbr, double cost, int connectionorigon) { this->nbr = nbr; this->cost = cost; this->connectionorigon = connectionorigon; }
     } sneighbour;
     
     extern vector<sneighbour> debugnbr;

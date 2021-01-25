@@ -410,10 +410,7 @@ int readConnections(int& puno, vector<sconnections>& connections, vector<spustuf
             else
             {
                 connections[id1].nbrno++;
-                sneighbour p;
-                p.cost = fcost;
-                p.nbr = id2;
-                p.connectionorigon = 1;
+                sneighbour p(id2, fcost, 1);
 
                 connections[id1].first.push_back(p);
             }
@@ -441,15 +438,11 @@ int readConnections(int& puno, vector<sconnections>& connections, vector<spustuf
             else
             {
                 connections[id2].nbrno++;
-                sneighbour p;
+                sneighbour p(id1, fcost, 1);
 
 #ifdef MEMDEBUG
                 iMemoryUsed += sizeof(struct sneighbour);
 #endif
-
-                p.cost = fcost;
-                p.nbr = id1;
-                p.connectionorigon = 1;
 
                 if (asymmetricconnectivity)
                     p.connectionorigon = 0;
