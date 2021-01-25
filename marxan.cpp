@@ -99,7 +99,7 @@ int marxanIsSecondary = 0;
 // runs the loop for each "solution" marxan is generating
 void executeRunLoop(int iSparseMatrixFileLength, long int repeats,int puno,int spno,double cm,int aggexist,double prop,int clumptype,double misslevel,
                     string savename,double costthresh,double tpf1,double tpf2,int heurotype,int runopts,
-                    int itimptype,vector<int> sumsoln)
+                    int itimptype,vector<int>& sumsoln)
 {
     string bestRunString;
     vector<string> summaries(repeats); // stores individual summaries for each run
