@@ -888,7 +888,6 @@ namespace marxan {
         }
     } // setBlockDefinitions
 
-    // TODO ADBAI - needs refactoring
     // set default run options based on the selection algorithm chosen
     void setDefaultRunOptions(int runopts, srunoptions& runoptions)
     {
