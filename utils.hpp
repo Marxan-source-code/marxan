@@ -11,46 +11,41 @@
 namespace marxan {
 namespace utils {
 
-inline
-std::string getFileNameSuffix(int suffixMode) {
-    if (suffixMode == 3) {
-        return ".csv";
-    }
-    else if (suffixMode == 2) {
-        return ".txt";
-    }
-    else {
-        return ".dat";
-    }
-}
+	inline std::string getFileNameSuffix(int suffixMode) {
+		if (suffixMode == 3) {
+			return ".csv";
+		}
+		else if (suffixMode == 2) {
+			return ".txt";
+		}
+		else {
+			return ".dat";
+		}
+	}
 
 // String trimming functions credited to https://stackoverflow.com/questions/216823/whats-the-best-way-to-trim-stdstring
 // trim from start (in place)
-inline
-void ltrim(std::string &s) {
+inline void ltrim(std::string &s) {
     s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](unsigned char ch) {
         return !std::isspace(ch);
     }));
 }
 
 // trim from end (in place)
-inline
-void rtrim(std::string &s) {
+inline void rtrim(std::string &s) {
     s.erase(std::find_if(s.rbegin(), s.rend(), [](unsigned char ch) {
         return !std::isspace(ch);
     }).base(), s.end());
 }
 
 // trim from both ends (in place)
-inline
-void trim(std::string &s) {
+inline void trim(std::string &s) {
     ltrim(s);
     rtrim(s);
 }
 
 // Adds '/' to end of dir string if not existent
-inline
-std::string cleanDirectoryString(std::string dirName) {
+inline std::string cleanDirectoryString(std::string dirName) {
     if (dirName.back() != '\\' && dirName.back() != '/') {
         return dirName + "/";
     }
@@ -58,8 +53,7 @@ std::string cleanDirectoryString(std::string dirName) {
     return dirName;
 }
 
-inline
-double probZUT(double z)
+inline double probZUT(double z)
 /*
 Using erf as it can be transformed into the standard normal function:
 http://www.cplusplus.com/reference/cmath/erf/
@@ -69,8 +63,7 @@ See discussion https://stackoverflow.com/questions/27214780/how-to-implement-the
     return 1 - (1/2)*(1 + erf(z/sqrt(2)));
 }
 
-inline
-double probZLT(double z)
+inline double probZLT(double z)
 {
     return (1/2)*(1 + erf(z/sqrt(2)));
 }
