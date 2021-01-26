@@ -1,7 +1,7 @@
 # Marxan
 In development 2020
 
-# How to Build (windows)
+# How to Build (Windows)
 Marxan has now been refactored to use c++17 for more modernised code and more extensive standard library. MinGW64 is needed to build on windows. Ideally we would compile with latest c++ (c++20 at the time of writing) but I could not find a windows build toolchain that was up to date with gcc 10.2 that actually worked. 
 
 Command to build is 
@@ -19,11 +19,20 @@ g++
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 brew install libomp
 ```
-Command to build is: 
+Command to build without statically linked libraries is: 
 ```
 g++ marxan.cpp clumping.cpp heuristics.cpp input.cpp output.cpp probability.cpp -lomp -o bin/marxan -Xclang -fopenmp -std=c++17  -O3
 ```
-Libraries are not statically linked. 
+Command to build with statically linked openMP library is: 
+```
+g++ marxan.cpp clumping.cpp heuristics.cpp input.cpp output.cpp probability.cpp /usr/local/opt/libomp/lib/libomp.a -o bin/marxan -Xclang -fopenmp -std=c++17  -O3
+```
+
+# How to run (Mac with M1 processor)
+Install translator from Intel architecture:
+```
+softwareupdate --install-rosetta
+```
 
 # How to run unit tests (Linux or WSL only)
 CppuTest is used as the testing framework. Only compilable on linux or WSL. 
