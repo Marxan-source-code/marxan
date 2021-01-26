@@ -38,7 +38,9 @@ softwareupdate --install-rosetta
 CppuTest is used as the testing framework. Only compilable on linux or WSL. 
 
 Command to build tests is:
-```
 
-```
+- cd to the /test directory
+- call "make" to compile the tests
+- ./test to run
+
 
