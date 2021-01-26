@@ -316,23 +316,22 @@ namespace marxan {
         int clumptype, int irun, string savename, stringstream& logBuffer);
 
     // input reading
-    int readConnections(int& puno, vector<sconnections>& connections, vector<spustuff>& pu,
-        map<int, int>& PULookup, sfname& fnames);
+    int readConnections(int puno, vector<sconnections>& connections, const vector<spustuff>& pu,
+        const map<int, int>& PULookup, const sfname& fnames);
     void readInputOptions(double& cm, double& prop, sanneal& anneal,
         int& iseed,
-        long int& repeats, string& savename, sfname& fname, string filename,
+        long int& repeats, string& savename, const sfname& fname, string filename,
         int& runopts, double& misslevel, int& heurotype, int& clumptype,
         int& itimptype, int& verb,
         double& costthresh, double& tpf1, double& tpf2);
     void readPenalties(vector<sspecies>& spec, int spno, sfname& fnames, map<int, int>& SPLookup);
-    int readPlanningUnits(int& puno, vector<spustuff>& pu, sfname& fnames);
+    int readPlanningUnits(int& puno, vector<spustuff>& pu, const sfname& fnames);
     void readSparseMatrix(int& iSMSize, vector<spu>& SM, int puno, int spno, vector<spustuff>& pu,
-        map<int, int>& PULookup, map<int, int>& SPLookup,
-        sfname& fnames);
+        const map<int, int>& PULookup, const map<int, int>& SPLookup, const sfname& fnames);
     void readSparseMatrixSpOrder(int& iSMSize, vector<spusporder>& SM, int puno, int spno,
-        map<int, int>& PULookup, map<int, int>& SPLookup, vector<sspecies>& spec,
-        sfname& fnames);
-    int readSpecies(int& spno, vector<sspecies>& spec, sfname& fnames);
+        const map<int, int>& PULookup, const map<int, int>& SPLookup, vector<sspecies>& spec, const sfname& fnames);
+
+    int readSpecies(int& spno, vector<sspecies>& spec, const sfname& fnames);
     int readSpeciesBlockDefinition(int& gspno, vector<sgenspec>& gspec, sfname& fnames);
 
     //void SetVerbosity(int verb);
