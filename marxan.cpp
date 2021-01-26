@@ -1708,7 +1708,7 @@ namespace marxan {
 
     // determines if the change value for changing a single planning unit status is good
     // does the change stochastically fall below the current acceptance probability?
-    int isGoodChange(const scost& change, double temp, const uniform_real_distribution<double>& float_range)
+    int isGoodChange(const scost& change, double temp, uniform_real_distribution<double>& float_range)
     {
         if (change.total <= 0)
             return 1;
