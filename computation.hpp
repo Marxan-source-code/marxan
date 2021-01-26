@@ -69,7 +69,7 @@ double connectionCost1(const sconnections &connections, double cm, int asymmetri
 inline
 /***  Counts the number of species missing from the reserve ****/
 // compute the number of species whose representation fraction is less that the MISSLEVEL parameter
-int computeRepresentationMISSLEVEL(int spno,vector<sspecies> &spec,double misslevel,double &shortfall,double &rMinimumProportionMet)
+int computeRepresentationMISSLEVEL(int spno, const vector<sspecies> &spec, double misslevel, double &shortfall, double &rMinimumProportionMet)
 {
     int i,isp = 0;
     double rProportionMet;
@@ -111,7 +111,7 @@ inline
 // compute connectivity total, in, edge, out for summary report
 void computeConnectivityIndices(double &rConnectivityTotal, double &rConnectivityIn,
                                 double &rConnectivityEdge, double &rConnectivityOut,
-                                int puno, vector<int> &R, vector<sconnections> &connections)
+                                int puno, const vector<int> &R, const vector<sconnections> &connections)
 // We record 4 categories for connectivity;
 //  - total, all connections in the region
 //  - in, all connections entirely within the reserve network (ie. both pu's in)
@@ -174,7 +174,7 @@ void computeConnectivityIndices(double &rConnectivityTotal, double &rConnectivit
 
 inline
 // Merging repeated area computation code. Recomputes TO, TA etc. from scratch.
-void computeOccurrencesAndAreas (int& puno, vector<spustuff>& pu, vector<spu>& SM, 
+void computeOccurrencesAndAreas (int& puno, const vector<spustuff>& pu, const vector<spu>& SM, 
     vector<int>& TotalOccurrences, vector<int>& TO_2, vector<int>& TO_3, 
     vector<double>& TotalAreas, vector<double>& TA_2, vector<double>& TA_3) {
     
@@ -236,7 +236,7 @@ void computeProbMeasures(double variance, double target, double prTarget, double
 
 inline
 // Used in ReturnProbabilityAmounts1D and ReturnProbabilityAmounts2D
-void computeExpectedAndVariance(int ipu, vector<spustuff> &pu,vector<spu> &SM, vector<double>& variance, vector<double>& expected) {
+void computeExpectedAndVariance(int ipu, const vector<spustuff> &pu, const vector<spu> &SM, vector<double>& variance, vector<double>& expected) {
     int i, ism, isp;
 
     if (pu[ipu].richness)
@@ -287,7 +287,7 @@ pair<int,double> returnAmountSpecAtPu(const spustuff &pu, const vector<spu> &SM,
 
 // compute penalty for a species for changing status of a single planning unit
 inline
-double computeSpeciesPlanningUnitPenalty(int ipu,int isp, const vector<sspecies> &spec, const vector<spustuff> &pu, vector<spu> &SM, int imode)
+double computeSpeciesPlanningUnitPenalty(int ipu,int isp, const vector<sspecies> &spec, const vector<spustuff> &pu, const vector<spu> &SM, int imode)
 {
     double newpen = max(0.0, spec[isp].target - spec[isp].amount - returnAmountSpecAtPu(pu[ipu],SM,isp).second*imode);
     return(newpen);
@@ -303,7 +303,7 @@ double computeSpeciesPlanningUnitPenalty( int isp, const vector<sspecies>& spec,
 
 // Sums the total spec amount across all pu
 inline
-double computeTotalSpecAmtAllPu(vector<spustuff> &PU, vector<spu> &SM, int speciesInd) 
+double computeTotalSpecAmtAllPu(const vector<spustuff> &PU, const vector<spu> &SM, int speciesInd) 
 {   
     double totalAmount = 0.0;
     for (int ipu=0;ipu<PU.size();ipu++)
@@ -314,7 +314,7 @@ double computeTotalSpecAmtAllPu(vector<spustuff> &PU, vector<spu> &SM, int speci
 // compute proportional target for species when prop target is specified
 // use the prop value from the conservation feature file to set a proportion target for species
 inline
-void computeSpecProp(int spno, vector<sspecies> &spec, int puno, vector<spustuff> &pu, vector<spu> &SM)
+void computeSpecProp(int spno,  vector<sspecies> &spec, int puno, const vector<spustuff> &pu, const vector<spu> &SM)
 {
     // compute and set target for species with a prop value
     for (int isp=0;isp<spno;isp++)

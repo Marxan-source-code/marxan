@@ -9,7 +9,7 @@ namespace marxan {
 // functions relating to probability 1D and 2D
 
 /************** Value of a Reserve System ********/
-void ComputeP_AllPUsSelected_1D(string &savename,int puno,int spno,vector<spustuff> &pu,vector<spu> &SM,vector<sspecies> &spec) {
+void ComputeP_AllPUsSelected_1D(const string &savename, int puno ,int spno, const vector<spustuff> &pu, const vector<spu> &SM, const vector<sspecies> &spec) {
    FILE *fp;
    int i,j,iHeavisideStepFunction,ism,isp;
    double rProbability, rRawP, rSumProbability = 0, rShortfallPenalty, rZScore;
@@ -60,7 +60,7 @@ void ComputeP_AllPUsSelected_1D(string &savename,int puno,int spno,vector<spustu
    #endif
 }
 
-void ComputeP_AllPUsSelected_2D(string &savename,int puno,int spno,vector<spustuff> &pu,vector<spu> &SM,vector<sspecies> &spec) {
+void ComputeP_AllPUsSelected_2D(const string &savename, int puno, int spno, const vector<spustuff> &pu, const vector<spu> &SM, const vector<sspecies> &spec) {
    FILE *fp;
    int i,j,iHeavisideStepFunction,ism,isp;
    double rProbability, rRawP, rSumProbability = 0, rShortfallPenalty, rZScore;
@@ -113,7 +113,7 @@ void ComputeP_AllPUsSelected_2D(string &savename,int puno,int spno,vector<spustu
 }
 
 // Change in probability 1D for adding or deleting one PU
-double ChangeProbability1D(int iIteration, int ipu, int spno,int puno,vector<sspecies> &spec,vector<spustuff> &pu,vector<spu> &SM,int imode)
+double ChangeProbability1D(int iIteration, int ipu, int spno,int puno, vector<sspecies> &spec, const vector<spustuff> &pu, const vector<spu> &SM, int imode)
 {
    int i, ism, isp, iNewHeavisideStepFunction, iOrigHeavisideStepFunction;
    double rNewExpected, rNewVariance, rOriginalZScore;
@@ -166,7 +166,7 @@ double ChangeProbability1D(int iIteration, int ipu, int spno,int puno,vector<ssp
 }  // Change in probability for adding or deleting one PU
 
 // Change in probability 2D for adding or deleting one PU
-double ChangeProbability2D(int iIteration, int ipu, int spno,int puno,vector<sspecies> &spec,vector<spustuff> &pu,vector<spu> &SM,int imode)
+double ChangeProbability2D(int iIteration, int ipu, int spno, int puno, vector<sspecies> &spec, const vector<spustuff> &pu, const vector<spu> &SM, int imode)
 {
    int i, ism, isp, iNewHeavisideStepFunction, iOrigHeavisideStepFunction;
    double rNewExpected, rNewVariance, rOriginalZScore;
@@ -220,19 +220,19 @@ double ChangeProbability2D(int iIteration, int ipu, int spno,int puno,vector<ssp
 }
 
 // accumulate ExpectedAmount and VarianceInExpectedAmount for each species at this planning unit
-void ReturnProbabilityAmounts1D(vector<double> &ExpectedAmount1D, vector<double> &VarianceInExpectedAmount1D,int ipu,
-                                int puno,vector<spustuff> &pu,vector<spu> &SM)
+void ReturnProbabilityAmounts1D(vector<double> &ExpectedAmount1D, vector<double> &VarianceInExpectedAmount1D, int ipu,
+                                int puno, const vector<spustuff> &pu, const vector<spu> &SM)
 {
    computeExpectedAndVariance(ipu, pu, SM, VarianceInExpectedAmount1D, ExpectedAmount1D);
 }
 
-void ReturnProbabilityAmounts2D(vector<double> &ExpectedAmount2D,vector<double> &VarianceInExpectedAmount2D,int ipu,
-                                int puno,vector<spustuff> &pu,vector<spu> &SM)
+void ReturnProbabilityAmounts2D(vector<double> &ExpectedAmount2D, vector<double> &VarianceInExpectedAmount2D,int ipu,
+                                int puno, const vector<spustuff> &pu, const vector<spu> &SM)
 {
    computeExpectedAndVariance(ipu, pu, SM, VarianceInExpectedAmount2D, ExpectedAmount2D);
 }
 
-double ComputeProbability1D(vector<double> &ExpectedAmount1D, vector<double> &VarianceInExpectedAmount1D,
+double ComputeProbability1D(const vector<double> &ExpectedAmount1D, const vector<double> &VarianceInExpectedAmount1D,
                             int spno,vector<sspecies> &spec) 
 {
    // compute Probability for all reserved planning units
@@ -259,7 +259,7 @@ double ComputeProbability1D(vector<double> &ExpectedAmount1D, vector<double> &Va
 }
 
 double ComputeProbability2D(vector<double> &ExpectedAmount2D, vector<double> &VarianceInExpectedAmount2D,
-                            int spno,vector<sspecies> &spec) 
+                            int spno, vector<sspecies> &spec) 
 {
    // compute Probability for all reserved planning units
    int i, iHeavisideStepFunction;
