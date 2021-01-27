@@ -12,11 +12,7 @@
 
 // functions that read from input files
 namespace marxan {
-    void to_lower(std::string& str)
-    {
-        transform(str.begin(), str.end(), str.begin(), ::tolower);
-    }
-
+    
     vector<string> get_tokens(const std::string& str)
     {
         static const string delimeters(" ,;:^*\"/\t\'\\\n");
@@ -32,11 +28,10 @@ namespace marxan {
                 word.clear();
             }
         }
-        if(!word.empty())
+        if (!word.empty())
             tokens.push_back(word);
         return tokens;
     }
-
 
     vector<string> GetFieldNames(string readname, string fname, ifstream&  fp, const vector<string>& varList) 
     {
@@ -62,7 +57,8 @@ namespace marxan {
             if (sVarName.empty())
                 continue;
 
-            to_lower(sVarName);
+            utils::to_lower(sVarName);
+            utils::trim(sVarName);
 
             if(find(fieldNames.begin(), fieldNames.end(), sVarName) != fieldNames.end())
             {

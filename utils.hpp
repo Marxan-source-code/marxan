@@ -44,6 +44,11 @@ inline void trim(std::string &s) {
     rtrim(s);
 }
 
+inline void to_lower(std::string& str)
+{
+    transform(str.begin(), str.end(), str.begin(), ::tolower);
+}
+
 // Adds '/' to end of dir string if not existent
 inline std::string cleanDirectoryString(std::string dirName) {
     if (dirName.back() != '\\' && dirName.back() != '/') {
