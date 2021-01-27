@@ -77,12 +77,12 @@ inline double probZLT(double z)
 // given the parsed value of an option and its given value storage, parse it in.
 // For string types, the overload below is given.
 inline
-void readInputOptionValue(stringstream& parsed, string& value) {
+void readInputOptionValue(std::stringstream& parsed, std::string& value) {
     value = parsed.str();
 }
 
 template<class T> inline
-void readInputOptionValue(stringstream& parsed, T& value) {
+void readInputOptionValue(std::stringstream& parsed, T& value) {
     parsed >> value;
 }
 

@@ -28,8 +28,7 @@ namespace marxan {
                 word.clear();
             }
         }
-        if (!word.empty())
-            tokens.push_back(word);
+        tokens.push_back(word);
         return tokens;
     }
 
