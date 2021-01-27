@@ -363,37 +363,34 @@ namespace marxan {
     int readConnections(int puno, vector<sconnections>& connections, const vector<spustuff>& pu,
         const map<int, int>& PULookup, const sfname& fnames)
     {
-        FILE* fp;
+        ifstream fp;
         int id1, id2;
         double fcost;
         int icount = 0, idup = 0, bad;
         string readname;
         int ivars;
-        char* sVarVal;
-        char sLine[500];
+        string sLine;
 
         readname = fnames.inputdir + fnames.connectionname;
 
-        fp = fopen(readname.c_str(), "r");
-        if (fp == NULL)
+        fp.open(readname);
+        if (!fp.is_open())
         {
             displayProgress1("Warning: Connection File %s not found ", fnames.connectionname.c_str());
             return(0);
         }
 
-        if (fgets(sLine, 500 - 1, fp) == NULL)
+        if (!getline(fp, sLine))
             displayErrorMessage("Error reading connections.\n");
 
-        while (fgets(sLine, 500 - 1, fp))
+        while (getline(fp, sLine))
         {
             icount++;
 
-            sVarVal = strtok(sLine, " ,;:^*\"/\t\'\\\n");
-            sscanf(sVarVal, "%d", &id1);
-            sVarVal = strtok(NULL, " ,;:^*\"/\t\'\\\n");
-            sscanf(sVarVal, "%d", &id2);
-            sVarVal = strtok(NULL, " ,;:^*\"/\t\'\\\n");
-            sscanf(sVarVal, "%lf", &fcost);
+            vector<string> tokens = get_tokens(sLine);
+            stringstream(tokens[0]) >> id1;
+            stringstream(tokens[1]) >> id2;
+            stringstream(tokens[2]) >> fcost;
 
             try
             {
@@ -480,7 +477,7 @@ namespace marxan {
                 displayErrorMessage("A connection is out of range %f %i %i \n", fcost, id1, id2);
         }
 
-        fclose(fp);
+        fp.close();
 
         if (idup)
             displayProgress1("There were %i duplicate connection definitions.\n", idup);
@@ -494,58 +491,41 @@ namespace marxan {
         const map<int, int>& PULookup, const map<int, int>& SPLookup, const sfname& fnames) 
     {
         vector<map<int, spu>> SMTemp; // temporarily storing in this structure prevents the need for ordering.
-        FILE* fp;
+        ifstream fp;
         string readname;
-        char sLine[500], * sVarVal;
-        int i, _spid, _puid, iInternalSMSize = 0, iBigMatrixSize, iLength;
+        string sLine;
+        int i, _spid, _puid, iBigMatrixSize, iLength;
         double amount, rDensity, rInternalSMSize, rBigMatrixSize, rProbability = 1;
         int iLastPUID;
 
         readname = fnames.inputdir + fnames.puvsprname;
-        if ((fp = fopen(readname.c_str(), "r")) == NULL)
+        if (!fp.is_open())
             displayErrorMessage("PU v Species file %s not found\nAborting Program.", readname.c_str());
 
-        // read through the file first to see how many lines
-        if (fgets(sLine, 500 - 1, fp) == NULL)
-            displayErrorMessage("Error reading sparse matrix.\n");
 
-        while (fgets(sLine, 500 - 1, fp))
-            iInternalSMSize++;
-
-        rewind(fp);
-
-        if (fgets(sLine, 500 - 1, fp) == NULL)
+        if (getline(fp, sLine))
             displayErrorMessage("Error reading sparse matrix.\n");
 
         // scan the first line to see if the prob field is tagged on the end
         // 3 = regular marxan matrix
         // 4 = prob2d marxan matrix
-        iLength = strlen(sLine);
+        iLength = sLine.size();
         if ((sLine[iLength - 5] == 'p') && (sLine[iLength - 4] == 'r') && (sLine[iLength - 3] == 'o') && (sLine[iLength - 2] == 'b'))
             fProb2D = 1;
-
-        iSMSize = iInternalSMSize;
-
         // create the sparse matrix
         SMTemp.resize(puno);
-        SM.resize(iInternalSMSize);
 
         // init with zero values
-        for (i = 0; i < iInternalSMSize; i++)
+        for (i = 0; getline(fp, sLine); i++)
         {
-            fgets(sLine, 500 - 1, fp);
-
-            sVarVal = strtok(sLine, " ,;:^*\"/\t\'\\\n");
-            sscanf(sVarVal, "%d", &_spid);
-            sVarVal = strtok(NULL, " ,;:^*\"/\t\'\\\n");
-            sscanf(sVarVal, "%d", &_puid);
-            sVarVal = strtok(NULL, " ,;:^*\"/\t\'\\\n");
-            sscanf(sVarVal, "%lf", &amount);
+            vector<string> tokens = get_tokens(sLine);
+            stringstream(tokens[0]) >> _spid;
+            stringstream(tokens[1]) >> _puid;
+            stringstream(tokens[2]) >> amount;
 
             if (fProb2D == 1)
             {
-                sVarVal = strtok(NULL, " ,;:^*\"/\t\'\\\n");
-                sscanf(sVarVal, "%lf", &rProbability);
+                stringstream(tokens[3]) >> rProbability;
             }
 
             int old_puid;
@@ -572,7 +552,8 @@ namespace marxan {
             SMTemp[_puid][_spid].amount = amount;
         }
 
-        fclose(fp);
+
+        fp.close();
 
         int j = 0;
         // Populate real SM using SMTemp
@@ -586,13 +567,14 @@ namespace marxan {
             }
         }
 
+        iSMSize = SM.size();
         iBigMatrixSize = puno * spno;
-        rInternalSMSize = iInternalSMSize;
+        rInternalSMSize = iSMSize;
         rBigMatrixSize = iBigMatrixSize;
         rDensity = rInternalSMSize / rBigMatrixSize * 100;
 
         displayProgress1("%i conservation values counted, %i big matrix size, %g%% density of matrix \n",
-            iInternalSMSize, iBigMatrixSize, rDensity);
+            iSMSize, iBigMatrixSize, rDensity);
     } // readSparseMatrix
 
     void readPenalties(vector<sspecies>& spec, int spno, sfname& fnames, map<int, int>& SPLookup) {
