@@ -578,28 +578,28 @@ namespace marxan {
     } // readSparseMatrix
 
     void readPenalties(vector<sspecies>& spec, int spno, sfname& fnames, map<int, int>& SPLookup) {
-        FILE* fp;
+        ifstream fp;
         string readname;
-        char* sVarVal, sLine[500];
         int i, iSPID;
         double rPenalty;
+        string sLine;
 
         readname = fnames.inputdir + fnames.penaltyname;
-        if ((fp = fopen(readname.c_str(), "r")) == NULL)
+        fp.open(readname);
+        if (!fp.is_open())
             displayErrorMessage("Penalty file %s not found\nAborting Program.", readname.c_str());
 
         for (i = 0; i < spno; i++)
             spec[i].rUserPenalty = 0;
 
-        if (fgets(sLine, 500 - 1, fp) == NULL)
+        if (getline(fp, sLine))
             displayErrorMessage("Error reading penalties.\n");
 
-        while (fgets(sLine, 500 - 1, fp))
+        while (getline(fp, sLine))
         {
-            sVarVal = strtok(sLine, " ,;:^*\"/\t\'\\\n");
-            sscanf(sVarVal, "%d", &iSPID);
-            sVarVal = strtok(NULL, " ,;:^*\"/\t\'\\\n");
-            sscanf(sVarVal, "%lf", &rPenalty);
+            vector<string> tokens = get_tokens(sLine);
+            stringstream(tokens[0]) >> iSPID;
+            stringstream(tokens[1]) >> rPenalty;
 
             i = SPLookup[iSPID];
             spec[i].rUserPenalty = rPenalty;
@@ -607,7 +607,7 @@ namespace marxan {
             appendTraceFile("readPenalties spname %i user penalty %g\n", spec[i].name, rPenalty);
         }
 
-        fclose(fp);
+        fp.close();
     }
 
     // read the planning unit versus species sparse matrix: ordered by species
@@ -615,18 +615,19 @@ namespace marxan {
         const map<int, int>& PULookup, const map<int, int>& SPLookup, vector<sspecies>& spec, const sfname& fnames) 
     {
         vector<map<int, spusporder>> SMTemp;
-        FILE* fp;
+        ifstream fp;
         string readname;
-        char sLine[500], * sVarVal;
+        string sLine;
         int _spid, _puid, iInternalSMSize = 0, iBigMatrixSize, iLastSPID;
         double amount, rDensity, rInternalSMSize, rBigMatrixSize;
 
         readname = fnames.inputdir + fnames.matrixspordername;
-        if ((fp = fopen(readname.c_str(), "r")) == NULL)
+        fp.open(readname);
+        if (!fp.is_open())
             displayErrorMessage("PU v Species file %s not found\nAborting Program.", readname.c_str());
 
         // read through the file first to see how many lines
-        if (fgets(sLine, 500 - 1, fp) == NULL)
+        if (!getline(fp, sLine))
             displayErrorMessage("Error reading sparse matrix sporder.\n");
 
         // create the sparse matrix
@@ -634,14 +635,12 @@ namespace marxan {
 
         // planning unit richness and offset are already set to zero
         // init with zero values
-        while (fgets(sLine, 500 - 1, fp))
+        while (getline(fp, sLine))
         {
-            sVarVal = strtok(sLine, " ,;:^*\"/\t\'\\\n");
-            sscanf(sVarVal, "%d", &_spid);
-            sVarVal = strtok(NULL, " ,;:^*\"/\t\'\\\n");
-            sscanf(sVarVal, "%d", &_puid);
-            sVarVal = strtok(NULL, " ,;:^*\"/\t\'\\\n");
-            sscanf(sVarVal, "%lf", &amount);
+            vector<string> tokens = get_tokens(sLine);
+            stringstream(tokens[0]) >> _spid;
+            stringstream(tokens[1]) >> _puid;
+            stringstream(tokens[2]) >> amount;
 
             int old_puid;
             try {
@@ -666,7 +665,7 @@ namespace marxan {
             SMTemp[_spid][_puid].amount = amount;
         }
 
-        fclose(fp);
+        fp.close();
 
         // Fill the SM vector
         int j = 0;
