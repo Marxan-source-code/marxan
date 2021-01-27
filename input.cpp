@@ -12,53 +12,71 @@
 
 // functions that read from input files
 namespace marxan {
-
-    string storeFieldName(const vector<string>& varlist, int numvars, string sVarName,
-        const vector<string>& head, string fname) {
-
-        // add a field name from an input file header to a list
-        int foundit = 0;
-        int temp, newlink;
-
-        for (int i = 0; (i < numvars && foundit == 0); i++)
-        {
-            if (varlist[i].compare(sVarName) == 0)
-                foundit++;
-        }
-
-        if (!head.empty() && find(head.begin(), head.end(), sVarName) != head.end())
-        {
-            displayErrorMessage("ERROR: variable %s has been defined twice in data file %s.\n", sVarName.c_str(), fname.c_str());
-        }
-
-        return(sVarName);
+    void to_lower(std::string& str)
+    {
+        transform(str.begin(), str.end(), str.begin(), ::tolower);
     }
 
-    vector<string> GetFieldNames(string readname, string fname, FILE*& fp, int& ivars, const vector<string>& varList) {
-        char sLine[500];
+    vector<string> get_tokens(const std::string& str)
+    {
+        static const string delimeters(" ,;:^*\"/\t\'\\\n");
+        vector<string> tokens;
+        string word;
+        for (char ch : str)
+        {
+            if (delimeters.find_first_of(ch) == string::npos)
+                word.push_back(ch);
+            else
+            {
+                tokens.push_back(word);
+                word.clear();
+            }
+        }
+        return tokens;
+    }
+
+
+    vector<string> GetFieldNames(string readname, string fname, ifstream&  fp, const vector<string>& varList) 
+    {
         vector<string> fieldNames;
-        int numvars = varList.size();
 
         /* Find and Open File */
-        if ((fp = fopen(readname.c_str(), "r")) == NULL) {
-            displayWarningMessage("Warning: File %s not found.\n", fname.c_str());
+        fp.open(readname);
+        if (!fp.is_open()) 
+        {
+            displayWarningMessage("File %s not found.\n", fname.c_str());
             return fieldNames; // return empty list
         }
 
         /* Scan header */
-        if (fgets(sLine, 500 - 1, fp) == NULL)
+        string sLine;
+        if (!getline(fp, sLine))
             displayErrorMessage("Error reading %s.\n", fname.c_str());
 
-        char* temp = strtok(sLine, " ,;:^*\"/\t\'\\\n");
-        string sVarName(temp);
-        fieldNames.push_back(storeFieldName(varList, numvars, sVarName, fieldNames, fname));
-        ivars = 1;
+        vector<string> tokens = get_tokens(sLine);
+        
+        for (string sVarName : tokens)
+        {
+            if (sVarName.empty())
+                continue;
 
-        while ((temp = strtok(NULL, " ,;:^*\"/\t\'\\\n")) != NULL) {
-            sVarName = temp;
-            ivars++;
-            fieldNames.push_back(storeFieldName(varList, numvars, sVarName, fieldNames, fname));
-        }  /* tokking out all the variable names from the header line. There are numVars of them*/
+            to_lower(sVarName);
+
+            if(find(fieldNames.begin(), fieldNames.end(), sVarName) != fieldNames.end())
+            {
+                displayErrorMessage("Variable %s has been defined twice in data file %s.\n", sVarName.c_str(), fname.c_str());
+            }
+
+            if (find(varList.begin(), varList.end(), sVarName) != fieldNames.end())
+            {
+                fieldNames.push_back(sVarName);
+            }
+            else
+            {
+                displayErrorMessage("Variable %s defined in data file %s is not from the list of allowed variables for this data file.\n", sVarName.c_str(), fname.c_str());
+            }
+
+        }
 
         return fieldNames;
     }
@@ -66,26 +84,21 @@ namespace marxan {
     // read the planning units file pu.dat
     int readPlanningUnits(int& puno, vector<spustuff>& pu, const sfname& fnames)
     {
-        FILE* fp;
+        ifstream fp;
         string readname;
-        char sLine[600];
+        string sLine;
         vector<string> varlist = { "id","cost","status","xloc","yloc","prob" };
-        int ivars, i = 0;
-        char* sVarVal;
+        int i = 0;
 
         readname = fnames.inputdir + fnames.puname;
 
-#ifdef MEMDEBUG
-        iMemoryUsed += (strlen(fnames.puname) + strlen(fnames.inputdir) + 2) * sizeof(char);
-        displayProgress1("memory used %i\n", iMemoryUsed);
-#endif
 
-        vector<string> head = GetFieldNames(readname, fnames.puname, fp, ivars, varlist);
-        if (head.empty())
+        vector<string> head = GetFieldNames(readname, fnames.puname, fp,  varlist);
+        if (!fp.is_open())
             displayErrorMessage("Planning Unit file %s has not been found.\nAborting Program.", readname.c_str());
 
         /* While there are still lines left feed information into temporary list */
-        while (fgets(sLine, 500 - 1, fp))
+        while (getline(fp, sLine))
         {
             i++;
             spustuff putemp;
@@ -100,36 +113,38 @@ namespace marxan {
             putemp.probrichness = 0;
             putemp.proboffset = 0;
 
-            for (string temp : head)
+            vector<string> tokens = get_tokens(sLine);
+            if(tokens.size() != head.size())
+                displayErrorMessage("Planning Unit file %s has different amount of items at line %d then its head.\n", fnames.puname.c_str(), i);
+
+            for (int j = 0; j < head.size(); j++)
             {
-                if (temp == head.front())
-                    sVarVal = strtok(sLine, " ,;:^*\"/\t\'\\\n");
-                else
-                    sVarVal = strtok(NULL, " ,;:^*\"/\t\'\\\n");
+                const string& temp = head[j];
+                stringstream sVarVal(tokens[j]);
 
                 if (temp.compare("id") == 0)
                 {
-                    sscanf(sVarVal, "%d", &putemp.id);
+                    sVarVal >> putemp.id;
                 }
                 else if (temp.compare("status") == 0)
                 {
-                    sscanf(sVarVal, "%d", &putemp.status);
+                    sVarVal >> putemp.status;
                 }
                 else if (temp.compare("xloc") == 0)
                 {
-                    sscanf(sVarVal, "%lf", &putemp.xloc);
+                    sVarVal >> putemp.xloc;
                 }
                 else if (temp.compare("yloc") == 0)
                 {
-                    sscanf(sVarVal, "%lf", &putemp.yloc);
+                    sVarVal >> putemp.yloc;
                 }
                 else if (temp.compare("cost") == 0)
                 {
-                    sscanf(sVarVal, "%lf", &putemp.cost);
+                    sVarVal >> putemp.cost;
                 }
                 else if (temp.compare("prob") == 0)
                 {
-                    sscanf(sVarVal, "%lf", &putemp.prob);
+                    sVarVal >> putemp.prob;
                     iProbFieldPresent = 1;
                 }
             } /* looking for ivar different input variables */
@@ -141,15 +156,10 @@ namespace marxan {
 
         } /* while still lines in data file */
 
-        fclose(fp);
+        fp.close();
 
         /* Create array to store the information */
         puno = i;
-
-#ifdef MEMDEBUG
-        iMemoryUsed += (*puno) * sizeof(struct spustuff);
-        displayProgress1("memory used %i\n", iMemoryUsed);
-#endif
 
         if (iProbFieldPresent == 1)
         {
@@ -162,23 +172,21 @@ namespace marxan {
     // read species file: spec.dat
     int readSpecies(int& spno, vector<sspecies>& spec, const sfname& fnames)
     {
-        FILE* fp;
+        ifstream  fp;
         int n = 0;
         string readname;
-        char sLine[500];
+        string sLine;
         vector<string> varlist = { "id","type","target","spf",
                              "target2","sepdistance","sepnum","name",
                              "targetocc","prop","ptarget1d","ptarget2d" };
-        int ivars;
-        char* sVarVal;
 
         readname = fnames.inputdir + fnames.specname;
-        vector<string> snhead = GetFieldNames(readname, fnames.specname, fp, ivars, varlist);
+        vector<string> snhead = GetFieldNames(readname, fnames.specname, fp, varlist);
         if (snhead.empty())
             displayErrorMessage("Species file %s has not been found.\nAborting Program.", readname.c_str());
 
         // While there are still lines left feed information into temporary link list
-        while (fgets(sLine, 500 - 1, fp))
+        while (getline(fp, sLine))
         {
             n++;
             // Clear important species stats
@@ -201,65 +209,67 @@ namespace marxan {
             spectemp.Zscore1D = 0;
             spectemp.Zscore2D = 0;
 
-            for (string temp : snhead)
+            vector<string> tokens = get_tokens(sLine);
+            if (tokens.size() != snhead.size())
+                displayErrorMessage("Planning Unit file %s has different amount of items at line %d then its head.\n", fnames.specname.c_str(), n);
+
+            for (int j = 0; j < snhead.size(); j++)
             {
-                if (temp == snhead.front())
-                    sVarVal = strtok(sLine, " ,;:^*\"/\t\'\\\n");
-                else
-                    sVarVal = strtok(NULL, " ,;:^*\"/\t\'\\\n");
+                const string& temp = snhead[j];
+                stringstream sVarVal(tokens[j]);
 
                 if (temp.compare("id") == 0)
                 {
-                    sscanf(sVarVal, "%d", &spectemp.name);
+                    sVarVal >> spectemp.name;
                 }
                 else if (temp.compare("type") == 0)
                 {
-                    sscanf(sVarVal, "%d", &spectemp.type);
+                    sVarVal >> spectemp.type;
                 }
                 else if (temp.compare("target") == 0)
                 {
-                    sscanf(sVarVal, "%lf", &spectemp.target);
+                    sVarVal >> spectemp.target;
                 }
                 else if (temp.compare("prop") == 0)
                 {
-                    sscanf(sVarVal, "%lf", &spectemp.prop);
+                    sVarVal >> spectemp.prop;
                     if (spectemp.prop > 0)
                         fSpecPROPLoaded = 1;
                 }
                 else if (temp.compare("spf") == 0)
                 {
-                    sscanf(sVarVal, "%lf", &spectemp.spf);
+                    sVarVal >> spectemp.spf;
                 }
                 else if (temp.compare("sepdistance") == 0)
                 {
-                    sscanf(sVarVal, "%lf", &spectemp.sepdistance);
+                    sVarVal >> spectemp.sepdistance;
                 }
                 else if (temp.compare("sepnum") == 0)
                 {
-                    sscanf(sVarVal, "%d", &spectemp.sepnum);
+                    sVarVal >> spectemp.sepnum;
                 }
                 else if (temp.compare("target2") == 0)
                 {
-                    sscanf(sVarVal, "%lf", &spectemp.target2);
+                    sVarVal >> spectemp.target2;
                 }
                 else if (temp.compare("targetocc") == 0)
                 {
-                    sscanf(sVarVal, "%d", &spectemp.targetocc);
+                    sVarVal >> spectemp.targetocc;
                 }
                 else if (temp.compare("ptarget1d") == 0)
                 {
-                    sscanf(sVarVal, "%lf", &spectemp.ptarget1d);
+                    sVarVal >> spectemp.ptarget1d;
                 }
                 else if (temp.compare("ptarget2d") == 0)
                 {
-                    sscanf(sVarVal, "%lf", &spectemp.ptarget2d);
+                    sVarVal >> spectemp.ptarget2d;
                 }
             } // looking for ivar different input variables
 
             spec.push_back(spectemp);
         } // Scanning through each line of file
 
-        fclose(fp);
+        fp.close();
         spno = n;
         return(n);
     }  // readSpecies
@@ -268,9 +278,9 @@ namespace marxan {
     // allows attribute to be applied to species based upon a type
     int readSpeciesBlockDefinition(int& gspno, vector<sgenspec>& gspec, sfname& fnames)
     {
-        FILE* fp;
+        ifstream fp;
         string readname;
-        char sLine[500];
+        string sLine;
         vector<string> varlist = { "type","target","target2","targetocc",
                             "sepnum","sepdistance","prop","spf" };
         int ivars, i = 0;
@@ -278,10 +288,10 @@ namespace marxan {
 
         /* Find and Open File */
         readname = fnames.inputdir + fnames.blockdefname;
-        vector<string> head = GetFieldNames(readname, fnames.blockdefname, fp, ivars, varlist);
+        vector<string> head = GetFieldNames(readname, fnames.blockdefname, fp, varlist);
 
         /* While there are still lines left feed information into temporary link list */
-        while (fgets(sLine, 500 - 1, fp)) {
+        while (getline(fp, sLine)) {
             i++;
             sgenspec gstemp;
             gstemp.type = -1; /* Set defaults for any missing values */
@@ -292,36 +302,39 @@ namespace marxan {
             gstemp.sepdistance = -1;
             gstemp.prop = -1;
 
-            for (string temp : head)
+            vector<string> tokens = get_tokens(sLine);
+            if (tokens.size() != head.size())
+                displayErrorMessage("Species block definition file %s has different amount of items at line %d then its head.\n", fnames.blockdefname.c_str(), i);
+
+
+            for (int j = 0; j < head.size(); j++)
             {
-                if (temp == head.front())
-                    sVarVal = strtok(sLine, " ,;:^*\"/\t\'\\\n");
-                else
-                    sVarVal = strtok(NULL, " ,;:^*\"/\t\'\\\n");
+                const string& temp = head[j];
+                stringstream sVarVal(tokens[j]);
 
                 if (temp.compare("type") == 0) {
-                    sscanf(sVarVal, "%d", &gstemp.type);
+                    sVarVal >> gstemp.type;
                 }
                 else if (temp.compare("targetocc") == 0) {
-                    sscanf(sVarVal, "%d", &gstemp.targetocc);
+                    sVarVal >> gstemp.targetocc;
                 }
                 else if (temp.compare("target") == 0) {
-                    sscanf(sVarVal, "%lf", &gstemp.target);
+                    sVarVal >> gstemp.target;
                 }
                 else if (temp.compare("target2") == 0) {
-                    sscanf(sVarVal, "%lf", &gstemp.target2);
+                    sVarVal >> gstemp.target2;
                 }
                 else if (temp.compare("sepnum") == 0) {
-                    sscanf(sVarVal, "%d", &gstemp.sepnum);
+                    sVarVal >> gstemp.sepnum;
                 }
                 else if (temp.compare("sepdistance") == 0) {
-                    sscanf(sVarVal, "%lf", &gstemp.sepdistance);
+                    sVarVal >> gstemp.sepdistance;
                 }
                 else if (temp.compare("prop") == 0) {
-                    sscanf(sVarVal, "%lf", &gstemp.prop);
+                    sVarVal >> gstemp.prop;
                 }
                 else if (temp.compare("spf") == 0) {
-                    sscanf(sVarVal, "%lf", &gstemp.spf);
+                    sVarVal >> gstemp.spf;
                 }
                 else
                 {
@@ -337,7 +350,7 @@ namespace marxan {
 
         } /* while still lines in data file */
 
-        fclose(fp);
+        fp.close();
 
         gspno = i;
         return(i);
@@ -454,10 +467,6 @@ namespace marxan {
                 {
                     connections[id2].nbrno++;
                     sneighbour p(id1, fcost, 1);
-
-#ifdef MEMDEBUG
-                    iMemoryUsed += sizeof(struct sneighbour);
-#endif
 
                     if (asymmetricconnectivity)
                         p.connectionorigon = 0;

@@ -7,7 +7,6 @@
 #define PROB2D
 
 // Flags to change to "define" for debugging purposes
-#undef MEMDEBUG
 #undef EXTRADEBUGTRACE
 #undef ANNEALING_TEST
 #undef DEBUGCHANGEPEN
@@ -527,10 +526,6 @@ namespace marxan {
             readSparseMatrixSpOrder(iSparseMatrixFileLength_sporder, SMsporder, puno, spno, PULookup, SPLookup, specGlobal, fnames);
 
             appendTraceFile("after readSparseMatrixSpOrder\n");
-
-#ifdef MEMDEBUG
-            displayProgress1("after LoadSparseMatrix_sporder\n");
-#endif
         }
 
         appendTraceFile("before process block definitions\n");
@@ -1709,7 +1704,7 @@ namespace marxan {
 
     // determines if the change value for changing a single planning unit status is good
     // does the change stochastically fall below the current acceptance probability?
-    int isGoodChange(const scost& change, double temp, const uniform_real_distribution<double>& float_range)
+    int isGoodChange(const scost& change, double temp, uniform_real_distribution<double>& float_range)
     {
         if (change.total <= 0)
             return 1;
