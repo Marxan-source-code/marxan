@@ -32,6 +32,8 @@ namespace marxan {
                 word.clear();
             }
         }
+        if(!word.empty())
+            tokens.push_back(word);
         return tokens;
     }
 
@@ -67,7 +69,7 @@ namespace marxan {
                 displayErrorMessage("Variable %s has been defined twice in data file %s.\n", sVarName.c_str(), fname.c_str());
             }
 
-            if (find(varList.begin(), varList.end(), sVarName) != fieldNames.end())
+            if (find(varList.begin(), varList.end(), sVarName) != varList.end())
             {
                 fieldNames.push_back(sVarName);
             }
