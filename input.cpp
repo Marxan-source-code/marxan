@@ -13,8 +13,8 @@
 // functions that read from input files
 namespace marxan {
 
-    string storeFieldName(vector<string>& varlist, int numvars, string sVarName,
-        vector<string>& head, string fname) {
+    string storeFieldName(const vector<string>& varlist, int numvars, string sVarName,
+        const vector<string>& head, string fname) {
 
         // add a field name from an input file header to a list
         int foundit = 0;
@@ -34,7 +34,7 @@ namespace marxan {
         return(sVarName);
     }
 
-    vector<string> GetFieldNames(string readname, string fname, FILE*& fp, int& ivars, vector<string>& varList) {
+    vector<string> GetFieldNames(string readname, string fname, FILE*& fp, int& ivars, const vector<string>& varList) {
         char sLine[500];
         vector<string> fieldNames;
         int numvars = varList.size();
@@ -64,7 +64,7 @@ namespace marxan {
     }
 
     // read the planning units file pu.dat
-    int readPlanningUnits(int& puno, vector<spustuff>& pu, sfname& fnames)
+    int readPlanningUnits(int& puno, vector<spustuff>& pu, const sfname& fnames)
     {
         FILE* fp;
         string readname;
@@ -160,7 +160,7 @@ namespace marxan {
     } // readPlanningUnits
 
     // read species file: spec.dat
-    int readSpecies(int& spno, vector<sspecies>& spec, sfname& fnames)
+    int readSpecies(int& spno, vector<sspecies>& spec, const sfname& fnames)
     {
         FILE* fp;
         int n = 0;
@@ -345,8 +345,8 @@ namespace marxan {
 
     // read connections file: read bound.dat (boundaries) or connections.dat (connections)
     // boundaries are a subset of asymmetric connections
-    int readConnections(int& puno, vector<sconnections>& connections, vector<spustuff>& pu,
-        map<int, int>& PULookup, sfname& fnames)
+    int readConnections(int puno, vector<sconnections>& connections, const vector<spustuff>& pu,
+        const map<int, int>& PULookup, const sfname& fnames)
     {
         FILE* fp;
         int id1, id2;
@@ -380,8 +380,23 @@ namespace marxan {
             sVarVal = strtok(NULL, " ,;:^*\"/\t\'\\\n");
             sscanf(sVarVal, "%lf", &fcost);
 
-            id1 = PULookup[id1];
-            id2 = PULookup[id2];
+            try
+            {
+                id1 = PULookup.at(id1);
+            }
+            catch (out_of_range ex)
+            {
+                displayErrorMessage("A connection id1 %i found in %s is not found in %s.\n", id1, fnames.connectionname.c_str(), fnames.puname.c_str());
+            }
+
+            try
+            {
+                id2 = PULookup.at(id2);
+            }
+            catch (out_of_range ex)
+            {
+                displayErrorMessage("A connection id2 %i found in %s is not found in %s.\n", id2, fnames.connectionname.c_str(), fnames.puname.c_str());
+            }
 
             if (id1 == id2)
             { // irremovable connection
@@ -396,7 +411,7 @@ namespace marxan {
             if (id1 >= 0 && id1 < puno)
             { // Is I a sensible number ?
                 bad = 0;
-                for (sneighbour p : connections[id1].first)
+                for (const sneighbour& p : connections[id1].first)
                 {
                     if (p.nbr == id2)
                         bad = 1;
@@ -465,8 +480,8 @@ namespace marxan {
 
     // functions for Matt's Big O notation optimisation
     void readSparseMatrix(int& iSMSize, vector<spu>& SM, int puno, int spno, vector<spustuff>& pu,
-        map<int, int>& PULookup, map<int, int>& SPLookup,
-        sfname& fnames) {
+        const map<int, int>& PULookup, const map<int, int>& SPLookup, const sfname& fnames) 
+    {
         vector<map<int, spu>> SMTemp; // temporarily storing in this structure prevents the need for ordering.
         FILE* fp;
         string readname;
@@ -604,8 +619,8 @@ namespace marxan {
 
     // read the planning unit versus species sparse matrix: ordered by species
     void readSparseMatrixSpOrder(int& iSMSize, vector<spusporder>& SM, int puno, int spno,
-        map<int, int>& PULookup, map<int, int>& SPLookup, vector<sspecies>& spec,
-        sfname& fnames) {
+        const map<int, int>& PULookup, const map<int, int>& SPLookup, vector<sspecies>& spec, const sfname& fnames) 
+    {
         vector<map<int, spusporder>> SMTemp;
         FILE* fp;
         string readname;
@@ -684,7 +699,7 @@ namespace marxan {
 
     // read value for a single parameter specified in input.dat parameter file
     template<class T>
-    void readInputOption(vector<string>& infile, string varname, T& value, int crit, int& present)
+    void readInputOption(const vector<string>& infile, string varname, T& value, int crit, int& present)
         // Given a varname, scans the infile to see if this field was configured with primitive type T. 
         // Here the lines of the file are supplied as a vector of strings.
         // If configured, returns the value in "value". 
@@ -734,7 +749,7 @@ namespace marxan {
     // read values for the parameters specified in input.dat parameter file
     void readInputOptions(double& cm, double& prop, sanneal& anneal,
         int& iseed,
-        long int& repeats, string& savename, sfname& fname, string filename,
+        long int& repeats, string& savename, const sfname& fname, string filename,
         int& runopts, double& misslevel, int& heurotype, int& clumptype,
         int& itimptype, int& verb,
         double& costthresh, double& tpf1, double& tpf2)
