@@ -695,7 +695,7 @@ namespace marxan {
         // present = stores whether variable was found.
     {
         int foundit = 0;
-        string modifiedVar = varname + " "; // pad with space to prevent fields that are  substrings of other fields
+        string modifiedVar = varname;
 
         for (string line : infile)
         {   /* loop through file looking for varname */
@@ -712,7 +712,7 @@ namespace marxan {
 
                 // read string representation to specified type T
                 stringstream linestream(varValue);
-                linestream >> value;
+                utils::readInputOptionValue(linestream, value);
 
                 if (linestream.fail()) {
                     // some error occurred when reading in value 

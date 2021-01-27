@@ -7,6 +7,7 @@
 #include <locale>
 #include <random>
 #include <string>
+#include <sstream>
 
 namespace marxan {
 namespace utils {
@@ -73,6 +74,17 @@ inline double probZLT(double z)
     return (1/2)*(1 + erf(z/sqrt(2)));
 }
 
+// given the parsed value of an option and its given value storage, parse it in.
+// For string types, the overload below is given.
+inline
+void readInputOptionValue(stringstream& parsed, string& value) {
+    value = parsed.str();
+}
+
+template<class T> inline
+void readInputOptionValue(stringstream& parsed, T& value) {
+    parsed >> value;
+}
 
 
 } // namespace utils
