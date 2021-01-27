@@ -51,11 +51,13 @@ namespace marxan {
 
         char* temp = strtok(sLine, " ,;:^*\"/\t\'\\\n");
         string sVarName(temp);
+        utils::trim(sVarName);
         fieldNames.push_back(storeFieldName(varList, numvars, sVarName, fieldNames, fname));
         ivars = 1;
 
         while ((temp = strtok(NULL, " ,;:^*\"/\t\'\\\n")) != NULL) {
             sVarName = temp;
+            utils::trim(sVarName);
             ivars++;
             fieldNames.push_back(storeFieldName(varList, numvars, sVarName, fieldNames, fname));
         }  /* tokking out all the variable names from the header line. There are numVars of them*/
