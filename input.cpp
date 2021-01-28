@@ -32,18 +32,27 @@ namespace marxan {
         return tokens;
     }
 
-    vector<string> GetFieldNames(string readname, string fname, ifstream& fp, const vector<string>& varList)
+
+    stringstream stream_line(const std::string& str)
+    {
+        static const string delimeters(" ,;:^*\"/\t\'\\\n");
+        stringstream ss;
+        for (char ch : str)
+        {
+            if (delimeters.find_first_of(ch) == string::npos)
+                ss<<ch;
+            else
+            {
+                ss << ' ';
+            }
+        }
+        return ss;
+    }
+
+
+    vector<string> GetFieldNames(string fname, ifstream& fp, const vector<string>& varList)
     {
         vector<string> fieldNames;
-
-        /* Find and Open File */
-        fp.open(readname);
-        if (!fp.is_open())
-        {
-            displayWarningMessage("File %s not found.\n", fname.c_str());
-            return fieldNames; // return empty list
-        }
-
         /* Scan header */
         string sLine;
         if (!getline(fp, sLine))
@@ -85,19 +94,22 @@ namespace marxan {
         string readname;
         string sLine;
         vector<string> varlist = { "id","cost","status","xloc","yloc","prob" };
-        int i = 0;
 
         readname = fnames.inputdir + fnames.puname;
-
-
-        vector<string> head = GetFieldNames(readname, fnames.puname, fp, varlist);
+        fp.open(readname);
         if (!fp.is_open())
             displayErrorMessage("Planning Unit file %s has not been found.\nAborting Program.", readname.c_str());
 
+        vector<string> head = GetFieldNames(fnames.puname, fp, varlist);
+
         /* While there are still lines left feed information into temporary list */
-        while (getline(fp, sLine))
+
+        
+        for(int line_num = 2; getline(fp, sLine); line_num++)
         {
-            i++;
+            if (sLine.empty())
+                continue;
+
             spustuff putemp;
             putemp.id = -1; /* Set defaults for any missing values */
             putemp.cost = 1;
@@ -112,7 +124,7 @@ namespace marxan {
 
             vector<string> tokens = get_tokens(sLine);
             if (tokens.size() != head.size())
-                displayErrorMessage("Planning Unit file %s has different amount of items at line %d then its head.\n", fnames.puname.c_str(), i);
+                displayErrorMessage("Planning Unit file %s has different amount of items at line %d then its head.\n", fnames.puname.c_str(), line_num);
 
             for (int j = 0; j < head.size(); j++)
             {
@@ -147,7 +159,7 @@ namespace marxan {
             } /* looking for ivar different input variables */
 
             if (putemp.id == -1)
-                displayErrorMessage("ERROR: Missing planning unit id for line %d. \n", i);
+                displayErrorMessage("ERROR: Missing planning unit id for line %d. \n", line_num);
 
             pu.push_back(putemp);
 
@@ -155,8 +167,7 @@ namespace marxan {
 
         fp.close();
 
-        /* Create array to store the information */
-        puno = i;
+        puno = pu.size();
 
         if (iProbFieldPresent == 1)
         {
@@ -170,7 +181,6 @@ namespace marxan {
     int readSpecies(int& spno, vector<sspecies>& spec, const sfname& fnames)
     {
         ifstream  fp;
-        int n = 0;
         string readname;
         string sLine;
         vector<string> varlist = { "id","type","target","spf",
@@ -178,14 +188,18 @@ namespace marxan {
                              "targetocc","prop","ptarget1d","ptarget2d" };
 
         readname = fnames.inputdir + fnames.specname;
-        vector<string> snhead = GetFieldNames(readname, fnames.specname, fp, varlist);
-        if (snhead.empty())
+        fp.open(readname);
+        if (!fp.is_open())
             displayErrorMessage("Species file %s has not been found.\nAborting Program.", readname.c_str());
+        
+        vector<string> snhead = GetFieldNames(fnames.specname, fp, varlist);
 
         // While there are still lines left feed information into temporary link list
-        while (getline(fp, sLine))
+        for (int line_num = 2; getline(fp, sLine); line_num++)
         {
-            n++;
+            if (sLine.empty())
+                continue;
+
             // Clear important species stats
             sspecies spectemp;
             spectemp.name = -1;
@@ -208,7 +222,7 @@ namespace marxan {
 
             vector<string> tokens = get_tokens(sLine);
             if (tokens.size() != snhead.size())
-                displayErrorMessage("Planning Unit file %s has different amount of items at line %d then its head.\n", fnames.specname.c_str(), n);
+                displayErrorMessage("Planning Unit file %s has different amount of items at line %d then its head.\n", fnames.specname.c_str(), line_num);
 
             for (int j = 0; j < snhead.size(); j++)
             {
@@ -267,8 +281,8 @@ namespace marxan {
         } // Scanning through each line of file
 
         fp.close();
-        spno = n;
-        return(n);
+        spno = spec.size();
+        return spno;
     }  // readSpecies
 
     // read species block definition file
@@ -285,7 +299,11 @@ namespace marxan {
 
         /* Find and Open File */
         readname = fnames.inputdir + fnames.blockdefname;
-        vector<string> head = GetFieldNames(readname, fnames.blockdefname, fp, varlist);
+        fp.open(readname);
+        if (!fp.is_open())
+            displayErrorMessage("Species block definition file %s has not been found.\nAborting Program.", readname.c_str());
+
+        vector<string> head = GetFieldNames(fnames.blockdefname, fp, varlist);
 
         /* While there are still lines left feed information into temporary link list */
         while (getline(fp, sLine)) {
@@ -378,15 +396,15 @@ namespace marxan {
         if (!getline(fp, sLine))
             displayErrorMessage("Error reading connections.\n");
 
-        while (getline(fp, sLine))
+        for (int line_num = 2; getline(fp, sLine); line_num++)
         {
+            if (sLine.empty())
+                continue;
             icount++;
-
-            vector<string> tokens = get_tokens(sLine);
-            stringstream(tokens[0]) >> id1;
-            stringstream(tokens[1]) >> id2;
-            stringstream(tokens[2]) >> fcost;
-
+            stringstream ss = stream_line(sLine);
+            ss >> id1 >> id2 >> fcost;
+            if (ss.fail())
+                displayErrorMessage("File %s have incorrect values at line %d.\n", readname.c_str(), line_num);
             try
             {
                 id1 = PULookup.at(id1);
@@ -511,18 +529,20 @@ namespace marxan {
 
         // create the sparse matrix
         SMTemp.resize(puno);
-        size_t iSMSize;
-        for (iSMSize = 0; getline(fp, sLine); iSMSize++)
+        size_t iSMSize = 0;
+        for (int line_num = 2; getline(fp, sLine); line_num++)
         {
-            vector<string> tokens = get_tokens(sLine);
-            stringstream(tokens[0]) >> _spid;
-            stringstream(tokens[1]) >> _puid;
-            stringstream(tokens[2]) >> amount;
+            if (sLine.empty())
+                continue;
+            iSMSize++;
+            stringstream ss = stream_line(sLine);
+            ss >> _spid >> _puid >> amount;
 
             if (fProb2D == 1)
-            {
-                stringstream(tokens[3]) >> rProbability;
-            }
+                ss >> rProbability;
+
+            if (ss.fail())
+                displayErrorMessage("File %s have incorrect values at line %d.\n", readname.c_str(), line_num);
 
             int old_puid;
             try {
@@ -589,11 +609,14 @@ namespace marxan {
         if (!getline(fp, sLine))
             displayErrorMessage("Error reading penalties.\n");
 
-        while (getline(fp, sLine))
+        for (int line_num = 2; getline(fp, sLine); line_num++)
         {
-            vector<string> tokens = get_tokens(sLine);
-            stringstream(tokens[0]) >> iSPID;
-            stringstream(tokens[1]) >> rPenalty;
+            if (sLine.empty())
+                continue;
+            stringstream ss = stream_line(sLine);
+            ss >> iSPID >> rPenalty;
+            if (ss.fail())
+                displayErrorMessage("File %s have incorrect values at line %d.\n", readname.c_str(), line_num);
 
             i = SPLookup[iSPID];
             spec[i].rUserPenalty = rPenalty;
@@ -629,12 +652,15 @@ namespace marxan {
 
         // planning unit richness and offset are already set to zero
         // init with zero values
-        while (getline(fp, sLine))
+        for (int line_num = 2; getline(fp, sLine); line_num++)
         {
-            vector<string> tokens = get_tokens(sLine);
-            stringstream(tokens[0]) >> _spid;
-            stringstream(tokens[1]) >> _puid;
-            stringstream(tokens[2]) >> amount;
+            if (sLine.empty())
+                continue;
+
+            stringstream ss = stream_line(sLine);
+            ss >> _spid >> _puid >> amount;
+            if (ss.fail())
+                displayErrorMessage("File %s have incorrect values at line %d.\n", readname.c_str(), line_num);
 
             int old_puid;
             try {
