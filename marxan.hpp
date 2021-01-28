@@ -326,9 +326,9 @@ namespace marxan {
         double& costthresh, double& tpf1, double& tpf2);
     void readPenalties(vector<sspecies>& spec, int spno, sfname& fnames, map<int, int>& SPLookup);
     int readPlanningUnits(int& puno, vector<spustuff>& pu, const sfname& fnames);
-    void readSparseMatrix(int& iSMSize, vector<spu>& SM, int puno, int spno, vector<spustuff>& pu,
+    void readSparseMatrix(vector<spu>& SM, int puno, int spno, vector<spustuff>& pu,
         const map<int, int>& PULookup, const map<int, int>& SPLookup, const sfname& fnames);
-    void readSparseMatrixSpOrder(int& iSMSize, vector<spusporder>& SM, int puno, int spno,
+    void readSparseMatrixSpOrder(vector<spusporder>& SM, int puno, int spno,
         const map<int, int>& PULookup, const map<int, int>& SPLookup, vector<sspecies>& spec, const sfname& fnames);
 
     int readSpecies(int& spno, vector<sspecies>& spec, const sfname& fnames);

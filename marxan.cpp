@@ -96,7 +96,7 @@ namespace marxan {
     int marxanIsSecondary = 0;
 
     // runs the loop for each "solution" marxan is generating
-    void executeRunLoop(int iSparseMatrixFileLength, long int repeats, int puno, int spno, double cm, int aggexist, double prop, int clumptype, double misslevel,
+    void executeRunLoop(long int repeats, int puno, int spno, double cm, int aggexist, double prop, int clumptype, double misslevel,
         string savename, double costthresh, double tpf1, double tpf2, int heurotype, int runopts,
         int itimptype, vector<int>& sumsoln)
     {
@@ -372,7 +372,6 @@ namespace marxan {
 
     int executeMarxan(string sInputFileName)
     {
-        int iSparseMatrixFileLength = 0, iSparseMatrixFileLength_sporder = 0;
         long int repeats;
         int puno, spno, gspno;
         double cm, prop;
@@ -501,7 +500,7 @@ namespace marxan {
         displayProgress3("    Reading in the Planning Unit versus Species File \n");
         appendTraceFile("before readSparseMatrix\n");
 
-        readSparseMatrix(iSparseMatrixFileLength, SMGlobal, puno, spno, pu, PULookup, SPLookup, fnames);
+        readSparseMatrix(SMGlobal, puno, spno, pu, PULookup, SPLookup, fnames);
 
         appendTraceFile("after readSparseMatrix\n");
         if (fProb2D == 1)
@@ -523,7 +522,7 @@ namespace marxan {
         {
             appendTraceFile("before readSparseMatrixSpOrder\n");
 
-            readSparseMatrixSpOrder(iSparseMatrixFileLength_sporder, SMsporder, puno, spno, PULookup, SPLookup, specGlobal, fnames);
+            readSparseMatrixSpOrder(SMsporder, puno, spno, PULookup, SPLookup, specGlobal, fnames);
 
             appendTraceFile("after readSparseMatrixSpOrder\n");
         }
@@ -730,7 +729,7 @@ namespace marxan {
             ComputeP_AllPUsSelected_2D(tempname2, puno, spno, pu, SMGlobal, specGlobal);
         }
 
-        executeRunLoop(iSparseMatrixFileLength, repeats, puno, spno, cm, aggexist, prop, clumptype, misslevel,
+        executeRunLoop(repeats, puno, spno, cm, aggexist, prop, clumptype, misslevel,
             savename, costthresh, tpf1, tpf2, heurotype, runopts,
             itimptype, sumsoln);
 

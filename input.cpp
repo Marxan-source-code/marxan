@@ -482,7 +482,7 @@ namespace marxan {
     } // readConnections
 
     // functions for Matt's Big O notation optimisation
-    void readSparseMatrix(int& iSMSize, vector<spu>& SM, int puno, int spno, vector<spustuff>& pu,
+    void readSparseMatrix(vector<spu>& SM, int puno, int spno, vector<spustuff>& pu,
         const map<int, int>& PULookup, const map<int, int>& SPLookup, const sfname& fnames) 
     {
         vector<map<int, spu>> SMTemp; // temporarily storing in this structure prevents the need for ordering.
@@ -494,6 +494,7 @@ namespace marxan {
         int iLastPUID;
 
         readname = fnames.inputdir + fnames.puvsprname;
+        fp.open(readname);
         if (!fp.is_open())
             displayErrorMessage("PU v Species file %s not found\nAborting Program.", readname.c_str());
 
@@ -507,11 +508,11 @@ namespace marxan {
         iLength = sLine.size();
         if ((sLine[iLength - 5] == 'p') && (sLine[iLength - 4] == 'r') && (sLine[iLength - 3] == 'o') && (sLine[iLength - 2] == 'b'))
             fProb2D = 1;
+
         // create the sparse matrix
         SMTemp.resize(puno);
-
-        // init with zero values
-        for (i = 0; getline(fp, sLine); i++)
+        size_t iSMSize;
+        for (iSMSize = 0; getline(fp, sLine); iSMSize++)
         {
             vector<string> tokens = get_tokens(sLine);
             stringstream(tokens[0]) >> _spid;
@@ -546,12 +547,11 @@ namespace marxan {
             SMTemp[_puid][_spid].prob = rProbability;
             SMTemp[_puid][_spid].amount = amount;
         }
-
-
         fp.close();
 
-        int j = 0;
         // Populate real SM using SMTemp
+        SM.resize(iSMSize);
+        int j = 0;
         for (int i = 0; i < puno; i++) {
             pu[i].offset = j;
             for (auto& [spindex, val] : SMTemp[i]) {
@@ -562,7 +562,6 @@ namespace marxan {
             }
         }
 
-        iSMSize = SM.size();
         iBigMatrixSize = puno * spno;
         rInternalSMSize = iSMSize;
         rBigMatrixSize = iBigMatrixSize;
@@ -606,7 +605,7 @@ namespace marxan {
     }
 
     // read the planning unit versus species sparse matrix: ordered by species
-    void readSparseMatrixSpOrder(int& iSMSize, vector<spusporder>& SM, int puno, int spno,
+    void readSparseMatrixSpOrder(vector<spusporder>& SM, int puno, int spno,
         const map<int, int>& PULookup, const map<int, int>& SPLookup, vector<sspecies>& spec, const sfname& fnames) 
     {
         vector<map<int, spusporder>> SMTemp;
