@@ -4,7 +4,10 @@
 #include <sstream>
 #include <string>
 #include <vector>
-
+#include "connections.hpp"
+#include "species.hpp"
+#include "spu.hpp"
+#include "anneal.hpp"
 
 namespace marxan {
     using namespace std;

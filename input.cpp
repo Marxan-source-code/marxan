@@ -9,6 +9,7 @@
 
 #include "utils.hpp"
 #include "input.hpp"
+#include "output.hpp"
 
 // functions that read from input files
 namespace marxan {

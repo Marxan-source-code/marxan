@@ -5,6 +5,15 @@
 namespace marxan {
     using namespace std;
 
+    typedef struct sclumps
+    {
+        int clumpid;
+        double amount;
+        int occs;
+        vector<int> head;
+    } sclumps; /* Clump nodes for species Clump Structure */
+
+
     typedef struct sseplist {
         int size;
         vector<int> head;
