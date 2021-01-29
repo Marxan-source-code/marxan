@@ -24,14 +24,17 @@ namespace marxan {
                 word.push_back(ch);
             else
             {
-                tokens.push_back(word);
-                word.clear();
+                if (!word.empty())
+                {
+                    tokens.push_back(word);
+                    word.clear();
+                }
             }
         }
-        tokens.push_back(word);
+        if (!word.empty())
+            tokens.push_back(word);
         return tokens;
     }
-
 
     stringstream stream_line(const std::string& str)
     {
@@ -40,7 +43,7 @@ namespace marxan {
         for (char ch : str)
         {
             if (delimeters.find_first_of(ch) == string::npos)
-                ss<<ch;
+                ss << ch;
             else
             {
                 ss << ' ';
@@ -48,7 +51,6 @@ namespace marxan {
         }
         return ss;
     }
-
 
     vector<string> GetFieldNames(string fname, ifstream& fp, const vector<string>& varList)
     {
@@ -222,7 +224,7 @@ namespace marxan {
 
             vector<string> tokens = get_tokens(sLine);
             if (tokens.size() != snhead.size())
-                displayErrorMessage("Planning Unit file %s has different amount of items at line %d then its head.\n", fnames.specname.c_str(), line_num);
+                displayErrorMessage("Species file %s has different amount of items at line %d then its head.\n", fnames.specname.c_str(), line_num);
 
             for (int j = 0; j < snhead.size(); j++)
             {
