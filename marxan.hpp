@@ -13,8 +13,6 @@
 // predefine functions that are called before they're defined
 // Contains structures and functions that are used in more than 1 file.
 
-#define DebugFree(x)
-
 namespace marxan {
     using namespace std;
 
