@@ -7,8 +7,8 @@
 #include <map>
 #include <sstream>
 
-#include "marxan.hpp"
 #include "utils.hpp"
+#include "input.hpp"
 
 // functions that read from input files
 namespace marxan {

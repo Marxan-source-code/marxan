@@ -3,6 +3,7 @@
 #include <stdexcept>
 
 #include "computation.hpp"
+#include "clumping.hpp"
 
 // functions relating to species clumping
 
