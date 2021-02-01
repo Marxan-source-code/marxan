@@ -7,20 +7,6 @@
 namespace marxan {
     using namespace std;
 
-    typedef struct scost
-    {
-        double total;
-        int pus;
-        double connection;
-        int missing;
-        double penalty;
-        double cost;
-        double threshpen;
-        double shortfall;
-        double probability1D;
-        double probability2D;
-    } scost;
-
     typedef struct sclumps
     {
         int clumpid;

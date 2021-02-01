@@ -1,6 +1,8 @@
 #pragma once
+#include <vector>
 
 namespace marxan {
+    using namespace std;
 
     typedef struct scost
     {

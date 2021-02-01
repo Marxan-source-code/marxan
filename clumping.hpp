@@ -37,4 +37,5 @@ namespace marxan {
     void SpeciesAmounts(int spno, int puno, vector<sspecies>& spec, const vector<spustuff>& pu, vector<spu>& SM,
         vector<int>& R, int clumptype);
     void SpeciesAmounts4(int isp, vector<sspecies>& spec, int clumptype);
+    void ClearClumps(int spno, vector<sspecies>& spec, const vector<spustuff>& pu, const vector<spu>& SM, vector<spu_out>& SM_out);
 } // namespace marxan

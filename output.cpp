@@ -4,7 +4,7 @@
 #include <fstream>
 #include <iostream>
 #include <map>
-
+#include "output.hpp"
 #include "computation.hpp"
 
 namespace marxan {

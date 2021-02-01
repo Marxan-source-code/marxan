@@ -5,6 +5,12 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include "species.hpp"
+#include "connections.hpp"
+#include "spu.hpp"
+#include "anneal.hpp"
+#include "input.hpp"
+
 
 namespace marxan {
     using namespace std;
@@ -23,6 +29,9 @@ namespace marxan {
     void displayProgress3(string sMess, ...);
     void displayShutdownMessage(chrono::high_resolution_clock::time_point start);
     void displayUsage(string programName);
+    stringstream displayValueForPUs(int puno, int spno, const vector<int>& R, const scost& reserve,
+        const vector<sspecies>& spec, double misslevel);
+
 
     void appendSolutionsMatrix(int iRun, int puno, const vector<int>& R, string savename, int iOutputType, int iIncludeHeaders);
     string computeSummary(int puno, int spno, const vector<int>& R, const vector<sspecies>& spec, const scost& reserve,

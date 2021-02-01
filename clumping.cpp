@@ -4,6 +4,7 @@
 
 #include "computation.hpp"
 #include "clumping.hpp"
+#include "output.hpp"
 
 // functions relating to species clumping
 

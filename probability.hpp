@@ -4,6 +4,9 @@
 #include <string>
 #include <vector>
 
+#include "species.hpp"
+#include "spu.hpp"
+
 namespace marxan {
     using namespace std;
 
