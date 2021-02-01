@@ -8,21 +8,13 @@
 #include <random>
 #include <string>
 #include <sstream>
+#include <vector>
+
 
 namespace marxan {
     namespace utils {
 
-        inline std::string getFileNameSuffix(int suffixMode) {
-            if (suffixMode == 3) {
-                return ".csv";
-            }
-            else if (suffixMode == 2) {
-                return ".txt";
-            }
-            else {
-                return ".dat";
-            }
-        }
+        std::string getFileNameSuffix(int suffixMode);
 
         // String trimming functions credited to https://stackoverflow.com/questions/216823/whats-the-best-way-to-trim-stdstring
         // trim from start (in place)
@@ -86,6 +78,11 @@ namespace marxan {
             parsed >> value;
         }
 
+        //Split string on tokens using delimeters
+        std::vector<std::string> get_tokens(const std::string& str);
+
+        //Convert delimeters to spaces for reading from a stream
+        std::stringstream stream_line(const std::string& str);
 
     } // namespace utils
 } // namespace marxan
