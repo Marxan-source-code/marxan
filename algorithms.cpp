@@ -1,7 +1,4 @@
-#pragma once
-
 // Contains functions relating to marxan algorithmic execution, like sa and sqa
-// Moving to a new file for easier unit testing. 
 // All functions here should be unit and should not have dependencies on the core marxan files.
 
 #include <algorithm>

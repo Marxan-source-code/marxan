@@ -1,5 +1,3 @@
-#pragma once
-
 // All functions here should be unit and should not have dependencies on the core marxan files.
 
 #include <algorithm>

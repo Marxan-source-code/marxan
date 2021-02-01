@@ -1,4 +1,3 @@
-#pragma once
 // Helper functions for marxan execution.
 // Unit functions with no depedency on marxan specific structures or logic.
 
