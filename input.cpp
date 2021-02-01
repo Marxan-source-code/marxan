@@ -4,6 +4,7 @@
 #include <ctime>
 #include <fstream>
 #include <locale>
+#include <vector>
 #include <map>
 #include <sstream>
 
@@ -11,48 +12,11 @@
 #include "input.hpp"
 #include "output.hpp"
 #include "options.hpp"
+#include "utils.hpp"
 
 // functions that read from input files
 namespace marxan {
-
-    vector<string> get_tokens(const std::string& str)
-    {
-        static const string delimeters(" ,;:^*\"/\t\'\\\n");
-        vector<string> tokens;
-        string word;
-        for (char ch : str)
-        {
-            if (delimeters.find_first_of(ch) == string::npos)
-                word.push_back(ch);
-            else
-            {
-                if (!word.empty())
-                {
-                    tokens.push_back(word);
-                    word.clear();
-                }
-            }
-        }
-        if (!word.empty())
-            tokens.push_back(word);
-        return tokens;
-    }
-
-    stringstream stream_line(const std::string& str)
-    {
-        static const string delimeters(" ,;:^*\"/\t\'\\\n");
-        stringstream ss;
-        for (char ch : str)
-        {
-            if (delimeters.find_first_of(ch) == string::npos)
-                ss << ch;
-            else
-            {
-                ss << ' ';
-            }
-        }
-        return ss;
-    }
+    using namespace std;
 
     vector<string> GetFieldNames(string fname, ifstream& fp, const vector<string>& varList)
     {
@@ -62,7 +26,7 @@ namespace marxan {
         if (!getline(fp, sLine))
             displayErrorMessage("Error reading %s.\n", fname.c_str());
 
-        vector<string> tokens = get_tokens(sLine);
+        vector<string> tokens = utils::get_tokens(sLine);
 
         for (string sVarName : tokens)
         {
@@ -126,7 +90,7 @@ namespace marxan {
             putemp.probrichness = 0;
             putemp.proboffset = 0;
 
-            vector<string> tokens = get_tokens(sLine);
+            vector<string> tokens = utils::get_tokens(sLine);
             if (tokens.size() != head.size())
                 displayErrorMessage("Planning Unit file %s has different amount of items at line %d then its head.\n", fnames.puname.c_str(), line_num);
 
@@ -224,7 +188,7 @@ namespace marxan {
             spectemp.Zscore1D = 0;
             spectemp.Zscore2D = 0;
 
-            vector<string> tokens = get_tokens(sLine);
+            vector<string> tokens = utils::get_tokens(sLine);
             if (tokens.size() != snhead.size())
                 displayErrorMessage("Species file %s has different amount of items at line %d then its head.\n", fnames.specname.c_str(), line_num);
 
@@ -321,7 +285,7 @@ namespace marxan {
             gstemp.sepdistance = -1;
             gstemp.prop = -1;
 
-            vector<string> tokens = get_tokens(sLine);
+            vector<string> tokens = utils::get_tokens(sLine);
             if (tokens.size() != head.size())
                 displayErrorMessage("Species block definition file %s has different amount of items at line %d then its head.\n", fnames.blockdefname.c_str(), i);
 
@@ -405,7 +369,7 @@ namespace marxan {
             if (sLine.empty())
                 continue;
             icount++;
-            stringstream ss = stream_line(sLine);
+            stringstream ss = utils::stream_line(sLine);
             ss >> id1 >> id2 >> fcost;
             if (ss.fail())
                 displayErrorMessage("File %s have incorrect values at line %d.\n", readname.c_str(), line_num);
@@ -539,7 +503,7 @@ namespace marxan {
             if (sLine.empty())
                 continue;
             iSMSize++;
-            stringstream ss = stream_line(sLine);
+            stringstream ss = utils::stream_line(sLine);
             ss >> _spid >> _puid >> amount;
 
             if (fProb2D == 1)
@@ -617,7 +581,7 @@ namespace marxan {
         {
             if (sLine.empty())
                 continue;
-            stringstream ss = stream_line(sLine);
+            stringstream ss = utils::stream_line(sLine);
             ss >> iSPID >> rPenalty;
             if (ss.fail())
                 displayErrorMessage("File %s have incorrect values at line %d.\n", readname.c_str(), line_num);
@@ -661,7 +625,7 @@ namespace marxan {
             if (sLine.empty())
                 continue;
 
-            stringstream ss = stream_line(sLine);
+            stringstream ss = utils::stream_line(sLine);
             ss >> _spid >> _puid >> amount;
             if (ss.fail())
                 displayErrorMessage("File %s have incorrect values at line %d.\n", readname.c_str(), line_num);
