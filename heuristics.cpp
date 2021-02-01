@@ -1,7 +1,11 @@
 
-#include "marxan.hpp"
 #include "utils.hpp"
 #include "computation.hpp"
+#include "heuristics.hpp"
+#include "output.hpp"
+#include "clumping.hpp"
+#include "marxan.hpp"
+
 
 // functions that read from input files
 namespace marxan {

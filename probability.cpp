@@ -3,8 +3,13 @@
 
 #include "computation.hpp"
 #include "marxan.hpp"
+#include "output.hpp"
 
 namespace marxan {
+
+    // probability
+    extern double rProbabilityWeighting;
+
 
     // functions relating to probability 1D and 2D
 

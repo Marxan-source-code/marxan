@@ -34,10 +34,17 @@
 #include <chrono> 
 
 // load the required function definition modules
+#include "utils.hpp"
 #include "algorithms.hpp"
 #include "computation.hpp"
+#include "clumping.hpp"
+#include "anneal.hpp"
+#include "heuristics.hpp"
+#include "probability.hpp"
+#include "input.hpp"
+#include "output.hpp"
+
 #include "marxan.hpp"
-#include "utils.hpp"
 
 namespace marxan {
     using namespace algorithms;
