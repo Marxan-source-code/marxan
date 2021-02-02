@@ -399,10 +399,7 @@ namespace marxan {
         const vector<spu>& SM, vector<spu_out>& SM_out, int clumptype) {
 
         int ineighbours = 0;
-        //struct slink{int id;struct slink *next;} *head = NULL, *newhead, *thead;
-        //struct sclumps *oldclump,*pclump;
         sclumps pclump;
-        //struct sclumppu *cppu,*ppu, *clumpcurr, *tppu;
         int cppu;
         struct sneighbour* pnbr;
         double oldamount, newamount = 0.0, rAmount;
@@ -1231,7 +1228,6 @@ namespace marxan {
         // first is only needed if maximum is at 0, sepnum is the target separation
         int placefound, currtarget, bestsep = 0;
         int currsep;
-        struct slink* temp;
 
         int i = 0;
         for (int id : head) {
