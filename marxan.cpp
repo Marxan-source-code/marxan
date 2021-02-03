@@ -80,7 +80,6 @@ namespace marxan {
     vector<spustuff> pu;
     map<int, int> PULookup, SPLookup;
     vector<sspecies> specGlobal, bestSpec;
-    mt19937 rngEngine;
     srunoptions runoptions;
     chrono::high_resolution_clock::time_point startTime;
 
@@ -105,7 +104,7 @@ namespace marxan {
     // runs the loop for each "solution" marxan is generating
     void executeRunLoop(long int repeats, int puno, int spno, double cm, int aggexist, double prop, int clumptype, double misslevel,
         string savename, double costthresh, double tpf1, double tpf2, int heurotype, int runopts,
-        int itimptype, vector<int>& sumsoln)
+        int itimptype, vector<int>& sumsoln, rng_engine& rngEngine)
     {
         string bestRunString;
         vector<string> summaries(repeats); // stores individual summaries for each run
@@ -131,244 +130,247 @@ namespace marxan {
         printf("Running multithreaded over number of threads: %d\n", maxThreads);
         displayProgress1("Running multithreaded over number of threads: " + to_string(maxThreads) + "\n");
 
-    #pragma omp parallel for schedule(dynamic)
-        for (int run_id = 1; run_id <= repeats; run_id++)
+        #pragma omp parallel
         {
-            // Create run specific structures
-            int thread = omp_get_thread_num();
-            string tempname2;
-            stringstream appendLogBuffer; // stores the trace file log
-            stringstream runConsoleOutput; // stores the console message for the run. This is needed for more organized printing output due to multithreading.
-            sanneal anneal = anneal_global;
-            scost reserve = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-            scost change = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+            #pragma omp for schedule(dynamic)
+            for (int run_id = 1; run_id <= repeats; run_id++)
+            {
+                // Create run specific structures
+                int thread = omp_get_thread_num();
+                string tempname2;
+                stringstream appendLogBuffer; // stores the trace file log
+                stringstream runConsoleOutput; // stores the console message for the run. This is needed for more organized printing output due to multithreading.
+                sanneal anneal = anneal_global;
+                scost reserve = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+                scost change = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
-            vector<int> R(puno);
+                vector<int> R(puno);
 
-            vector<sspecies> spec = specGlobal; // make local copy of original spec
+                vector<sspecies> spec = specGlobal; // make local copy of original spec
 
 
-            vector<spu_out> SM_out; // make local copy output part of SMGlobal.
-            //if (aggexist)
-            SM_out.resize(SMGlobal.size());
+                vector<spu_out> SM_out; // make local copy output part of SMGlobal.
+                //if (aggexist)
+                SM_out.resize(SMGlobal.size());
 
-            appendLogBuffer << "\n Start run loop run " << run_id << endl;
-            try {
-                if (runoptions.ThermalAnnealingOn)
-                {
-                    // Annealing Setup
-                    if (anneal.type == 2)
+                appendLogBuffer << "\n Start run loop run " << run_id << endl;
+                try {
+                    if (runoptions.ThermalAnnealingOn)
                     {
-                        appendLogBuffer << "before initialiseConnollyAnnealing run " << run_id << endl;
+                        // Annealing Setup
+                        if (anneal.type == 2)
+                        {
+                            appendLogBuffer << "before initialiseConnollyAnnealing run " << run_id << endl;
 
-                        initialiseConnollyAnnealing(puno, spno, pu, connections, spec, SMGlobal, SM_out, cm, anneal, aggexist, R, prop, clumptype, run_id, appendLogBuffer);
+                            initialiseConnollyAnnealing(puno, spno, pu, connections, spec, SMGlobal, SM_out, cm, anneal, aggexist, R, prop, clumptype, run_id, appendLogBuffer, rngEngine);
 
-                        appendLogBuffer << "after initialiseConnollyAnnealing run " << run_id << endl;
+                            appendLogBuffer << "after initialiseConnollyAnnealing run " << run_id << endl;
+                        }
+
+                        if (anneal.type == 3)
+                        {
+                            appendLogBuffer << "before initialiseAdaptiveAnnealing run " << run_id << endl;
+
+                            initialiseAdaptiveAnnealing(puno, spno, prop, R, pu, connections, SMGlobal, SM_out, cm, spec, aggexist, anneal, clumptype, appendLogBuffer, rngEngine);
+
+                            appendLogBuffer << "after initialiseAdaptiveAnnealing run " << run_id << endl;
+                        }
+
+                        if (verbosity > 1) runConsoleOutput << "\nRun " << run_id << ": Using Calculated Tinit = " << anneal.Tinit << " Tcool = " << anneal.Tcool << "\n";
+                        anneal.temp = anneal.Tinit;
                     }
 
-                    if (anneal.type == 3)
-                    {
-                        appendLogBuffer << "before initialiseAdaptiveAnnealing run " << run_id << endl;
+                    appendLogBuffer << "before computeReserveValue run " << run_id << endl;
 
-                        initialiseAdaptiveAnnealing(puno, spno, prop, R, pu, connections, SMGlobal, SM_out, cm, spec, aggexist, anneal, clumptype, appendLogBuffer);
-
-                        appendLogBuffer << "after initialiseAdaptiveAnnealing run " << run_id << endl;
-                    }
-
-                    if (verbosity > 1) runConsoleOutput << "\nRun " << run_id << ": Using Calculated Tinit = " << anneal.Tinit << " Tcool = " << anneal.Tcool << "\n";
-                    anneal.temp = anneal.Tinit;
-                }
-
-                appendLogBuffer << "before computeReserveValue run " << run_id << endl;
-
-                initialiseReserve(prop, pu, R, rngEngine); // Create Initial Reserve
-                SpeciesAmounts(spno, puno, spec, pu, SMGlobal, R, clumptype); // Re-added this from v2.4 because spec amounts need to be refreshed when initializing
-
-                if (aggexist)
-                    ClearClumps(spno, spec, pu, SMGlobal, SM_out);
-
-                appendLogBuffer << "after computeReserveValue run " << run_id << endl;
-
-                if (verbosity > 1)
-                {
-                    computeReserveValue(puno, spno, R, pu, connections, SMGlobal, SM_out, cm, spec, aggexist, reserve, clumptype, appendLogBuffer);
-                    runConsoleOutput << "Run " << run_id << " Init: " << displayValueForPUs(puno, spno, R, reserve, spec, misslevel).str();
-                }
-                if (verbosity > 5)
-                {
-                    displayTimePassed(startTime);
-                }
-
-                if (runoptions.ThermalAnnealingOn)
-                {
-                    appendLogBuffer << "before thermalAnnealing run " << run_id << endl;
-
-                    thermalAnnealing(spno, puno, connections, R, cm, spec, pu, SMGlobal, SM_out, reserve,
-                        repeats, run_id, savename, misslevel,
-                        aggexist, costthresh, tpf1, tpf2, clumptype, anneal, appendLogBuffer);
-
-                    if (verbosity > 1)
-                    {
-                        computeReserveValue(puno, spno, R, pu, connections, SMGlobal, SM_out, cm, spec, aggexist, reserve, clumptype, appendLogBuffer);
-                        runConsoleOutput << "Run " << run_id << " ThermalAnnealing: " << displayValueForPUs(puno, spno, R, reserve, spec, misslevel).str();
-                    }
-
-                    appendLogBuffer << "after thermalAnnealing run " << run_id << endl;
-                }
-
-                if (runoptions.QuantumAnnealingOn)
-                {
-                    appendLogBuffer << "before quantumAnnealing run " << run_id << endl;
-
-                    quantumAnnealing(spno, puno, connections, R, cm, spec, pu, SMGlobal, SM_out, change, reserve,
-                        repeats, run_id, savename, misslevel,
-                        aggexist, costthresh, tpf1, tpf2, clumptype, anneal);
-
-                    if (verbosity > 1)
-                    {
-                        computeReserveValue(puno, spno, R, pu, connections, SMGlobal, SM_out, cm, spec, aggexist, reserve, clumptype, appendLogBuffer);
-                        runConsoleOutput << "Run " << run_id << "  QuantumAnnealing: " << displayValueForPUs(puno, spno, R, reserve, spec, misslevel).str();
-
-                    }
-
-                    appendLogBuffer << "after quantumAnnealing run " << run_id << endl;
-                }
-
-                if (runoptions.HeuristicOn)
-                {
-                    appendLogBuffer << "before Heuristics run " << run_id << endl;
-
-                    Heuristics(spno, puno, pu, connections, R, cm, spec, SMGlobal, SM_out, reserve,
-                        costthresh, tpf1, tpf2, heurotype, clumptype, appendLogBuffer);
-
-                    if (verbosity > 1 && (runopts == 2 || runopts == 5))
-                    {
-                        computeReserveValue(puno, spno, R, pu, connections, SMGlobal, SM_out, cm, spec, aggexist, reserve, clumptype, appendLogBuffer);
-                        runConsoleOutput << "Run " << run_id << "  Heuristic: " << displayValueForPUs(puno, spno, R, reserve, spec, misslevel).str();
-                    }
-
-                    appendLogBuffer << "after Heuristics run " << run_id << endl;
-                }
-
-                if (runoptions.ItImpOn)
-                {
-                    appendLogBuffer << "before iterativeImprovement run " << run_id << endl;
-
-                    iterativeImprovement(puno, spno, pu, connections, spec, SMGlobal, SM_out, R, cm,
-                        reserve, change, costthresh, tpf1, tpf2, clumptype, run_id, savename, appendLogBuffer);
-
-                    if (itimptype == 3)
-                        iterativeImprovement(puno, spno, pu, connections, spec, SMGlobal, SM_out, R, cm,
-                            reserve, change, costthresh, tpf1, tpf2, clumptype, run_id, savename, appendLogBuffer);
-
-                    appendLogBuffer << "after iterativeImprovement run " << run_id << endl;
+                    initialiseReserve(prop, pu, R, rngEngine); // Create Initial Reserve
+                    SpeciesAmounts(spno, puno, spec, pu, SMGlobal, R, clumptype); // Re-added this from v2.4 because spec amounts need to be refreshed when initializing
 
                     if (aggexist)
                         ClearClumps(spno, spec, pu, SMGlobal, SM_out);
 
+                    appendLogBuffer << "after computeReserveValue run " << run_id << endl;
+
                     if (verbosity > 1)
                     {
                         computeReserveValue(puno, spno, R, pu, connections, SMGlobal, SM_out, cm, spec, aggexist, reserve, clumptype, appendLogBuffer);
-                        runConsoleOutput << "Run " << run_id << " Iterative Improvement: " << displayValueForPUs(puno, spno, R, reserve, spec, misslevel).str();
+                        runConsoleOutput << "Run " << run_id << " Init: " << displayValueForPUs(puno, spno, R, reserve, spec, misslevel).str();
+                    }
+                    if (verbosity > 5)
+                    {
+                        displayTimePassed(startTime);
                     }
 
-                } // Activate Iterative Improvement
+                    if (runoptions.ThermalAnnealingOn)
+                    {
+                        appendLogBuffer << "before thermalAnnealing run " << run_id << endl;
 
-                appendLogBuffer << "before file output run " << run_id << endl;
-                string fileNumber = to_string(run_id);
-                if (fnames.saverun)
-                {
-                    tempname2 = savename + "_r" + fileNumber + getFileNameSuffix(fnames.saverun);
-                    writeSolution(puno, R, pu, tempname2, fnames.saverun, fnames);
-                }
+                        thermalAnnealing(spno, puno, connections, R, cm, spec, pu, SMGlobal, SM_out, reserve,
+                            repeats, run_id, savename, misslevel,
+                            aggexist, costthresh, tpf1, tpf2, clumptype, anneal, appendLogBuffer, rngEngine);
 
-                if (fnames.savespecies && fnames.saverun)
-                {
-                    tempname2 = savename + "_mv" + fileNumber + getFileNameSuffix(fnames.savespecies);
-                    writeSpecies(spno, spec, tempname2, fnames.savespecies, misslevel);
-                }
-
-                if (fnames.savesum)
-                {   // summaries get stored and aggregated to prevent race conditions.
-                    summaries[run_id - 1] = computeSummary(puno, spno, R, spec, reserve, run_id, misslevel, fnames.savesum);
-                }
-
-                // Print results from run.
-                displayProgress1(runConsoleOutput.str());
-
-                // compute and store objective function score for this reserve system
-                computeReserveValue(puno, spno, R, pu, connections, SMGlobal, SM_out, cm, spec, aggexist, change, clumptype, appendLogBuffer);
-
-                // remember the bestScore and bestRun
-                if (change.total < bestScore)
-                {
-                    omp_set_lock(&bestR_write_lock);
-                    // After locking, do another check in case bestScore has changed
-                    if (change.total < bestScore) {
-                        // this is best run so far
-                        bestScore = change.total;
-                        bestRun = run_id;
-                        // store bestR
-                        bestR = R;
-                        bestRunString = runConsoleOutput.str();
-                        bestSpec = spec; // make a copy of best spec.
-                    }
-                    omp_unset_lock(&bestR_write_lock);
-                }
-
-                if (fnames.savesolutionsmatrix)
-                {
-                    appendLogBuffer << "before appendSolutionsMatrix savename " << run_id << endl;
-                    tempname2 = savename + "_solutionsmatrix" + getFileNameSuffix(fnames.savesolutionsmatrix);
-
-                    omp_set_lock(&solution_matrix_append_lock);
-                    appendSolutionsMatrix(run_id, puno, R, tempname2, fnames.savesolutionsmatrix, fnames.solutionsmatrixheaders);
-                    omp_unset_lock(&solution_matrix_append_lock);
-
-                    appendLogBuffer << "after appendSolutionsMatrix savename " << run_id << endl;
-                }
-
-                // Save solution sum
-                if (fnames.savesumsoln) {
-                    omp_set_lock(&solution_sum_lock);
-                    for (int k = 0; k < puno; k++) {
-                        if (R[k] == 1 || R[k] == 2) {
-                            sumsoln[k]++;
+                        if (verbosity > 1)
+                        {
+                            computeReserveValue(puno, spno, R, pu, connections, SMGlobal, SM_out, cm, spec, aggexist, reserve, clumptype, appendLogBuffer);
+                            runConsoleOutput << "Run " << run_id << " ThermalAnnealing: " << displayValueForPUs(puno, spno, R, reserve, spec, misslevel).str();
                         }
+
+                        appendLogBuffer << "after thermalAnnealing run " << run_id << endl;
                     }
-                    omp_unset_lock(&solution_sum_lock);
+
+                    if (runoptions.QuantumAnnealingOn)
+                    {
+                        appendLogBuffer << "before quantumAnnealing run " << run_id << endl;
+
+                        quantumAnnealing(spno, puno, connections, R, cm, spec, pu, SMGlobal, SM_out, change, reserve,
+                            repeats, run_id, savename, misslevel,
+                            aggexist, costthresh, tpf1, tpf2, clumptype, anneal, rngEngine);
+
+                        if (verbosity > 1)
+                        {
+                            computeReserveValue(puno, spno, R, pu, connections, SMGlobal, SM_out, cm, spec, aggexist, reserve, clumptype, appendLogBuffer);
+                            runConsoleOutput << "Run " << run_id << "  QuantumAnnealing: " << displayValueForPUs(puno, spno, R, reserve, spec, misslevel).str();
+
+                        }
+
+                        appendLogBuffer << "after quantumAnnealing run " << run_id << endl;
+                    }
+
+                    if (runoptions.HeuristicOn)
+                    {
+                        appendLogBuffer << "before Heuristics run " << run_id << endl;
+
+                        Heuristics(spno, puno, pu, connections, R, cm, spec, SMGlobal, SM_out, reserve,
+                            costthresh, tpf1, tpf2, heurotype, clumptype, appendLogBuffer, rngEngine);
+
+                        if (verbosity > 1 && (runopts == 2 || runopts == 5))
+                        {
+                            computeReserveValue(puno, spno, R, pu, connections, SMGlobal, SM_out, cm, spec, aggexist, reserve, clumptype, appendLogBuffer);
+                            runConsoleOutput << "Run " << run_id << "  Heuristic: " << displayValueForPUs(puno, spno, R, reserve, spec, misslevel).str();
+                        }
+
+                        appendLogBuffer << "after Heuristics run " << run_id << endl;
+                    }
+
+                    if (runoptions.ItImpOn)
+                    {
+                        appendLogBuffer << "before iterativeImprovement run " << run_id << endl;
+
+                        iterativeImprovement(puno, spno, pu, connections, spec, SMGlobal, SM_out, R, cm,
+                            reserve, change, costthresh, tpf1, tpf2, clumptype, run_id, savename, appendLogBuffer);
+
+                        if (itimptype == 3)
+                            iterativeImprovement(puno, spno, pu, connections, spec, SMGlobal, SM_out, R, cm,
+                                reserve, change, costthresh, tpf1, tpf2, clumptype, run_id, savename, appendLogBuffer);
+
+                        appendLogBuffer << "after iterativeImprovement run " << run_id << endl;
+
+                        if (aggexist)
+                            ClearClumps(spno, spec, pu, SMGlobal, SM_out);
+
+                        if (verbosity > 1)
+                        {
+                            computeReserveValue(puno, spno, R, pu, connections, SMGlobal, SM_out, cm, spec, aggexist, reserve, clumptype, appendLogBuffer);
+                            runConsoleOutput << "Run " << run_id << " Iterative Improvement: " << displayValueForPUs(puno, spno, R, reserve, spec, misslevel).str();
+                        }
+
+                    } // Activate Iterative Improvement
+
+                    appendLogBuffer << "before file output run " << run_id << endl;
+                    string fileNumber = to_string(run_id);
+                    if (fnames.saverun)
+                    {
+                        tempname2 = savename + "_r" + fileNumber + getFileNameSuffix(fnames.saverun);
+                        writeSolution(puno, R, pu, tempname2, fnames.saverun, fnames);
+                    }
+
+                    if (fnames.savespecies && fnames.saverun)
+                    {
+                        tempname2 = savename + "_mv" + fileNumber + getFileNameSuffix(fnames.savespecies);
+                        writeSpecies(spno, spec, tempname2, fnames.savespecies, misslevel);
+                    }
+
+                    if (fnames.savesum)
+                    {   // summaries get stored and aggregated to prevent race conditions.
+                        summaries[run_id - 1] = computeSummary(puno, spno, R, spec, reserve, run_id, misslevel, fnames.savesum);
+                    }
+
+                    // Print results from run.
+                    displayProgress1(runConsoleOutput.str());
+
+                    // compute and store objective function score for this reserve system
+                    computeReserveValue(puno, spno, R, pu, connections, SMGlobal, SM_out, cm, spec, aggexist, change, clumptype, appendLogBuffer);
+
+                    // remember the bestScore and bestRun
+                    if (change.total < bestScore)
+                    {
+                        omp_set_lock(&bestR_write_lock);
+                        // After locking, do another check in case bestScore has changed
+                        if (change.total < bestScore) {
+                            // this is best run so far
+                            bestScore = change.total;
+                            bestRun = run_id;
+                            // store bestR
+                            bestR = R;
+                            bestRunString = runConsoleOutput.str();
+                            bestSpec = spec; // make a copy of best spec.
+                        }
+                        omp_unset_lock(&bestR_write_lock);
+                    }
+
+                    if (fnames.savesolutionsmatrix)
+                    {
+                        appendLogBuffer << "before appendSolutionsMatrix savename " << run_id << endl;
+                        tempname2 = savename + "_solutionsmatrix" + getFileNameSuffix(fnames.savesolutionsmatrix);
+
+                        omp_set_lock(&solution_matrix_append_lock);
+                        appendSolutionsMatrix(run_id, puno, R, tempname2, fnames.savesolutionsmatrix, fnames.solutionsmatrixheaders);
+                        omp_unset_lock(&solution_matrix_append_lock);
+
+                        appendLogBuffer << "after appendSolutionsMatrix savename " << run_id << endl;
+                    }
+
+                    // Save solution sum
+                    if (fnames.savesumsoln) {
+                        omp_set_lock(&solution_sum_lock);
+                        for (int k = 0; k < puno; k++) {
+                            if (R[k] == 1 || R[k] == 2) {
+                                sumsoln[k]++;
+                            }
+                        }
+                        omp_unset_lock(&solution_sum_lock);
+                    }
+
+                    if (aggexist)
+                        ClearClumps(spno, spec, pu, SMGlobal, SM_out);
+
+                }
+                catch (exception& e) {
+                    // On exceptions, append exception to log file in addition to existing buffer. 
+                    displayProgress1(runConsoleOutput.str());
+                    appendLogBuffer << "Exception occurred on run " << run_id << ": " << e.what() << endl;
+                    displayProgress1(appendLogBuffer.str());
+                    appendTraceFile(appendLogBuffer.str());
+
+                    throw(e);
                 }
 
-                if (aggexist)
-                    ClearClumps(spno, spec, pu, SMGlobal, SM_out);
+                appendLogBuffer << "after file output run " << run_id << endl;
+                appendLogBuffer << "end run " << run_id << endl;
 
-            }
-            catch (exception& e) {
-                // On exceptions, append exception to log file in addition to existing buffer. 
-                displayProgress1(runConsoleOutput.str());
-                appendLogBuffer << "Exception occurred on run " << run_id << ": " << e.what() << endl;
-                displayProgress1(appendLogBuffer.str());
                 appendTraceFile(appendLogBuffer.str());
 
-                throw(e);
-            }
+                if (marxanIsSecondary == 1)
+                    writeSecondarySyncFileRun(run_id);
 
-            appendLogBuffer << "after file output run " << run_id << endl;
-            appendLogBuffer << "end run " << run_id << endl;
-
-            appendTraceFile(appendLogBuffer.str());
-
-            if (marxanIsSecondary == 1)
-                writeSecondarySyncFileRun(run_id);
-
-            if (verbosity > 1)
-            {
-                stringstream done_message;
-                done_message << "Run " << run_id << " is finished (out of " <<repeats << "). ";
-                #pragma omp critical
+                if (verbosity > 1)
                 {
-                    displayProgress1(done_message.str());
-                    displayTimePassed(startTime);
+                    stringstream done_message;
+                    done_message << "Run " << run_id << " is finished (out of " << repeats << "). ";
+                    #pragma omp critical
+                    {
+                        displayProgress1(done_message.str());
+                        displayTimePassed(startTime);
+                    }
                 }
             }
         }
@@ -442,8 +444,8 @@ namespace marxan {
 
         delta = 1e-14;  // This would more elegantly be done as a constant
 
-        // initt global rng engine
-        rngEngine = mt19937(iseed);
+        // init rng engine
+        rng_engine rngEngine(iseed);
         RandSeed1 = iseed;
         seedinit = iseed;
 
@@ -641,7 +643,7 @@ namespace marxan {
                 appendTraceFile("before CalcPenalties\n");
 
                 // we don't have sporder matrix available, so use slow CalcPenalties method
-                itemp = computePenalties(puno, spno, pu, specGlobal, connections, SMGlobal, SM_out, R_CalcPenalties, aggexist, cm, clumptype);
+                itemp = computePenalties(puno, spno, pu, specGlobal, connections, SMGlobal, SM_out, R_CalcPenalties, aggexist, cm, clumptype, rngEngine);
 
                 appendTraceFile("after CalcPenalties\n");
             }
@@ -652,7 +654,7 @@ namespace marxan {
                 {
                     appendTraceFile("before CalcPenaltiesOptimise\n");
 
-                    itemp = computePenaltiesOptimise(puno, spno, pu, specGlobal, connections, SMGlobal, SM_out, SMsporder, R_CalcPenalties, aggexist, cm, clumptype);
+                    itemp = computePenaltiesOptimise(puno, spno, pu, specGlobal, connections, SMGlobal, SM_out, SMsporder, R_CalcPenalties, aggexist, cm, clumptype, rngEngine);
 
                     appendTraceFile("after CalcPenaltiesOptimise\n");
                 }
@@ -661,7 +663,7 @@ namespace marxan {
                     appendTraceFile("before CalcPenalties\n");
 
                     // we have optimise calc penalties switched off, so use slow CalcPenalties method
-                    itemp = computePenalties(puno, spno, pu, specGlobal, connections, SMGlobal, SM_out, R_CalcPenalties, aggexist, cm, clumptype);
+                    itemp = computePenalties(puno, spno, pu, specGlobal, connections, SMGlobal, SM_out, R_CalcPenalties, aggexist, cm, clumptype, rngEngine);
 
                     appendTraceFile("after CalcPenalties\n");
                 }
@@ -747,7 +749,7 @@ namespace marxan {
 
         executeRunLoop(repeats, puno, spno, cm, aggexist, prop, clumptype, misslevel,
             savename, costthresh, tpf1, tpf2, heurotype, runopts,
-            itimptype, sumsoln);
+            itimptype, sumsoln, rngEngine);
 
         appendTraceFile("before final file output\n");
 
@@ -1024,7 +1026,7 @@ namespace marxan {
     // compute initial penalties for species with a greedy algorithm.
     // If species has spatial requirements then CalcPenaltyType4 is used instead
     int computePenalties(int puno, int spno, const vector<spustuff>& pu, vector<sspecies>& spec,
-        const vector<sconnections>& connections, const vector<spu>& SM, vector<spu_out>& SM_out, vector<int>& PUtemp, int aggexist, double cm, int clumptype)
+        const vector<sconnections>& connections, const vector<spu>& SM, vector<spu_out>& SM_out, vector<int>& PUtemp, int aggexist, double cm, int clumptype, rng_engine& rngEngine)
     {
         int i, j, ibest, imaxtarget, itargetocc;
         double ftarget, fbest, fbestrat, fcost, ftemp, rAmount, rAmountBest;
@@ -1035,7 +1037,7 @@ namespace marxan {
         {
             if (spec[i].target2 || spec[i].sepnum)
             {
-                j = CalcPenaltyType4(i, puno, SM, SM_out, connections, spec, pu, cm, clumptype);
+                j = CalcPenaltyType4(i, puno, SM, SM_out, connections, spec, pu, cm, clumptype, rngEngine);
                 badspecies += (j > 0);
                 goodspecies += (j < 0);
 
@@ -1145,7 +1147,7 @@ namespace marxan {
     // compute initial penalties for species with a greedy algorithm.
     int computePenaltiesOptimise(int puno, int spno, vector<spustuff>& pu, vector<sspecies>& spec,
         vector<sconnections>& connections, vector<spu>& SM, vector<spu_out>& SM_out, vector<spusporder>& SMsp,
-        vector<int>& PUtemp, int aggexist, double cm, int clumptype)
+        vector<int>& PUtemp, int aggexist, double cm, int clumptype, rng_engine& rngEngine)
     {
         int i, j, ibest, imaxtarget, itargetocc, ism, ipu;
         double ftarget, fbest, fbestrat, fcost, ftemp, rAmount, r_ibest_amount;
@@ -1161,7 +1163,7 @@ namespace marxan {
 
             if (spec[i].target2 || spec[i].sepnum)
             {
-                j = CalcPenaltyType4(i, puno, SM, SM_out, connections, spec, pu, cm, clumptype);
+                j = CalcPenaltyType4(i, puno, SM, SM_out, connections, spec, pu, cm, clumptype, rngEngine);
                 badspecies += (j > 0);
                 goodspecies += (j < 0);
                 continue;
@@ -1718,7 +1720,7 @@ namespace marxan {
 
     // determines if the change value for changing a single planning unit status is good
     // does the change stochastically fall below the current acceptance probability?
-    int isGoodChange(const scost& change, double temp, uniform_real_distribution<double>& float_range)
+    int isGoodChange(const scost& change, double temp, uniform_real_distribution<double>& float_range, rng_engine& rngEngine)
     {
         if (change.total <= 0)
             return 1;
@@ -1728,7 +1730,7 @@ namespace marxan {
 
     // determines if the change value for changing status for a set of planning units is good
     // does it stochastically fall below the current acceptance probability?
-    int isGoodQuantumChange(struct scost change, double rProbAcceptance, uniform_real_distribution<double>& float_range)
+    int isGoodQuantumChange(struct scost change, double rProbAcceptance, uniform_real_distribution<double>& float_range, rng_engine& rngEngine)
     {
         if (change.total <= 0)
             return 1;
@@ -1933,7 +1935,7 @@ namespace marxan {
 
     void initialiseConnollyAnnealing(int puno, int spno, const vector<spustuff>& pu, const vector<sconnections>& connections, vector<sspecies>& spec,
         const vector<spu>& SM, vector<spu_out>& SM_out, double cm, sanneal& anneal, int aggexist,
-        vector<int>& R, double prop, int clumptype, int irun, stringstream& logBuffer)
+        vector<int>& R, double prop, int clumptype, int irun, stringstream& logBuffer, rng_engine& rngEngine)
     {
         long int i, ipu, imode, iOldR;
         double deltamin = 0, deltamax = 0;
@@ -2007,7 +2009,7 @@ namespace marxan {
 
     // initialise adaptive annealing (where anneal type = 3)
     void initialiseAdaptiveAnnealing(int puno, int spno, double prop, vector<int>& R, const vector<spustuff>& pu, const vector<sconnections>& connections,
-        const vector<spu>& SM, vector<spu_out>& SM_out, const double cm, vector<sspecies>& spec, int aggexist, sanneal& anneal, int clumptype, stringstream& logBuffer)
+        const vector<spu>& SM, vector<spu_out>& SM_out, const double cm, vector<sspecies>& spec, int aggexist, sanneal& anneal, int clumptype, stringstream& logBuffer, rng_engine& rngEngine)
     {
         long int i, isamples;
         double sum = 0, sum2 = 0;
@@ -2058,7 +2060,7 @@ namespace marxan {
     void thermalAnnealing(int spno, int puno, const vector<sconnections>& connections, vector<int>& R, double cm,
         vector<sspecies>& spec, const vector<spustuff>& pu, const vector<spu>& SM, vector<spu_out>& SM_out, scost& reserve,
         long int repeats, int irun, string savename, double misslevel,
-        int aggexist, double costthresh, double tpf1, double tpf2, int clumptype, sanneal& anneal, stringstream& logBuffer)
+        int aggexist, double costthresh, double tpf1, double tpf2, int clumptype, sanneal& anneal, stringstream& logBuffer, rng_engine& rngEngine)
     {
         scost change = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
         long int itime = 0, ipu = -1, i, itemp, snapcount = 0, ichanges = 0, iPreviousR, iGoodChange = 0;
@@ -2180,7 +2182,7 @@ namespace marxan {
             } /* Save snapshot every savesnapfreq timesteps */
 
             iPreviousR = R[ipu];
-            iGoodChange = isGoodChange(change, anneal.temp, float_range);
+            iGoodChange = isGoodChange(change, anneal.temp, float_range, rngEngine);
 
             if (iGoodChange)
             {
@@ -2251,7 +2253,7 @@ namespace marxan {
     void quantumAnnealing(int spno, int puno, const vector<sconnections>& connections, vector<int>& R, double cm,
         vector<sspecies>& spec, const vector<spustuff>& pu, const vector<spu>& SM, vector<spu_out>& SM_out, scost& change, scost& reserve,
         long int repeats, int irun, string savename, double misslevel,
-        int aggexist, double costthresh, double tpf1, double tpf2, int clumptype, sanneal& anneal)
+        int aggexist, double costthresh, double tpf1, double tpf2, int clumptype, sanneal& anneal, rng_engine& rngEngine)
     {
         long int itime, i, j, itemp = 0, snapcount, ichanges = 0, iGoodChange;
         long int iRowCounter, iRowLimit, iFluctuationCount;
@@ -2376,7 +2378,7 @@ namespace marxan {
                     tempname2 = savename + "_snap" + sRun + to_string(++snapcount) + getFileNameSuffix(fnames.savesnapchanges);
                     writeSolution(puno, R, pu, tempname2, fnames.savesnapsteps, fnames);
                 }
-                if (isGoodQuantumChange(change, rAcceptanceProbability, float_range) == 1)
+                if (isGoodQuantumChange(change, rAcceptanceProbability, float_range, rngEngine) == 1)
                 { // Save snapshot every savesnapfreq changes
                     iGoodChange = 1;
 

@@ -4,6 +4,7 @@
 #include "species.hpp"
 #include "spu.hpp"
 #include "connections.hpp"
+#include "algorithms.hpp"
 
 
 namespace marxan {
@@ -20,7 +21,7 @@ namespace marxan {
     void RemPu(int ipu, int isp, const vector<sconnections>& connections, vector<sspecies>& spec, const vector<spustuff>& pu,
         const vector<spu>& SM, vector<spu_out>& SM_out, int clumptype);
     int CalcPenaltyType4(int isp, int puno, const vector<spu>& SM, vector<spu_out>& SM_out, const vector<sconnections>& connections,
-        vector<sspecies>& spec, const vector<spustuff>& pu, double cm, int clumptype);
+        vector<sspecies>& spec, const vector<spustuff>& pu, double cm, int clumptype, rng_engine& rngEngine);
     int CountSeparation(int isp, const vector<sclumps>& newno,
         const vector<spustuff>& pu, const vector<spu>& SM, const vector<spu_out>& SM_out, const vector<sspecies>& spec, int imode);
     int CountSeparation2(int isp, int ipu, const vector<sclumps>& newno, int puno, const vector<int>& R,
