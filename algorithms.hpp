@@ -12,7 +12,9 @@
 
 namespace marxan {
     typedef mt19937 rng_engine;
-
+    //typedef ranlux48_base rng_engine;
+    //typedef minstd_rand0 rng_engine;
+    // typedef  ranlux24_base rng_engine;
     namespace algorithms {
         // sets a given vector to 0,1 depending on proportion. prop = proportion of 1s.
         // if pu.status exists then it takes precedence. 

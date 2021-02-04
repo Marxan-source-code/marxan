@@ -752,7 +752,6 @@ namespace marxan {
         tpf1 = 0;
         tpf2 = 0;
         repeats = 0;
-        asymmetricconnectivity = 0;
 
         savename = "temp";
         misslevel = 1;
