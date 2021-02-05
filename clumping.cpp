@@ -516,7 +516,8 @@ namespace marxan {
     /* Returns 1 if the species is a 'bad species' and -1 if it is a 'good species' */
     /* Also sticks the penalty into spec[isp].penalty */
     int CalcPenaltyType4(int isp, int puno, const vector<spu>& SM, vector<spu_out>& SM_out, const vector<sconnections>& connections,
-        vector<sspecies>& spec, const vector<spustuff>& pu, double cm, int clumptype) {
+        vector<sspecies>& spec, const vector<spustuff>& pu, double cm, int clumptype, rng_engine& rngEngine) 
+    {
 
         vector<sclumps> newno;
         int j, ipu, iputotal = 0;

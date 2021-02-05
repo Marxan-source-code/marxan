@@ -42,9 +42,7 @@ namespace marxan {
     extern string sTraceFileName;
     extern string savelogname;
 
-    // rng
-    extern mt19937 rngEngine;
-
+   
     // probability
     extern int iProbFieldPresent;
     extern double rProbabilityWeighting;

@@ -12,7 +12,7 @@ TEST_GROUP(AlgorithmsTestsGroup)
 // test init reserve sets vector correctly
 TEST(AlgorithmsTestsGroup, initialiseReserve_test)
 {
-    mt19937 rngEngine(1); //arbitrary seed
+    rng_engine rngEngine(1); //arbitrary seed
     std::vector<int> v;
     std::vector<spustuff> pu;
     initialiseReserve(0.5, pu, v, rngEngine);

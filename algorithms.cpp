@@ -3,14 +3,13 @@
 
 #include <algorithm>
 #include <utility>
-
 #include "algorithms.hpp"
 
 namespace marxan {
     namespace algorithms {
         // sets a given vector to 0,1 depending on proportion. prop = proportion of 1s.
         // if pu.status exists then it takes precedence. 
-        void initialiseReserve(double prop, const vector<spustuff>& pu, vector<int>& R, mt19937& rngEngine)
+        void initialiseReserve(double prop, const vector<spustuff>& pu, vector<int>& R, rng_engine& rngEngine)
         {
             uniform_real_distribution<double> float_range(0.0, 1.0);
             for (int i = 0; i < R.size(); i++)
