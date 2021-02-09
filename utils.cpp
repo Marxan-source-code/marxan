@@ -63,6 +63,12 @@ namespace marxan {
             return ss;
         }
 
+        bool is_like_numerical_data(const std::string& str)
+        {
+            if (str.find_first_not_of(" ,;:^*\"/\t\'\\\n.+-Ee0123456789") == std::string::npos)
+                return false;
+            return true;
+        }
 
 
     } // namespace utils

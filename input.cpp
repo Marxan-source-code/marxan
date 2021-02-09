@@ -611,17 +611,21 @@ namespace marxan {
         if (!fp.is_open())
             displayErrorMessage("PU v Species file %s not found\nAborting Program.", readname.c_str());
 
-        // read through the file first to see how many lines
-        if (!getline(fp, sLine))
-            displayErrorMessage("Error reading sparse matrix sporder.\n");
-
         // create the sparse matrix
         SMTemp.resize(spno);
 
         // planning unit richness and offset are already set to zero
         // init with zero values
-        for (int line_num = 2; getline(fp, sLine); line_num++)
+        for (int line_num = 1; getline(fp, sLine); line_num++)
         {
+            if (line_num == 1)
+            {
+                if (utils::is_like_numerical_data(sLine))
+                    displayWarningMessage("File %s have no header in the first line.\n", readname.c_str());
+                else
+                    continue;
+            }
+
             if (sLine.empty())
                 continue;
 
