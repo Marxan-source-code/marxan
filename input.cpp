@@ -361,11 +361,16 @@ namespace marxan {
             return(0);
         }
 
-        if (!getline(fp, sLine))
-            displayErrorMessage("Error reading connections.\n");
-
-        for (int line_num = 2; getline(fp, sLine); line_num++)
+        for (int line_num = 1; getline(fp, sLine); line_num++)
         {
+            if (line_num == 1)
+            {
+                if (utils::is_like_numerical_data(sLine))
+                    displayWarningMessage("File %s have no header in the first line.\n", readname.c_str());
+                else
+                    continue;
+            }
+
             if (sLine.empty())
                 continue;
             icount++;
@@ -488,6 +493,9 @@ namespace marxan {
         if (!getline(fp, sLine))
             displayErrorMessage("Error reading sparse matrix.\n");
 
+        if (utils::is_like_numerical_data(sLine))
+            displayWarningMessage("File %s have no header in the first line.\n", readname.c_str());
+
         // scan the first line to see if the prob field is tagged on the end
         // 3 = regular marxan matrix
         // 4 = prob2d marxan matrix
@@ -574,11 +582,17 @@ namespace marxan {
         for (i = 0; i < spno; i++)
             spec[i].rUserPenalty = 0;
 
-        if (!getline(fp, sLine))
-            displayErrorMessage("Error reading penalties.\n");
-
-        for (int line_num = 2; getline(fp, sLine); line_num++)
+        for (int line_num = 1; getline(fp, sLine); line_num++)
         {
+
+            if (line_num == 1)
+            {
+                if (utils::is_like_numerical_data(sLine))
+                    displayWarningMessage("File %s have no header in the first line.\n", readname.c_str());
+                else
+                    continue;
+            }
+
             if (sLine.empty())
                 continue;
             stringstream ss = utils::stream_line(sLine);
