@@ -65,6 +65,7 @@ namespace marxan {
 
         bool is_like_numerical_data(const std::string& str)
         {
+            //check if there are chars other then delimeters and ones used to represent numbers
             size_t letter_pos = str.find_first_not_of(" ,;:^*\"/\t\'\\\n\r.+-Ee0123456789");
             if (letter_pos != std::string::npos)
                 return false;
