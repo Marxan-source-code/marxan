@@ -210,7 +210,6 @@ namespace marxan {
         printf("        %s \n\n   Spatial Prioritization via Annealing\n\n", sVersionString.c_str());
         printf("   Coded by Ian Ball, modified by Matthew Watts\n");
         printf("   Written by Ian Ball and Hugh Possingham\n\n");
-        printf("%s\n%s\n%s\n\n", sIanBallEmail.c_str(), sHughPossinghamEmail.c_str(), sMattWattsEmail.c_str());
         printf("   Marxan website\n\n");
         printf("%s\n\n", sMarxanWebSite.c_str());
     }
@@ -479,7 +478,6 @@ namespace marxan {
             fprintf(fsavelog, "        %s \n\n   Spatial Prioritization via Annealing\n\n", sVersionString.c_str());
             fprintf(fsavelog, "   Coded by Ian Ball, modified by Matthew Watts\n");
             fprintf(fsavelog, "   Written by Ian Ball and Hugh Possingham\n\n");
-            fprintf(fsavelog, "%s\n%s\n%s\n\n", sIanBallEmail.c_str(), sHughPossinghamEmail.c_str(), sMattWattsEmail.c_str());
             fprintf(fsavelog, "   Marxan website\n\n");
             fprintf(fsavelog, "%s\n\n", sMarxanWebSite.c_str());
         } // save log has just been turned on
