@@ -360,9 +360,11 @@ namespace marxan {
             displayProgress1("Warning: Connection File %s not found ", fnames.connectionname.c_str());
             return(0);
         }
-
+        
+        bool file_is_empty = true;
         for (int line_num = 1; getline(fp, sLine); line_num++)
         {
+            file_is_empty = false;
             if (line_num == 1)
             {
                 if (utils::is_like_numerical_data(sLine))
@@ -462,7 +464,8 @@ namespace marxan {
             else
                 displayErrorMessage("A connection is out of range %f %i %i \n", fcost, id1, id2);
         }
-
+        if (file_is_empty)
+            displayErrorMessage("File %s cannot be read or is empty.\n", readname.c_str());
         fp.close();
 
         if (idup)
@@ -581,10 +584,11 @@ namespace marxan {
 
         for (i = 0; i < spno; i++)
             spec[i].rUserPenalty = 0;
-
+        
+        bool file_is_empty = true;
         for (int line_num = 1; getline(fp, sLine); line_num++)
         {
-
+            file_is_empty = false;
             if (line_num == 1)
             {
                 if (utils::is_like_numerical_data(sLine))
@@ -605,6 +609,8 @@ namespace marxan {
 
             appendTraceFile("readPenalties spname %i user penalty %g\n", spec[i].name, rPenalty);
         }
+        if (file_is_empty)
+            displayErrorMessage("File %s cannot be read or is empty.\n", readname.c_str());
 
         fp.close();
     }
@@ -630,8 +636,11 @@ namespace marxan {
 
         // planning unit richness and offset are already set to zero
         // init with zero values
+        bool file_is_empty = true;
         for (int line_num = 1; getline(fp, sLine); line_num++)
         {
+            file_is_empty = false;
+
             if (line_num == 1)
             {
                 if (utils::is_like_numerical_data(sLine))
@@ -670,7 +679,8 @@ namespace marxan {
             spec[_spid].richness += 1;
             SMTemp[_spid][_puid].amount = amount;
         }
-
+        if (file_is_empty)
+            displayErrorMessage("File %s cannot be read or is empty.\n", readname.c_str());
         fp.close();
 
         // Fill the SM vector
