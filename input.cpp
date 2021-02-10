@@ -388,7 +388,7 @@ namespace marxan {
                 id2 = lround(id2_d);
                 if (ss_d.fail())
                     displayErrorMessage("File %s have incorrect values at line %d.\n", readname.c_str(), line_num);
-                if (integer_as_double)
+                if (!integer_as_double)
                     displayWarningMessage("File %s have integer values presented as floats.\n", readname.c_str());
                 integer_as_double = true;
             }
