@@ -361,7 +361,7 @@ namespace marxan {
             return(0);
         }
         
-        bool file_is_empty = true;
+        bool file_is_empty = true, integer_as_double = false;
         for (int line_num = 1; getline(fp, sLine); line_num++)
         {
             file_is_empty = false;
@@ -376,10 +376,22 @@ namespace marxan {
             if (sLine.empty())
                 continue;
             icount++;
+
             stringstream ss = utils::stream_line(sLine);
             ss >> id1 >> id2 >> fcost;
             if (ss.fail())
-                displayErrorMessage("File %s have incorrect values at line %d.\n", readname.c_str(), line_num);
+            {//second attempt, read as doubles
+                stringstream ss_d = utils::stream_line(sLine);
+                double id1_d, id2_d;
+                ss_d >> id1_d >> id2_d >> fcost;
+                id1 = lround(id1_d);
+                id2 = lround(id2_d);
+                if (ss_d.fail())
+                    displayErrorMessage("File %s have incorrect values at line %d.\n", readname.c_str(), line_num);
+                if (integer_as_double)
+                    displayWarningMessage("File %s have integer values presented as floats.\n", readname.c_str());
+                integer_as_double = true;
+            }
             try
             {
                 id1 = PULookup.at(id1);
@@ -464,9 +476,10 @@ namespace marxan {
             else
                 displayErrorMessage("A connection is out of range %f %i %i \n", fcost, id1, id2);
         }
+        fp.close();
+
         if (file_is_empty)
             displayErrorMessage("File %s cannot be read or is empty.\n", readname.c_str());
-        fp.close();
 
         if (idup)
             displayProgress1("There were %i duplicate connection definitions.\n", idup);
