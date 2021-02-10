@@ -83,6 +83,10 @@ namespace marxan {
 
         //Convert delimeters to spaces for reading from a stream
         std::stringstream stream_line(const std::string& str);
+       
+        //check if string likely repesents only some numbers
+        bool is_like_numerical_data(const std::string& str);
+
 
     } // namespace utils
 } // namespace marxan

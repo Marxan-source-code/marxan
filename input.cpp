@@ -360,19 +360,38 @@ namespace marxan {
             displayProgress1("Warning: Connection File %s not found ", fnames.connectionname.c_str());
             return(0);
         }
-
-        if (!getline(fp, sLine))
-            displayErrorMessage("Error reading connections.\n");
-
-        for (int line_num = 2; getline(fp, sLine); line_num++)
+        
+        bool file_is_empty = true, integer_as_double = false;
+        for (int line_num = 1; getline(fp, sLine); line_num++)
         {
+            file_is_empty = false;
+            if (line_num == 1)
+            {
+                if (utils::is_like_numerical_data(sLine))
+                    displayWarningMessage("File %s has no header in the first line.\n", readname.c_str());
+                else
+                    continue;
+            }
+
             if (sLine.empty())
                 continue;
             icount++;
+
             stringstream ss = utils::stream_line(sLine);
             ss >> id1 >> id2 >> fcost;
             if (ss.fail())
-                displayErrorMessage("File %s have incorrect values at line %d.\n", readname.c_str(), line_num);
+            {//second attempt, read as doubles
+                stringstream ss_d = utils::stream_line(sLine);
+                double id1_d, id2_d;
+                ss_d >> id1_d >> id2_d >> fcost;
+                id1 = lround(id1_d);
+                id2 = lround(id2_d);
+                if (ss_d.fail())
+                    displayErrorMessage("File %s has incorrect values at line %d.\n", readname.c_str(), line_num);
+                if (!integer_as_double)
+                    displayWarningMessage("File %s has integer values presented as floats.\n", readname.c_str());
+                integer_as_double = true;
+            }
             try
             {
                 id1 = PULookup.at(id1);
@@ -457,8 +476,10 @@ namespace marxan {
             else
                 displayErrorMessage("A connection is out of range %f %i %i \n", fcost, id1, id2);
         }
-
         fp.close();
+
+        if (file_is_empty)
+            displayErrorMessage("File %s cannot be read or is empty.\n", readname.c_str());
 
         if (idup)
             displayProgress1("There were %i duplicate connection definitions.\n", idup);
@@ -488,6 +509,9 @@ namespace marxan {
         if (!getline(fp, sLine))
             displayErrorMessage("Error reading sparse matrix.\n");
 
+        if (utils::is_like_numerical_data(sLine))
+            displayWarningMessage("File %s has no header in the first line.\n", readname.c_str());
+
         // scan the first line to see if the prob field is tagged on the end
         // 3 = regular marxan matrix
         // 4 = prob2d marxan matrix
@@ -510,7 +534,7 @@ namespace marxan {
                 ss >> rProbability;
 
             if (ss.fail())
-                displayErrorMessage("File %s have incorrect values at line %d.\n", readname.c_str(), line_num);
+                displayErrorMessage("File %s has incorrect values at line %d.\n", readname.c_str(), line_num);
 
             int old_puid;
             try {
@@ -573,24 +597,33 @@ namespace marxan {
 
         for (i = 0; i < spno; i++)
             spec[i].rUserPenalty = 0;
-
-        if (!getline(fp, sLine))
-            displayErrorMessage("Error reading penalties.\n");
-
-        for (int line_num = 2; getline(fp, sLine); line_num++)
+        
+        bool file_is_empty = true;
+        for (int line_num = 1; getline(fp, sLine); line_num++)
         {
+            file_is_empty = false;
+            if (line_num == 1)
+            {
+                if (utils::is_like_numerical_data(sLine))
+                    displayWarningMessage("File %s has no header in the first line.\n", readname.c_str());
+                else
+                    continue;
+            }
+
             if (sLine.empty())
                 continue;
             stringstream ss = utils::stream_line(sLine);
             ss >> iSPID >> rPenalty;
             if (ss.fail())
-                displayErrorMessage("File %s have incorrect values at line %d.\n", readname.c_str(), line_num);
+                displayErrorMessage("File %s has incorrect values at line %d.\n", readname.c_str(), line_num);
 
             i = SPLookup[iSPID];
             spec[i].rUserPenalty = rPenalty;
 
             appendTraceFile("readPenalties spname %i user penalty %g\n", spec[i].name, rPenalty);
         }
+        if (file_is_empty)
+            displayErrorMessage("File %s cannot be read or is empty.\n", readname.c_str());
 
         fp.close();
     }
@@ -611,24 +644,31 @@ namespace marxan {
         if (!fp.is_open())
             displayErrorMessage("PU v Species file %s not found\nAborting Program.", readname.c_str());
 
-        // read through the file first to see how many lines
-        if (!getline(fp, sLine))
-            displayErrorMessage("Error reading sparse matrix sporder.\n");
-
         // create the sparse matrix
         SMTemp.resize(spno);
 
         // planning unit richness and offset are already set to zero
         // init with zero values
-        for (int line_num = 2; getline(fp, sLine); line_num++)
+        bool file_is_empty = true;
+        for (int line_num = 1; getline(fp, sLine); line_num++)
         {
+            file_is_empty = false;
+
+            if (line_num == 1)
+            {
+                if (utils::is_like_numerical_data(sLine))
+                    displayWarningMessage("File %s has no header in the first line.\n", readname.c_str());
+                else
+                    continue;
+            }
+
             if (sLine.empty())
                 continue;
 
             stringstream ss = utils::stream_line(sLine);
             ss >> _spid >> _puid >> amount;
             if (ss.fail())
-                displayErrorMessage("File %s have incorrect values at line %d.\n", readname.c_str(), line_num);
+                displayErrorMessage("File %s has incorrect values at line %d.\n", readname.c_str(), line_num);
 
             int old_puid;
             try {
@@ -652,7 +692,8 @@ namespace marxan {
             spec[_spid].richness += 1;
             SMTemp[_spid][_puid].amount = amount;
         }
-
+        if (file_is_empty)
+            displayErrorMessage("File %s cannot be read or is empty.\n", readname.c_str());
         fp.close();
 
         // Fill the SM vector

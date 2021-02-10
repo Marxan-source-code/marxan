@@ -24,3 +24,12 @@ TEST(UtilsTestsGroup, trim_test)
     trim(original);
     CHECK_EQUAL("original s", original);
 }
+
+TEST(UtilsTestsGroup, is_like_numerical_data_test)
+{
+    CHECK_TRUE(is_like_numerical_data("1.0000,   12.0000,    0.0003"))
+    CHECK_TRUE(is_like_numerical_data("1,3,0.202500000596"))
+    CHECK_FALSE(is_like_numerical_data("id,prop,target,spf,name"))
+    CHECK_FALSE(is_like_numerical_data("2,0.2,1,SG"))
+}
+
