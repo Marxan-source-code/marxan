@@ -368,7 +368,7 @@ namespace marxan {
             if (line_num == 1)
             {
                 if (utils::is_like_numerical_data(sLine))
-                    displayWarningMessage("File %s have no header in the first line.\n", readname.c_str());
+                    displayWarningMessage("File %s has no header in the first line.\n", readname.c_str());
                 else
                     continue;
             }
@@ -387,9 +387,9 @@ namespace marxan {
                 id1 = lround(id1_d);
                 id2 = lround(id2_d);
                 if (ss_d.fail())
-                    displayErrorMessage("File %s have incorrect values at line %d.\n", readname.c_str(), line_num);
+                    displayErrorMessage("File %s has incorrect values at line %d.\n", readname.c_str(), line_num);
                 if (!integer_as_double)
-                    displayWarningMessage("File %s have integer values presented as floats.\n", readname.c_str());
+                    displayWarningMessage("File %s has integer values presented as floats.\n", readname.c_str());
                 integer_as_double = true;
             }
             try
@@ -510,7 +510,7 @@ namespace marxan {
             displayErrorMessage("Error reading sparse matrix.\n");
 
         if (utils::is_like_numerical_data(sLine))
-            displayWarningMessage("File %s have no header in the first line.\n", readname.c_str());
+            displayWarningMessage("File %s has no header in the first line.\n", readname.c_str());
 
         // scan the first line to see if the prob field is tagged on the end
         // 3 = regular marxan matrix
@@ -534,7 +534,7 @@ namespace marxan {
                 ss >> rProbability;
 
             if (ss.fail())
-                displayErrorMessage("File %s have incorrect values at line %d.\n", readname.c_str(), line_num);
+                displayErrorMessage("File %s has incorrect values at line %d.\n", readname.c_str(), line_num);
 
             int old_puid;
             try {
@@ -605,7 +605,7 @@ namespace marxan {
             if (line_num == 1)
             {
                 if (utils::is_like_numerical_data(sLine))
-                    displayWarningMessage("File %s have no header in the first line.\n", readname.c_str());
+                    displayWarningMessage("File %s has no header in the first line.\n", readname.c_str());
                 else
                     continue;
             }
@@ -615,7 +615,7 @@ namespace marxan {
             stringstream ss = utils::stream_line(sLine);
             ss >> iSPID >> rPenalty;
             if (ss.fail())
-                displayErrorMessage("File %s have incorrect values at line %d.\n", readname.c_str(), line_num);
+                displayErrorMessage("File %s has incorrect values at line %d.\n", readname.c_str(), line_num);
 
             i = SPLookup[iSPID];
             spec[i].rUserPenalty = rPenalty;
@@ -657,7 +657,7 @@ namespace marxan {
             if (line_num == 1)
             {
                 if (utils::is_like_numerical_data(sLine))
-                    displayWarningMessage("File %s have no header in the first line.\n", readname.c_str());
+                    displayWarningMessage("File %s has no header in the first line.\n", readname.c_str());
                 else
                     continue;
             }
@@ -668,7 +668,7 @@ namespace marxan {
             stringstream ss = utils::stream_line(sLine);
             ss >> _spid >> _puid >> amount;
             if (ss.fail())
-                displayErrorMessage("File %s have incorrect values at line %d.\n", readname.c_str(), line_num);
+                displayErrorMessage("File %s has incorrect values at line %d.\n", readname.c_str(), line_num);
 
             int old_puid;
             try {
