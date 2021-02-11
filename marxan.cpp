@@ -61,11 +61,8 @@ namespace marxan {
     int savelog;
     int verbosity = 0;
     int asymmetricconnectivity = 0;
-    string sVersionString = "Marxan v 4.0.0 alpha";
-    string sIanBallEmail = "ian.ball@aad.gov.au";
-    string sHughPossinghamEmail = "hugh.possingham@tnc.org";
-    string sMattWattsEmail = "matt.watts@une.edu.au";
-    string sMarxanWebSite = "http://marxan.net";
+    string sVersionString = "Marxan v 4.0.3 beta";
+    string sMarxanWebSite = "https://marxansolutions.org/";
     string sTraceFileName;
     string sApplicationPathName;
     string savelogname;

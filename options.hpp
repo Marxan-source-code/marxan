@@ -20,9 +20,6 @@ namespace marxan {
 
     // For printing
     extern string sVersionString;
-    extern string sIanBallEmail;
-    extern string sHughPossinghamEmail;
-    extern string sMattWattsEmail;
     extern string sMarxanWebSite;
 
     // Initialization constants
