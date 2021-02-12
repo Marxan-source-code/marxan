@@ -1,5 +1,21 @@
 # Marxan
-In development 2020
+
+## Latest Release
+### **Marxan 4 is here for you to try**
+ 
+Marxan has been rebuilt in C++ and we are ready for you to test the new version 4.  
+ 
+**Upgrades include:**  
+- support for multithreading and parallelization (full utilisation of CPU)  
+- improved computational speed and efficiency  
+- additional error reporting  
+ 
+Download for Windows / MacOS / Linux: see releases section. 
+
+You can access the code for the new version in a separate branch of this repo: /marxan4  
+We will officially announce the release of the new version and merge changes to main soon, and are looking for your feedback in the meantime.  
+Please feel free to use our [Google Group](https://groups.google.com/g/marxan). You can also create GitHub issues on this repo or e-mail marxancloud@gmail.com  
+
 
 # How to Build (Windows)
 Marxan has now been refactored to use c++17 for more modernised code and more extensive standard library. MinGW64 is needed to build on windows. Ideally we would compile with latest c++ (c++20 at the time of writing) but I could not find a windows build toolchain that was up to date with gcc 10.2 that actually worked. 
