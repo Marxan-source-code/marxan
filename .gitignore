@@ -1,5 +1,8 @@
 .DS_Store
+.vs
 marxan
 input
 input.dat
 output
+bin
+*.exe
