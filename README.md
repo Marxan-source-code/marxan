@@ -23,7 +23,7 @@ Please feel free to use our [Google Group](https://groups.google.com/g/marxan). 
 - MacOS [x86-64](https://github.com/Marxan-source-code/marxan/releases/download/v4.0.3/Marxan-4.0.3-macOS.zip)
 
 # Test Data
-(https://microsofteur.sharepoint.com/:u:/r/teams/TNC-MSFTQuantumEAP/Shared%20Documents/General/MarxanData.zip?csf=1&web=1&e=u4MHcB)
+[MarxanData.zip](https://microsofteur.sharepoint.com/:u:/r/teams/TNC-MSFTQuantumEAP/Shared%20Documents/General/MarxanData.zip?csf=1&web=1&e=u4MHcB)
 
 # How to Build (Windows)
 Marxan has now been refactored to use c++17 for more modernised code and more extensive standard library. MinGW64 is needed to build on windows. Ideally we would compile with latest c++ (c++20 at the time of writing) but I could not find a windows build toolchain that was up to date with gcc 10.2 that actually worked. 
@@ -56,7 +56,7 @@ Install translator from Intel architecture using terminal command:
 ```
 softwareupdate --install-rosetta
 ```
-The
+Follow the steps for Mac with x86-64 processor.
 # How to run (Mac with x86-64 processor)
 From directory with marxan excutable, assign executable flag to marxan
 ```
