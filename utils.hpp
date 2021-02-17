@@ -9,7 +9,7 @@
 #include <string>
 #include <sstream>
 #include <vector>
-
+#include <iomanip>
 
 namespace marxan {
     namespace utils {
@@ -40,6 +40,15 @@ namespace marxan {
         inline void to_lower(std::string& str)
         {
             transform(str.begin(), str.end(), str.begin(), ::tolower);
+        }
+
+        // converts number to a string form, but with padding
+        // does nothing if stringLength is longer than digits in number
+        inline std::string intToPaddedString(int number, int stringLength)
+        {
+            std::ostringstream ss;
+            ss << std::setw(stringLength) << std::setfill('0') << number;
+            return ss.str();
         }
 
         // Adds '/' to end of dir string if not existent
