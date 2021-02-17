@@ -2177,7 +2177,7 @@ namespace marxan {
 
             if (fnames.savesnapsteps && !(itime % fnames.savesnapfrequency))
             {
-                tempname2 = savename + "_snap" + sRun + utils::intToPaddedString(++snapcount, 5) + getFileNameSuffix(fnames.savesnapchanges);
+                tempname2 = savename + "_snap" + paddedRun + utils::intToPaddedString(++snapcount, 5) + getFileNameSuffix(fnames.savesnapchanges);
                 writeSolution(puno, R, pu, tempname2, fnames.savesnapsteps, fnames);
             } /* Save snapshot every savesnapfreq timesteps */
 
@@ -2192,7 +2192,7 @@ namespace marxan {
 
                 if (fnames.savesnapchanges && !(ichanges % fnames.savesnapfrequency))
                 {
-                    tempname2 = savename + "_snap" + sRun +  utils::intToPaddedString(++snapcount, 5) + getFileNameSuffix(fnames.savesnapchanges);
+                    tempname2 = savename + "_snap" + paddedRun +  utils::intToPaddedString(++snapcount, 5) + getFileNameSuffix(fnames.savesnapchanges);
                     writeSolution(puno, R, pu, tempname2, fnames.savesnapchanges, fnames);
                 } /* Save snapshot every savesnapfreq changes */
 
@@ -2375,7 +2375,7 @@ namespace marxan {
                 // we only accept good changes
                 if (fnames.savesnapsteps && !(itime % fnames.savesnapfrequency))
                 { // Save snapshot every savesnapfreq timesteps
-                    tempname2 = savename + "_snap" + sRun + "t" + utils::intToPaddedString(++snapcount, 5) + getFileNameSuffix(fnames.savesnapchanges);
+                    tempname2 = savename + "_snap" + paddedRun + "t" + utils::intToPaddedString(++snapcount, 5) + getFileNameSuffix(fnames.savesnapchanges);
                     writeSolution(puno, R, pu, tempname2, fnames.savesnapsteps, fnames);
                 }
                 if (isGoodQuantumChange(change, rAcceptanceProbability, float_range, rngEngine) == 1)
@@ -2386,7 +2386,7 @@ namespace marxan {
                     doQuantumChange(puno, R, reserve, change, pu, SM, SM_out, spec, connections, clumptype, iFluctuationCount, PUChosen);
                     if (fnames.savesnapchanges && !(ichanges % fnames.savesnapfrequency))
                     {
-                        tempname2 = savename + "_snap" + sRun + "c" + utils::intToPaddedString(++snapcount, 5) + getFileNameSuffix(fnames.savesnapchanges);
+                        tempname2 = savename + "_snap" + paddedRun + "c" + utils::intToPaddedString(++snapcount, 5) + getFileNameSuffix(fnames.savesnapchanges);
                         writeSolution(puno, R, pu, tempname2, fnames.savesnapchanges, fnames);
                     }
                 } /* Good change has been made */
