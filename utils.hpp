@@ -42,8 +42,8 @@ namespace marxan {
             transform(str.begin(), str.end(), str.begin(), ::tolower);
         }
 
-        // converts number to a string form, but with padding
-        // does nothing if stringLength is longer than digits in number
+        // converts number to a string padded with leading zeros
+        // does nothing if stringLength is less than the digits in number.
         inline std::string intToPaddedString(int number, int stringLength)
         {
             std::ostringstream ss;
