@@ -20,8 +20,8 @@ Please feel free to use our [Google Group](https://groups.google.com/g/marxan). 
 ## v4.0.3
 - Windows [x86-64](https://github.com/Marxan-source-code/marxan/releases/download/v4.0.3/build4.0.3Windows.zip)
 - Linux [x86-64](https://github.com/Marxan-source-code/marxan/releases/download/v4.0.3/build4.0.3Linux.zip)
-- MacOS [x86-64](https://github.com/Marxan-source-code/marxan/releases/download/v4.0.3/Marxan-4.0.3-macOS.zip)
-
+- MacOS 10.15 [x86-64](https://github.com/Marxan-source-code/marxan/releases/download/v4.0.3/Marxan-4.0.3-macOS.zip)
+- MacOS 10.13 [x86-64](https://github.com/Marxan-source-code/marxan/releases/download/v4.0.3/Marxan-4.0.3-MacOS-10.13.zip)
 # Test Data
 - From Google Drive: [MarxanData.zip](https://drive.google.com/file/d/1VGN4S5L_F80Ds2JlSy0MclxS5-KpkwlH/view?usp=sharing)
 - From Releases: [MarxanData.zip](https://github.com/Marxan-source-code/marxan/releases/download/v4.0.3/MarxanData.zip)
