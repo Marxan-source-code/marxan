@@ -64,7 +64,7 @@ namespace marxan {
         const map<int, int>& PULookup, const sfname& fnames);
     void readInputOptions(double& cm, double& prop, sanneal& anneal,
         int& iseed,
-        long int& repeats, string& savename, const sfname& fname, string filename,
+        long int& repeats, string& savename, sfname& fnames, string filename,
         int& runopts, double& misslevel, int& heurotype, int& clumptype,
         int& itimptype, int& verb,
         double& costthresh, double& tpf1, double& tpf2);

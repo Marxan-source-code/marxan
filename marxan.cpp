@@ -149,7 +149,6 @@ namespace marxan {
 
             vector<sspecies> spec = specGlobal; // make local copy of original spec
 
-
             vector<spu_out> SM_out; // make local copy output part of SMGlobal.
             //if (aggexist)
             SM_out.resize(SMGlobal.size());
@@ -277,7 +276,7 @@ namespace marxan {
                 } // Activate Iterative Improvement
 
                 appendLogBuffer << "before file output run " << run_id << endl;
-                string fileNumber = to_string(run_id);
+                string fileNumber = utils::intToPaddedString(run_id, 5);
                 if (fnames.saverun)
                 {
                     tempname2 = savename + "_r" + fileNumber + getFileNameSuffix(fnames.saverun);
@@ -540,6 +539,7 @@ namespace marxan {
         {
             appendTraceFile("before readSparseMatrixSpOrder\n");
 
+            displayWarningMessage("input.dat option: MATRIXSPORDERNAME is no longer needed, however the supplied file will still be read and processed. Please refer to the version 4 feature changelog.md.");
             readSparseMatrixSpOrder(SMsporder, puno, spno, PULookup, SPLookup, specGlobal, fnames);
 
             appendTraceFile("after readSparseMatrixSpOrder\n");
@@ -2066,7 +2066,7 @@ namespace marxan {
         long int itime = 0, ipu = -1, i, itemp, snapcount = 0, ichanges = 0, iPreviousR, iGoodChange = 0;
         long int iRowCounter, iRowLimit;
         double rTemperature, rThreshold, rThresholdMultiplier;
-        string tempname1, tempname2, sRun = to_string(irun);
+        string tempname1, tempname2, sRun = to_string(irun), paddedRun = utils::intToPaddedString(irun, 5);
         FILE* fp = nullptr, * ttfp = nullptr, * Rfp = nullptr;
         string writename;
         uniform_real_distribution<double> float_range(0.0, 1.0);
@@ -2083,7 +2083,7 @@ namespace marxan {
 
         if (fnames.saveannealingtrace)
         {
-            tempname2 = savename + "_anneal_objective" + sRun + ".csv";
+            tempname2 = savename + "_anneal_objective" + paddedRun + ".csv";
             writename = fnames.outputdir + tempname2;
             if ((ttfp = fopen(writename.c_str(), "w")) == NULL)
                 displayErrorMessage("cannot create threshold trace file %s\n", writename.c_str());
@@ -2106,7 +2106,7 @@ namespace marxan {
             fprintf(ttfp, ",%li\n", ipu);
             // iteration,threshold,dochange,total,pus,cost,connectivity,penalty,probability
 
-            tempname2 = savename + "_anneal_zones" + sRun + ".csv";
+            tempname2 = savename + "_anneal_zones" + paddedRun + ".csv";
             writename = fnames.outputdir + tempname2;
             if ((Rfp = fopen(writename.c_str(), "w")) == NULL)
                 displayErrorMessage("cannot create threshold trace file %s\n", writename.c_str());
@@ -2177,7 +2177,7 @@ namespace marxan {
 
             if (fnames.savesnapsteps && !(itime % fnames.savesnapfrequency))
             {
-                tempname2 = savename + "_snap" + sRun + to_string(++snapcount) + getFileNameSuffix(fnames.savesnapchanges);
+                tempname2 = savename + "_snap" + paddedRun + utils::intToPaddedString(++snapcount, 5) + getFileNameSuffix(fnames.savesnapchanges);
                 writeSolution(puno, R, pu, tempname2, fnames.savesnapsteps, fnames);
             } /* Save snapshot every savesnapfreq timesteps */
 
@@ -2192,7 +2192,7 @@ namespace marxan {
 
                 if (fnames.savesnapchanges && !(ichanges % fnames.savesnapfrequency))
                 {
-                    tempname2 = savename + "_snap" + sRun + to_string(++snapcount) + getFileNameSuffix(fnames.savesnapchanges);
+                    tempname2 = savename + "_snap" + paddedRun +  utils::intToPaddedString(++snapcount, 5) + getFileNameSuffix(fnames.savesnapchanges);
                     writeSolution(puno, R, pu, tempname2, fnames.savesnapchanges, fnames);
                 } /* Save snapshot every savesnapfreq changes */
 
@@ -2259,7 +2259,7 @@ namespace marxan {
         long int iRowCounter, iRowLimit, iFluctuationCount;
         double rFluctuationMagnitude, rThreshold, rThresholdMultiplier,
             rAcceptanceProbability;
-        string tempname1, tempname2, sRun = to_string(irun);
+        string tempname1, tempname2, sRun = to_string(irun), paddedRun = utils::intToPaddedString(irun, 5);
         FILE* fp = nullptr, * ttfp = nullptr, * Rfp = nullptr;
         string writename, sDecayType;
         vector<int> PUChosen;
@@ -2284,7 +2284,7 @@ namespace marxan {
 
         if (fnames.saveannealingtrace)
         {
-            tempname2 = savename + "_anneal_objective" + sRun + ".csv";
+            tempname2 = savename + "_anneal_objective" + paddedRun + ".csv";
             writename = fnames.outputdir + tempname2;
             if ((ttfp = fopen(writename.c_str(), "w")) == NULL)
                 displayErrorMessage("cannot create threshold trace file %s\n", writename.c_str());
@@ -2295,7 +2295,7 @@ namespace marxan {
                 fprintf(ttfp, ",probability2D");
             fprintf(ttfp, ",Fmag,Fcount\n");
 
-            tempname2 = savename + "_anneal_zones" + sRun + ".csv";
+            tempname2 = savename + "_anneal_zones" + paddedRun + ".csv";
             writename = fnames.outputdir + tempname2;
             if ((Rfp = fopen(writename.c_str(), "w")) == NULL)
                 displayErrorMessage("cannot create threshold trace file %s\n", writename.c_str());
@@ -2375,7 +2375,7 @@ namespace marxan {
                 // we only accept good changes
                 if (fnames.savesnapsteps && !(itime % fnames.savesnapfrequency))
                 { // Save snapshot every savesnapfreq timesteps
-                    tempname2 = savename + "_snap" + sRun + to_string(++snapcount) + getFileNameSuffix(fnames.savesnapchanges);
+                    tempname2 = savename + "_snap" + paddedRun + "t" + utils::intToPaddedString(++snapcount, 5) + getFileNameSuffix(fnames.savesnapchanges);
                     writeSolution(puno, R, pu, tempname2, fnames.savesnapsteps, fnames);
                 }
                 if (isGoodQuantumChange(change, rAcceptanceProbability, float_range, rngEngine) == 1)
@@ -2386,7 +2386,7 @@ namespace marxan {
                     doQuantumChange(puno, R, reserve, change, pu, SM, SM_out, spec, connections, clumptype, iFluctuationCount, PUChosen);
                     if (fnames.savesnapchanges && !(ichanges % fnames.savesnapfrequency))
                     {
-                        tempname2 = savename + "_snap" + sRun + to_string(++snapcount) + getFileNameSuffix(fnames.savesnapchanges);
+                        tempname2 = savename + "_snap" + paddedRun + "c" + utils::intToPaddedString(++snapcount, 5) + getFileNameSuffix(fnames.savesnapchanges);
                         writeSolution(puno, R, pu, tempname2, fnames.savesnapchanges, fnames);
                     }
                 } /* Good change has been made */
@@ -2471,7 +2471,7 @@ namespace marxan {
         int puvalid = 0, i, j, ipu = 0, imode, ichoice, iRowCounter, iRowLimit;
         vector<int> iimparray;
         double debugfloat;
-        string tempname2, sRun = to_string(irun);
+        string tempname2, sRun = to_string(irun), paddedRun = utils::intToPaddedString(irun, 5);
         FILE* ttfp = nullptr, * Rfp = nullptr;
         string writename;
 
@@ -2486,13 +2486,13 @@ namespace marxan {
 
         if (fnames.saveitimptrace)
         {
-            tempname2 = savename + "_itimp_objective" + sRun + ".csv";
+            tempname2 = savename + "_itimp_objective" + paddedRun + ".csv";
             writename = fnames.outputdir + tempname2;
             if ((ttfp = fopen(writename.c_str(), "w")) == NULL)
                 displayErrorMessage("cannot create threshold trace file %s\n", writename.c_str());
             fprintf(ttfp, "improvement,total,pus,cost,connection,penalty,change total\n");
 
-            tempname2 = savename + "_itimp_zones" + sRun + ".csv";
+            tempname2 = savename + "_itimp_zones" + paddedRun + ".csv";
             writename = fnames.outputdir + tempname2;
             if ((Rfp = fopen(writename.c_str(), "w")) == NULL)
                 displayErrorMessage("cannot create threshold trace file %s\n", writename.c_str());

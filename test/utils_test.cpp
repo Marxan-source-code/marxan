@@ -33,3 +33,14 @@ TEST(UtilsTestsGroup, is_like_numerical_data_test)
     CHECK_FALSE(is_like_numerical_data("2,0.2,1,SG"))
 }
 
+TEST(UtilsTestsGroup, intToPaddedString_test)
+{
+    CHECK_EQUAL("01", intToPaddedString(1,2));
+    CHECK_EQUAL("0100", intToPaddedString(100,4));
+    CHECK_EQUAL("100", intToPaddedString(100,2));
+    CHECK_EQUAL("1", intToPaddedString(1,1));
+    CHECK_EQUAL("0000056", intToPaddedString(56,7));
+    CHECK_EQUAL("56", intToPaddedString(56,0));
+    CHECK_EQUAL("1", intToPaddedString(1,0));
+    CHECK_EQUAL("0", intToPaddedString(0,0));
+}

@@ -770,7 +770,7 @@ namespace marxan {
     // read values for the parameters specified in input.dat parameter file
     void readInputOptions(double& cm, double& prop, sanneal& anneal,
         int& iseed,
-        long int& repeats, string& savename, const sfname& fname, string filename,
+        long int& repeats, string& savename, sfname& fnames, string filename,
         int& runopts, double& misslevel, int& heurotype, int& clumptype,
         int& itimptype, int& verb,
         double& costthresh, double& tpf1, double& tpf2)
@@ -800,6 +800,7 @@ namespace marxan {
         heurotype = 1;
         clumptype = 0;
         verbosity = 1;
+        fnames.solutionsmatrixheaders = 1;  // default include headers
 
         /* Open file and store all lines in vector */
         ifstream fp(filename.c_str());
