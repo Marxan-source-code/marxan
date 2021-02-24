@@ -125,29 +125,33 @@ namespace marxan {
             
             formatted_string_stream& operator>>(double& val) 
             {
+                size_t end_token = token_end();
                 try
                 {
-                    val = stod(s_);           
+                    val = stod(s_.substr(pos_, end_token));
                 }
                 catch(const std::invalid_argument& e)
                 {
                     fail_ = true;    
                 }
-                pos_ = next_token_start();
+                size_t next_pos = end_token + 1; //skip delimeter
+                pos_ = std::max(next_pos, s_.size());
                 return *this;
             }
 
             formatted_string_stream& operator>>(int& n) 
             {
+                size_t end_token = token_end();
                 try
                 {
-                    n = stoi(s_);
+                    n = stoi(s_.substr(pos_, end_token));
                 }
                 catch(const std::invalid_argument& e)
                 {
                         fail_ = true;    
                 }
-                pos_ = next_token_start();
+                size_t next_pos = end_token + 1; //skip delimeter
+                pos_ = std::max(next_pos, s_.size());
                 return *this;
             }
 
@@ -159,13 +163,6 @@ namespace marxan {
                 if(next_pos == std::string::npos)
                     next_pos = s_.size();
                 return next_pos;
-            }
-
-            size_t next_token_start()
-            {
-                size_t next_pos = token_end();
-                next_pos++;
-                return  std::max(next_pos, s_.size());
             }
 
             std::string s_;
