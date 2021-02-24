@@ -93,7 +93,6 @@ namespace marxan {
             for (int j = 0; j < head.size(); j++)
             {
                 const string& temp = head[j];
-                stringstream sVarVal(tokens[j]);
 
                 if (temp.compare("id") == 0)
                 {
