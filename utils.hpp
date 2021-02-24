@@ -117,6 +117,7 @@ namespace marxan {
                 for(size_t i = pos_; i < end_token; i++ )
                     if(s_[i] != '"')
                         s.push_back(s_[i]);
+                utils::trim(s);
                 size_t next_pos = end_token + 1; //skip delimeter
                 pos_ = std::max(next_pos, s_.size());
                 return *this;                  
