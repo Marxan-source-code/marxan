@@ -177,8 +177,6 @@ namespace marxan {
         //Split string on tokens using delimeters
         std::vector<std::string> get_tokens(const std::string& str);
 
-        std::stringstream stream_line(const std::string& str);
-
         //check if string likely repesents only some numbers
         bool is_like_numerical_data(const std::string& str);
 

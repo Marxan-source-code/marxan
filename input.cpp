@@ -502,6 +502,7 @@ namespace marxan {
 
         if (utils::is_like_numerical_data(sLine))
             displayWarningMessage("File %s has no header in the first line.\n", readname.c_str());
+        char delim = utils::guess_delimeter(sLine);
 
         // scan the first line to see if the prob field is tagged on the end
         // 3 = regular marxan matrix
@@ -518,7 +519,7 @@ namespace marxan {
             if (sLine.empty())
                 continue;
             iSMSize++;
-            stringstream ss = utils::stream_line(sLine);
+            utils::formatted_string_stream ss(sLine, delim);
             ss >> _spid >> _puid >> amount;
 
             if (fProb2D == 1)
@@ -590,11 +591,14 @@ namespace marxan {
             spec[i].rUserPenalty = 0;
         
         bool file_is_empty = true;
+        char delim = ',';
         for (int line_num = 1; getline(fp, sLine); line_num++)
         {
             file_is_empty = false;
             if (line_num == 1)
             {
+                delim = utils::guess_delimeter(sLine);
+
                 if (utils::is_like_numerical_data(sLine))
                     displayWarningMessage("File %s has no header in the first line.\n", readname.c_str());
                 else
@@ -603,7 +607,7 @@ namespace marxan {
 
             if (sLine.empty())
                 continue;
-            stringstream ss = utils::stream_line(sLine);
+            utils::formatted_string_stream ss(sLine, delim);
             ss >> iSPID >> rPenalty;
             if (ss.fail())
                 displayErrorMessage("File %s has incorrect values at line %d.\n", readname.c_str(), line_num);
@@ -641,12 +645,14 @@ namespace marxan {
         // planning unit richness and offset are already set to zero
         // init with zero values
         bool file_is_empty = true;
+        char delim = ',';
         for (int line_num = 1; getline(fp, sLine); line_num++)
         {
             file_is_empty = false;
 
             if (line_num == 1)
             {
+                delim = utils::guess_delimeter(sLine);
                 if (utils::is_like_numerical_data(sLine))
                     displayWarningMessage("File %s has no header in the first line.\n", readname.c_str());
                 else
@@ -656,7 +662,7 @@ namespace marxan {
             if (sLine.empty())
                 continue;
 
-            stringstream ss = utils::stream_line(sLine);
+            utils::formatted_string_stream ss(sLine, delim);
             ss >> _spid >> _puid >> amount;
             if (ss.fail())
                 displayErrorMessage("File %s has incorrect values at line %d.\n", readname.c_str(), line_num);
