@@ -362,11 +362,13 @@ namespace marxan {
         }
         
         bool file_is_empty = true, integer_as_double = false;
+        char delim = ',';
         for (int line_num = 1; getline(fp, sLine); line_num++)
         {
             file_is_empty = false;
             if (line_num == 1)
             {
+                delim = utils::guess_delimeter(sLine);
                 if (utils::is_like_numerical_data(sLine))
                     displayWarningMessage("File %s has no header in the first line.\n", readname.c_str());
                 else
@@ -377,21 +379,10 @@ namespace marxan {
                 continue;
             icount++;
 
-            stringstream ss = utils::stream_line(sLine);
+            utils::formatted_string_stream ss(sLine, delim);
             ss >> id1 >> id2 >> fcost;
             if (ss.fail())
-            {//second attempt, read as doubles
-                stringstream ss_d = utils::stream_line(sLine);
-                double id1_d, id2_d;
-                ss_d >> id1_d >> id2_d >> fcost;
-                id1 = lround(id1_d);
-                id2 = lround(id2_d);
-                if (ss_d.fail())
-                    displayErrorMessage("File %s has incorrect values at line %d.\n", readname.c_str(), line_num);
-                if (!integer_as_double)
-                    displayWarningMessage("File %s has integer values presented as floats.\n", readname.c_str());
-                integer_as_double = true;
-            }
+                displayErrorMessage("File %s has incorrect values at line %d.\n", readname.c_str(), line_num);
             try
             {
                 id1 = PULookup.at(id1);

@@ -122,41 +122,50 @@ namespace marxan {
                 return *this;                  
             }
 
-
-            formatted_string_stream& operator>>(int& n) 
-            {
-                try
-                {
-                    n = stoi(s_);                  
-                }
-                catch(const std::invalid_argument& e)
-                {
-                    fail_ = true;    
-                }
-                return *this;
-            }
             
             formatted_string_stream& operator>>(double& val) 
             {
                 try
                 {
-                    val = stod(s_);                  
+                    val = stod(s_);           
                 }
                 catch(const std::invalid_argument& e)
                 {
                     fail_ = true;    
                 }
+                pos_ = next_token_start();
+                return *this;
+            }
+
+            formatted_string_stream& operator>>(int& n) 
+            {
+                try
+                {
+                    n = stoi(s_);
+                }
+                catch(const std::invalid_argument& e)
+                {
+                        fail_ = true;    
+                }
+                pos_ = next_token_start();
                 return *this;
             }
 
             private:
-            
+
             size_t token_end()
             {
                 size_t next_pos = s_.find_first_of(delim_, pos_);
                 if(next_pos == std::string::npos)
                     next_pos = s_.size();
                 return next_pos;
+            }
+
+            size_t next_token_start()
+            {
+                size_t next_pos = token_end();
+                next_pos++;
+                return  std::max(next_pos, s_.size());
             }
 
             std::string s_;

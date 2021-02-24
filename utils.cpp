@@ -72,6 +72,19 @@ namespace marxan {
             return true;
         }
 
+        char guess_delimeter(const std::string& str)
+        {
+            char delim = ',';
+            int n_commas = std::count(str.begin(), str.end(), ',');
+            int n_tabs = std::count(str.begin(), str.end(), '\t');
+            int n_semicolons = std::count(str.begin(), str.end(), ';');
+            if(n_tabs > n_commas)
+                delim = '\t';
+            if(n_semicolons > n_commas && n_semicolons > n_tabs)
+                delim = ';';
+            return delim;
+        }
+
 
     } // namespace utils
 } // namespace marxan
