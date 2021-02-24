@@ -118,7 +118,7 @@ namespace marxan {
                     if(s_[i] != '"')
                         s.push_back(s_[i]);
                 size_t next_pos = end_token + 1; //skip delimeter
-                pos_ = std::max(next_pos, s_.size());
+                pos_ = std::min(next_pos, s_.size());
                 return *this;                  
             }
 
@@ -135,7 +135,7 @@ namespace marxan {
                     fail_ = true;    
                 }
                 size_t next_pos = end_token + 1; //skip delimeter
-                pos_ = std::max(next_pos, s_.size());
+                pos_ = std::min(next_pos, s_.size());
                 return *this;
             }
 
@@ -151,7 +151,7 @@ namespace marxan {
                         fail_ = true;    
                 }
                 size_t next_pos = end_token + 1; //skip delimeter
-                pos_ = std::max(next_pos, s_.size());
+                pos_ = std::min(next_pos, s_.size());
                 return *this;
             }
 
