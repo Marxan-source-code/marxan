@@ -26,7 +26,7 @@ namespace marxan {
 
         std::vector<std::string> get_tokens(const std::string& str)
         {
-            static const std::string delimeters(" ,;:^*\"/\t\'\\\n");
+            static const std::string delimeters(",;\t");
             std::vector<std::string> tokens;
             std::string word;
             for (char ch : str)

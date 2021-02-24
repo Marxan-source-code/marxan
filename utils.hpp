@@ -87,14 +87,94 @@ namespace marxan {
             parsed >> value;
         }
 
+        class formatted_string_stream
+        {
+            public:
+            formatted_string_stream(const std::string& s, char delim)
+            {
+                s_ = s;
+                pos_ = 0;
+                delim_ = delim;
+                fail_ = false;
+                
+            }
+
+            bool fail()
+            {
+                return fail_;
+            }
+
+            formatted_string_stream& operator>>(std::string& s) 
+            {
+                if(pos_ >= s.size())
+                {
+                    fail_ = true;
+                    return *this;
+                }
+
+                size_t end_token = this->token_end();
+                s.clear();
+                for(size_t i = pos_; i < end_token; i++ )
+                    if(s_[i] != '"')
+                        s.push_back(s_[i]);
+                size_t next_pos = end_token + 1; //skip delimeter
+                pos_ = std::max(next_pos, s_.size());
+                return *this;                  
+            }
+
+
+            formatted_string_stream& operator>>(int& n) 
+            {
+                try
+                {
+                    n = stoi(s_);                  
+                }
+                catch(const std::invalid_argument& e)
+                {
+                    fail_ = true;    
+                }
+                return *this;
+            }
+            
+            formatted_string_stream& operator>>(double& val) 
+            {
+                try
+                {
+                    val = stod(s_);                  
+                }
+                catch(const std::invalid_argument& e)
+                {
+                    fail_ = true;    
+                }
+                return *this;
+            }
+
+            private:
+            
+            size_t token_end()
+            {
+                size_t next_pos = s_.find_first_of(delim_, pos_);
+                if(next_pos == std::string::npos)
+                    next_pos = s_.size();
+                return next_pos;
+            }
+
+            std::string s_;
+            size_t pos_;
+            char delim_;
+            bool fail_;
+        };
+
         //Split string on tokens using delimeters
         std::vector<std::string> get_tokens(const std::string& str);
 
-        //Convert delimeters to spaces for reading from a stream
         std::stringstream stream_line(const std::string& str);
-       
+
         //check if string likely repesents only some numbers
         bool is_like_numerical_data(const std::string& str);
+
+        //check if string likely repesents only some numbers
+        char guess_delimeter(const std::string& str);
 
 
     } // namespace utils
