@@ -24,14 +24,13 @@ namespace marxan {
             }
         }
 
-        std::vector<std::string> get_tokens(const std::string& str)
+        std::vector<std::string> get_tokens(const std::string& str, char delim)
         {
-            static const std::string delimeters(",;\t");
             std::vector<std::string> tokens;
             std::string word;
             for (char ch : str)
             {
-                if (delimeters.find_first_of(ch) == std::string::npos)
+                if(ch != delim)
                     word.push_back(ch);
                 else
                 {
@@ -45,22 +44,6 @@ namespace marxan {
             if (!word.empty())
                 tokens.push_back(word);
             return tokens;
-        }
-
-        std::stringstream stream_line(const std::string& str)
-        {
-            static const std::string delimeters(" ,;:^*\"/\t\'\\\n");
-            std::stringstream ss;
-            for (char ch : str)
-            {
-                if (delimeters.find_first_of(ch) == std::string::npos)
-                    ss << ch;
-                else
-                {
-                    ss << ' ';
-                }
-            }
-            return ss;
         }
 
         bool is_like_numerical_data(const std::string& str)
