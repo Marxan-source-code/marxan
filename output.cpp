@@ -263,6 +263,7 @@ namespace marxan {
         vprintf(sMess.c_str(), args);
         if (savelog) vfprintf(fsavelog, sMess.c_str(), args);
         va_end(args);
+        cin.get(); // pause screen
         longjmp(jmpbuf, 1);
     }
 

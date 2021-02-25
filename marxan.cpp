@@ -126,7 +126,7 @@ namespace marxan {
 
         printf("Running multithreaded over number of threads: %d\n", maxThreads);
         displayProgress1("Running multithreaded over number of threads: " + to_string(maxThreads) + "\n");
-
+        displayProgress1("Runs will be printed as they complete, and may not be in order due to parallelisation.");
         //create seeds for local rng engines
         vector<unsigned int> seeds(repeats);
         for (int run_id = 1; run_id <= repeats; run_id++)
@@ -350,7 +350,7 @@ namespace marxan {
                 appendLogBuffer << "Exception occurred on run " << run_id << ": " << e.what() << endl;
                 displayProgress1(appendLogBuffer.str());
                 appendTraceFile(appendLogBuffer.str());
-
+                cin.get(); // pause screen
                 throw(e);
             }
 
@@ -788,7 +788,8 @@ namespace marxan {
         displayShutdownMessage(startTime);
 
         appendTraceFile("end final file output\n");
-        appendTraceFile("\nMarxan end execution\n");
+        appendTraceFile("\nMarxan end execution. Press any key to continue\n");
+        cin.get(); // pause screen
 
         return 0;
     } // executeMarxan
