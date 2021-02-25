@@ -263,6 +263,7 @@ namespace marxan {
         vprintf(sMess.c_str(), args);
         if (savelog) vfprintf(fsavelog, sMess.c_str(), args);
         va_end(args);
+        cin.get(); // pause screen
         longjmp(jmpbuf, 1);
     }
 
@@ -419,7 +420,7 @@ namespace marxan {
     void displayTimePassed(chrono::high_resolution_clock::time_point start)
     {
         auto end = chrono::high_resolution_clock::now();
-        int itemp = chrono::duration_cast<std::chrono::seconds>(end - start).count();
+        uint64_t itemp = chrono::duration_cast<std::chrono::seconds>(end - start).count();
 
         printf("Time passed so far is ");
         if (itemp >= 60 * 60)
