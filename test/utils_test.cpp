@@ -33,6 +33,35 @@ TEST(UtilsTestsGroup, is_like_numerical_data_test)
     CHECK_FALSE(is_like_numerical_data("2,0.2,1,SG"))
 }
 
+TEST(UtilsTestsGroup, guess_delimeter_test)
+{
+    CHECK_EQUAL(guess_delimeter("1.0000\t12.0000\t0.0003"), '\t')
+    CHECK_EQUAL(guess_delimeter("1,3,0.202500000596"), ',')
+    CHECK_EQUAL(guess_delimeter("id,prop,target,spf,name"), ',')
+    CHECK_EQUAL(guess_delimeter("2;0,2;1;SG"), ';')
+    CHECK_EQUAL(guess_delimeter("2,0.2,1,SG\tUSA"), ',')
+}
+
+TEST(UtilsTestsGroup, formatted_string_stream_test)
+{
+    formatted_string_stream ss("2,0.2,1,SG", ',');
+    int i1, i2;
+    double d1;
+    std::string s1;
+    ss>>i1>>d1>>i2>>s1; 
+    CHECK_EQUAL(i1,2);
+    CHECK_TRUE(std::abs(d1-0.2)<0.00001);
+    CHECK_EQUAL(i2,1);
+    CHECK_EQUAL(s1,"SG");
+}
+
+TEST(UtilsTestsGroup, get_tokens_test)
+{
+    CHECK_EQUAL(get_tokens("id,prop,target,spf,name", ','), std::vector<string>({"id","prop","target","spf","name"}));
+    CHECK_EQUAL(get_tokens("id;prop;target;spf;name", ';'), std::vector<string>({"id","prop","target","spf","name"}));
+}
+
+
 TEST(UtilsTestsGroup, intToPaddedString_test)
 {
     CHECK_EQUAL("01", intToPaddedString(1,2));

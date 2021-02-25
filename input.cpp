@@ -18,15 +18,9 @@
 namespace marxan {
     using namespace std;
 
-    vector<string> GetFieldNames(string fname, ifstream& fp, const vector<string>& varList)
+    vector<string> GetFieldNames(const string& fname, const vector<string>& tokens, const vector<string>& varList)
     {
         vector<string> fieldNames;
-        /* Scan header */
-        string sLine;
-        if (!getline(fp, sLine))
-            displayErrorMessage("Error reading %s.\n", fname.c_str());
-
-        vector<string> tokens = utils::get_tokens(sLine);
 
         for (string sVarName : tokens)
         {
@@ -68,7 +62,11 @@ namespace marxan {
         if (!fp.is_open())
             displayErrorMessage("Planning Unit file %s has not been found.\nAborting Program.", readname.c_str());
 
-        vector<string> head = GetFieldNames(fnames.puname, fp, varlist);
+        getline(fp, sLine);
+        char delim = utils::guess_delimeter(sLine);
+        vector<string> tokens = utils::get_tokens(sLine, delim); 
+
+        vector<string> head = GetFieldNames(fnames.puname, tokens, varlist);
 
         /* While there are still lines left feed information into temporary list */
 
@@ -90,14 +88,11 @@ namespace marxan {
             putemp.probrichness = 0;
             putemp.proboffset = 0;
 
-            vector<string> tokens = utils::get_tokens(sLine);
-            if (tokens.size() != head.size())
-                displayErrorMessage("Planning Unit file %s has different amount of items at line %d then its head.\n", fnames.puname.c_str(), line_num);
+            utils::formatted_string_stream sVarVal(sLine, delim);
 
             for (int j = 0; j < head.size(); j++)
             {
                 const string& temp = head[j];
-                stringstream sVarVal(tokens[j]);
 
                 if (temp.compare("id") == 0)
                 {
@@ -126,6 +121,9 @@ namespace marxan {
                 }
             } /* looking for ivar different input variables */
 
+            if(sVarVal.fail())
+                displayErrorMessage("Planning Unit file %s has error at line %d.\n", fnames.specname.c_str(), line_num);
+            
             if (putemp.id == -1)
                 displayErrorMessage("ERROR: Missing planning unit id for line %d. \n", line_num);
 
@@ -160,7 +158,11 @@ namespace marxan {
         if (!fp.is_open())
             displayErrorMessage("Species file %s has not been found.\nAborting Program.", readname.c_str());
         
-        vector<string> snhead = GetFieldNames(fnames.specname, fp, varlist);
+        getline(fp, sLine);
+        char delim = utils::guess_delimeter(sLine);
+        vector<string> tokens = utils::get_tokens(sLine, delim); 
+
+        vector<string> snhead = GetFieldNames(fnames.specname, tokens, varlist);
 
         // While there are still lines left feed information into temporary link list
         for (int line_num = 2; getline(fp, sLine); line_num++)
@@ -188,14 +190,11 @@ namespace marxan {
             spectemp.Zscore1D = 0;
             spectemp.Zscore2D = 0;
 
-            vector<string> tokens = utils::get_tokens(sLine);
-            if (tokens.size() != snhead.size())
-                displayErrorMessage("Species file %s has different amount of items at line %d then its head.\n", fnames.specname.c_str(), line_num);
+            utils::formatted_string_stream sVarVal(sLine, delim);
 
             for (int j = 0; j < snhead.size(); j++)
             {
                 const string& temp = snhead[j];
-                stringstream sVarVal(tokens[j]);
 
                 if (temp.compare("id") == 0)
                 {
@@ -245,6 +244,9 @@ namespace marxan {
                 }
             } // looking for ivar different input variables
 
+            if(sVarVal.fail())
+                displayErrorMessage("Species file %s has error at line %d.\n", fnames.specname.c_str(), line_num);
+
             spec.push_back(spectemp);
         } // Scanning through each line of file
 
@@ -271,10 +273,13 @@ namespace marxan {
         if (!fp.is_open())
             displayErrorMessage("Species block definition file %s has not been found.\nAborting Program.", readname.c_str());
 
-        vector<string> head = GetFieldNames(fnames.blockdefname, fp, varlist);
+        getline(fp, sLine);
+        char delim = utils::guess_delimeter(sLine);
+        vector<string> tokens = utils::get_tokens(sLine, delim); 
+        vector<string> head = GetFieldNames(fnames.blockdefname, tokens, varlist);
 
         /* While there are still lines left feed information into temporary link list */
-        while (getline(fp, sLine)) {
+        for(int line_num = 2; getline(fp, sLine); line_num++) {
             i++;
             sgenspec gstemp;
             gstemp.type = -1; /* Set defaults for any missing values */
@@ -285,15 +290,11 @@ namespace marxan {
             gstemp.sepdistance = -1;
             gstemp.prop = -1;
 
-            vector<string> tokens = utils::get_tokens(sLine);
-            if (tokens.size() != head.size())
-                displayErrorMessage("Species block definition file %s has different amount of items at line %d then its head.\n", fnames.blockdefname.c_str(), i);
-
+            utils::formatted_string_stream sVarVal(sLine, delim);
 
             for (int j = 0; j < head.size(); j++)
             {
                 const string& temp = head[j];
-                stringstream sVarVal(tokens[j]);
 
                 if (temp.compare("type") == 0) {
                     sVarVal >> gstemp.type;
@@ -325,6 +326,10 @@ namespace marxan {
                     displayErrorMessage("Serious error in GenSpecies data reading function.\n");
                 }
             } /* looking for ivar different input variables */
+
+            if(sVarVal.fail())
+                displayErrorMessage("Species block definition file %s has error at line %d.\n", fnames.specname.c_str(), line_num);
+
 
             if (gstemp.type == -1)
                 displayErrorMessage("ERROR: Missing Gen Species type for line %d. \n", i);
@@ -362,11 +367,13 @@ namespace marxan {
         }
         
         bool file_is_empty = true, integer_as_double = false;
+        char delim = ',';
         for (int line_num = 1; getline(fp, sLine); line_num++)
         {
             file_is_empty = false;
             if (line_num == 1)
             {
+                delim = utils::guess_delimeter(sLine);
                 if (utils::is_like_numerical_data(sLine))
                     displayWarningMessage("File %s has no header in the first line.\n", readname.c_str());
                 else
@@ -377,21 +384,10 @@ namespace marxan {
                 continue;
             icount++;
 
-            stringstream ss = utils::stream_line(sLine);
+            utils::formatted_string_stream ss(sLine, delim);
             ss >> id1 >> id2 >> fcost;
             if (ss.fail())
-            {//second attempt, read as doubles
-                stringstream ss_d = utils::stream_line(sLine);
-                double id1_d, id2_d;
-                ss_d >> id1_d >> id2_d >> fcost;
-                id1 = lround(id1_d);
-                id2 = lround(id2_d);
-                if (ss_d.fail())
-                    displayErrorMessage("File %s has incorrect values at line %d.\n", readname.c_str(), line_num);
-                if (!integer_as_double)
-                    displayWarningMessage("File %s has integer values presented as floats.\n", readname.c_str());
-                integer_as_double = true;
-            }
+                displayErrorMessage("File %s has incorrect values at line %d.\n", readname.c_str(), line_num);
             try
             {
                 id1 = PULookup.at(id1);
@@ -511,6 +507,7 @@ namespace marxan {
 
         if (utils::is_like_numerical_data(sLine))
             displayWarningMessage("File %s has no header in the first line.\n", readname.c_str());
+        char delim = utils::guess_delimeter(sLine);
 
         // scan the first line to see if the prob field is tagged on the end
         // 3 = regular marxan matrix
@@ -527,7 +524,7 @@ namespace marxan {
             if (sLine.empty())
                 continue;
             iSMSize++;
-            stringstream ss = utils::stream_line(sLine);
+            utils::formatted_string_stream ss(sLine, delim);
             ss >> _spid >> _puid >> amount;
 
             if (fProb2D == 1)
@@ -599,11 +596,14 @@ namespace marxan {
             spec[i].rUserPenalty = 0;
         
         bool file_is_empty = true;
+        char delim = ',';
         for (int line_num = 1; getline(fp, sLine); line_num++)
         {
             file_is_empty = false;
             if (line_num == 1)
             {
+                delim = utils::guess_delimeter(sLine);
+
                 if (utils::is_like_numerical_data(sLine))
                     displayWarningMessage("File %s has no header in the first line.\n", readname.c_str());
                 else
@@ -612,7 +612,7 @@ namespace marxan {
 
             if (sLine.empty())
                 continue;
-            stringstream ss = utils::stream_line(sLine);
+            utils::formatted_string_stream ss(sLine, delim);
             ss >> iSPID >> rPenalty;
             if (ss.fail())
                 displayErrorMessage("File %s has incorrect values at line %d.\n", readname.c_str(), line_num);
@@ -650,12 +650,14 @@ namespace marxan {
         // planning unit richness and offset are already set to zero
         // init with zero values
         bool file_is_empty = true;
+        char delim = ',';
         for (int line_num = 1; getline(fp, sLine); line_num++)
         {
             file_is_empty = false;
 
             if (line_num == 1)
             {
+                delim = utils::guess_delimeter(sLine);
                 if (utils::is_like_numerical_data(sLine))
                     displayWarningMessage("File %s has no header in the first line.\n", readname.c_str());
                 else
@@ -665,7 +667,7 @@ namespace marxan {
             if (sLine.empty())
                 continue;
 
-            stringstream ss = utils::stream_line(sLine);
+            utils::formatted_string_stream ss(sLine, delim);
             ss >> _spid >> _puid >> amount;
             if (ss.fail())
                 displayErrorMessage("File %s has incorrect values at line %d.\n", readname.c_str(), line_num);
