@@ -256,15 +256,13 @@ namespace marxan {
     // program is then terminated
     void displayErrorMessage(string sMess, ...)
     {
-        extern jmp_buf jmpbuf;
         va_list args;
 
         va_start(args, sMess);
         vprintf(sMess.c_str(), args);
         if (savelog) vfprintf(fsavelog, sMess.c_str(), args);
         va_end(args);
-        cin.get(); // pause screen
-        longjmp(jmpbuf, 1);
+        throw runtime_error("Error message was generated.\n");
     }
 
     // displays a warning message when verbosity > 0

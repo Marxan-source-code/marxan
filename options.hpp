@@ -1,6 +1,5 @@
 #pragma once
 
-#include <csetjmp>
 #include <cstdarg>
 #include <chrono>
 #include <map>
@@ -23,7 +22,6 @@ namespace marxan {
     extern string sMarxanWebSite;
 
     // Initialization constants
-    extern jmp_buf jmpbuf;
     extern int verbosity;
     extern FILE* fsavelog;
     extern int savelog;
