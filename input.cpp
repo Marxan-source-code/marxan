@@ -809,7 +809,7 @@ namespace marxan {
         // Check if object is valid
         if (!fp)
         {
-            displayErrorMessage("input file %s not found\nAborting Program.\n\n", filename.c_str());
+            displayErrorMessage("Input file %s not found\nAborting Program.\n\n", filename.c_str());
         }
 
         string line;
