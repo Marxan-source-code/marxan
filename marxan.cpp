@@ -159,6 +159,7 @@ namespace marxan {
 
             appendLogBuffer << "\n Start run loop run " << run_id << endl;
             try {
+
                 if (runoptions.ThermalAnnealingOn)
                 {
                     // Annealing Setup
@@ -380,7 +381,10 @@ namespace marxan {
         }
 
         if(quitting_loop)
+        {
+            displayProgress1("\nRuns were aborted due to error.\n"); 
             throw runtime_error("Runs were aborted due to error.\n");
+        }
 
         // Write all summaries for each run.
         if (fnames.savesum)
