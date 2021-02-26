@@ -51,7 +51,6 @@ namespace marxan {
     using namespace utils;
 
     // Initialize global constants
-    jmp_buf jmpbuf;
     double delta;
     long int RandSeed1;
     int iMemoryUsed = 0;
@@ -132,9 +131,14 @@ namespace marxan {
         for (int run_id = 1; run_id <= repeats; run_id++)
             seeds[run_id - 1] = rngEngineGlobal();
 
+        bool quitting_loop = false;    
+
         #pragma omp parallel for schedule(dynamic)
         for (int run_id = 1; run_id <= repeats; run_id++)
         {
+            if(quitting_loop)
+                continue; //skipping iterations. It is not allowed to break or throw out omp for loop.
+
             // Create run specific structures
             int thread = omp_get_thread_num();
             rng_engine rngEngine(seeds[run_id - 1]);
@@ -155,6 +159,7 @@ namespace marxan {
 
             appendLogBuffer << "\n Start run loop run " << run_id << endl;
             try {
+
                 if (runoptions.ThermalAnnealingOn)
                 {
                     // Annealing Setup
@@ -344,14 +349,15 @@ namespace marxan {
                     ClearClumps(spno, spec, pu, SMGlobal, SM_out);
 
             }
-            catch (exception& e) {
+            catch (const exception& e) {
                 // On exceptions, append exception to log file in addition to existing buffer. 
                 displayProgress1(runConsoleOutput.str());
                 appendLogBuffer << "Exception occurred on run " << run_id << ": " << e.what() << endl;
                 displayProgress1(appendLogBuffer.str());
                 appendTraceFile(appendLogBuffer.str());
-                cin.get(); // pause screen
-                throw(e);
+                //cannot throw or break out of omp loop
+                quitting_loop = true;
+                continue;
             }
 
             appendLogBuffer << "after file output run " << run_id << endl;
@@ -372,6 +378,12 @@ namespace marxan {
                     displayTimePassed(startTime);
                 }
             }
+        }
+
+        if(quitting_loop)
+        {
+            displayProgress1("\nRuns were aborted due to error.\n"); 
+            throw runtime_error("Runs were aborted due to error.\n");
         }
 
         // Write all summaries for each run.
@@ -404,9 +416,6 @@ namespace marxan {
         int isp;
         int maxThreads = omp_get_max_threads();
 
-        // Handle Error driven termination
-        if (setjmp(jmpbuf))
-            return 1;
 
         displayStartupMessage();
         startTime = chrono::high_resolution_clock::now(); // set program start time.
@@ -624,7 +633,7 @@ namespace marxan {
             {
                 appendTraceFile("Data error: CalcPenalties off but no PENALTYNAME specified, exiting.\n");
                 displayProgress1("Data error: CalcPenalties off but no PENALTYNAME specified, exiting.\n");
-                exit(1);
+                exit(EXIT_FAILURE);
             }
 
             // transfer loaded penalties to correct data structrure
@@ -717,7 +726,7 @@ namespace marxan {
             if (marxanIsSecondary == 1)
                 secondaryExit();
 
-            exit(1);
+            exit(EXIT_FAILURE);
         }
 
         if (fnames.savesolutionsmatrix)
@@ -747,9 +756,17 @@ namespace marxan {
             ComputeP_AllPUsSelected_2D(tempname2, puno, spno, pu, SMGlobal, specGlobal);
         }
 
-        executeRunLoop(repeats, puno, spno, cm, aggexist, prop, clumptype, misslevel,
-            savename, costthresh, tpf1, tpf2, heurotype, runopts,
-            itimptype, sumsoln, rngEngine);
+        try
+        {
+            executeRunLoop(repeats, puno, spno, cm, aggexist, prop, clumptype, misslevel,
+                savename, costthresh, tpf1, tpf2, heurotype, runopts,
+                itimptype, sumsoln, rngEngine);
+        }
+        catch (const exception& e)
+        {
+            appendTraceFile("Error during main loop.\n");
+            exit(EXIT_FAILURE);
+        }
 
         appendTraceFile("before final file output\n");
 
@@ -789,7 +806,6 @@ namespace marxan {
 
         appendTraceFile("end final file output\n");
         appendTraceFile("\nMarxan end execution. Press any key to continue\n");
-        cin.get(); // pause screen
 
         return 0;
     } // executeMarxan
@@ -2596,15 +2612,24 @@ int main(int argc, char* argv[]) {
         marxan::handleOptions(argc, argv, sInputFileName);
     }
 
-    if (marxan::executeMarxan(sInputFileName)) // Calls the main annealing unit
+    try
     {
-        if (marxan::marxanIsSecondary == 1)
+        if (marxan::executeMarxan(sInputFileName)) // Calls the main annealing unit
         {
-            marxan::secondaryExit();
-        }
+            if (marxan::marxanIsSecondary == 1)
+            {
+                marxan::secondaryExit();
+            }
 
-        return 1;
-    }  // Abnormal Exit
+            return 1;
+        }  // Abnormal Exit
+    }
+    catch(const std::exception& e)
+    {
+        std::cerr << "Error during Marxan execution."  << '\n';
+        exit(EXIT_FAILURE);
+    }
+    
 
     if (marxan::marxanIsSecondary == 1)
     {
