@@ -61,7 +61,7 @@ namespace marxan {
     int savelog;
     int verbosity = 0;
     int asymmetricconnectivity = 0;
-    string sVersionString = "Marxan v 4.0.3 beta";
+    string sVersionString = "Marxan v 4.0.4";
     string sMarxanWebSite = "https://marxansolutions.org/";
     string sTraceFileName;
     string sApplicationPathName;
@@ -256,11 +256,11 @@ namespace marxan {
                     appendLogBuffer << "before iterativeImprovement run " << run_id << endl;
 
                     iterativeImprovement(puno, spno, pu, connections, spec, SMGlobal, SM_out, R, cm,
-                        reserve, change, costthresh, tpf1, tpf2, clumptype, run_id, savename, appendLogBuffer);
+                        reserve, change, costthresh, tpf1, tpf2, clumptype, run_id, savename, appendLogBuffer, rngEngine);
 
                     if (itimptype == 3)
                         iterativeImprovement(puno, spno, pu, connections, spec, SMGlobal, SM_out, R, cm,
-                            reserve, change, costthresh, tpf1, tpf2, clumptype, run_id, savename, appendLogBuffer);
+                            reserve, change, costthresh, tpf1, tpf2, clumptype, run_id, savename, appendLogBuffer, rngEngine);
 
                     appendLogBuffer << "after iterativeImprovement run " << run_id << endl;
 
@@ -2467,7 +2467,7 @@ namespace marxan {
     void iterativeImprovement(int puno, int spno, const vector<spustuff>& pu, const vector<sconnections>& connections,
         vector<sspecies>& spec, const vector<spu>& SM, vector<spu_out>& SM_out, vector<int>& R, double cm,
         scost& reserve, scost& change, double costthresh, double tpf1, double tpf2,
-        int clumptype, int irun, string savename, stringstream& logBuffer)
+        int clumptype, int irun, string savename, stringstream& logBuffer, rng_engine& rngEngine)
     {
         int puvalid = 0, i, j, ipu = 0, imode, ichoice, iRowCounter, iRowLimit;
         vector<int> iimparray;
@@ -2530,8 +2530,7 @@ namespace marxan {
             logBuffer << "iterativeImprovement after array init\n";
 
             // shuffle iimp array
-            unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
-            std::shuffle(iimparray.begin(), iimparray.end(), std::default_random_engine(seed));
+            std::shuffle(iimparray.begin(), iimparray.end(), rngEngine);
 
             /***** Doing the improvements ****/
             for (i = 0; i < puvalid; i++)
