@@ -4,8 +4,9 @@
 #include "heuristics.hpp"
 #include "output.hpp"
 #include "clumping.hpp"
-#include "marxan.hpp"
+#include "score_change.hpp"
 
+#include "defines.hpp"
 
 // functions that read from input files
 namespace marxan {
