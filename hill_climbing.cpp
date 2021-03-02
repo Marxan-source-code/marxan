@@ -36,18 +36,17 @@ namespace marxan {
     void hill_climbing(int puno, int spno, const vector<spustuff>& pu, const vector<sconnections>& connections,
         vector<sspecies>& spec, const vector<spu>& SM, vector<spu_out>& SM_out, vector<int>& R, double cm,
         scost& reserve, scost& change, double costthresh, double tpf1, double tpf2,
-        int clumptype, int irun, string savename, stringstream& logBuffer, rng_engine& rngEngine)
+        int clumptype,  int irun, int iterations, string savename, stringstream& logBuffer, rng_engine& rngEngine)
     {
-        int puvalid = 0, i, j, ipu = 0, imode, ichoice, iRowCounter, iRowLimit;
+        int puvalid = 0,  ipu = 0, imode, ichoice, iRowCounter, iRowLimit;
         vector<int> iimparray;
-        double debugfloat;
-        string tempname2, sRun = to_string(irun), paddedRun = utils::intToPaddedString(irun, 5);
+        string tempname2, paddedRun = utils::intToPaddedString(irun, 5);
         FILE* ttfp = nullptr, * Rfp = nullptr;
         string writename;
 
         logBuffer << "iterativeImprovement start\n";
         // counting pu's we need to test
-        for (i = 0; i < puno; i++)
+        for (int i = 0; i < puno; i++)
         {
             if ((R[i] < 2) && (pu[i].status < 2))
                 puvalid++;
@@ -68,11 +67,11 @@ namespace marxan {
                 displayErrorMessage("cannot create threshold trace file %s\n", writename.c_str());
 
             fprintf(Rfp, "configuration");
-            for (i = 0; i < puno; i++)
+            for (int i = 0; i < puno; i++)
                 fprintf(Rfp, ",%i", pu[i].id);
             fprintf(Rfp, "\n0");
 
-            for (i = 0; i < puno; i++)
+            for (int i = 0; i < puno; i++)
                 fprintf(Rfp, ",%i", R[i]);
             fprintf(Rfp, "\n");
 
@@ -87,7 +86,7 @@ namespace marxan {
         {
             iimparray.resize(puvalid);
 
-            for (i = 0; i < puno; i++)
+            for (int i = 0; i < puno; i++)
             {
                 if ((R[i] < 2) && (pu[i].status < 2))
                 {
@@ -98,46 +97,50 @@ namespace marxan {
 
             logBuffer << "iterativeImprovement after array init\n";
 
-            // shuffle iimp array
-            std::shuffle(iimparray.begin(), iimparray.end(), rngEngine);
-
-            /***** Doing the improvements ****/
-            for (i = 0; i < puvalid; i++)
+             
+            for(int itime = 1; itime <= iterations; )
             {
-                ichoice = iimparray[i];
+                // shuffle iimp array
+                std::shuffle(iimparray.begin(), iimparray.end(), rngEngine);
 
-                if ((R[ichoice] < 2) && (pu[ichoice].status < 2))
+                /***** Doing the improvements ****/
+                for (int i = 0; i < puvalid && itime <= iterations; i++, itime++)
                 {
-                    imode = R[ichoice] == 1 ? -1 : 1;
-                    computeChangeScore(-1, ichoice, spno, puno, pu, connections, spec, SM, SM_out, R, cm, imode, change, reserve,
-                        costthresh, tpf1, tpf2, 1, clumptype);
-                    if (change.total < 0)
+                    ichoice = iimparray[i];
+
+                    if ((R[ichoice] < 2) && (pu[ichoice].status < 2))
                     {
-                        displayProgress2("It Imp has changed %i with change value %lf \n", ichoice, change.total);
-                        doChange(ichoice, puno, R, reserve, change, pu, SM, SM_out, spec, connections, imode, clumptype, logBuffer);
-                    }   // I've just made a good change
-                }
-
-                if (fnames.saveitimptrace)
-                {
-                    iRowCounter++;
-                    if (iRowCounter > iRowLimit)
-                        iRowCounter = 1;
-
-                    if (iRowCounter == 1)
-                    {
-                        fprintf(Rfp, "%i", i);
-
-                        fprintf(ttfp, "%i,%f,%i,%f,%f,%f,%f\n"
-                            , i, reserve.total
-                            , reserve.pus, reserve.cost, reserve.connection, reserve.penalty,
-                            change.total); // i,costthresh,pus,cost,connection,penalty
-
-                        for (j = 0; j < puno; j++)
-                            fprintf(Rfp, ",%i", R[j]);
+                        imode = R[ichoice] == 1 ? -1 : 1;
+                        computeChangeScore(-1, ichoice, spno, puno, pu, connections, spec, SM, SM_out, R, cm, imode, change, reserve,
+                            costthresh, tpf1, tpf2, 1, clumptype);
+                        if (change.total < 0)
+                        {
+                            displayProgress2("It Imp has changed %i with change value %lf \n", ichoice, change.total);
+                            doChange(ichoice, puno, R, reserve, change, pu, SM, SM_out, spec, connections, imode, clumptype, logBuffer);
+                        }   // I've just made a good change
                     }
-                }
-            } // no untested PUs left
+
+                    if (fnames.saveitimptrace)
+                    {
+                        iRowCounter++;
+                        if (iRowCounter > iRowLimit)
+                            iRowCounter = 1;
+
+                        if (iRowCounter == 1)
+                        {
+                            fprintf(Rfp, "%i", i);
+
+                            fprintf(ttfp, "%i,%f,%i,%f,%f,%f,%f\n"
+                                , i, reserve.total
+                                , reserve.pus, reserve.cost, reserve.connection, reserve.penalty,
+                                change.total); // i,costthresh,pus,cost,connection,penalty
+
+                            for (int j = 0; j < puno; j++)
+                                fprintf(Rfp, ",%i", R[j]);
+                        }
+                    }
+                } // no untested PUs left
+            }
         }
 
         if (fnames.saveitimptrace)
