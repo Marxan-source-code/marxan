@@ -73,8 +73,9 @@ namespace marxan {
         int CalcPenaltiesOn;
         int HeuristicOn;
         int ThermalAnnealingOn;
-        int QuantumAnnealingOn;
+        int HillClimbingOn;
         int ItImpOn;
+        int TwoStepHillClimbingOn;
     } srunoptions;
 
     extern srunoptions runoptions;

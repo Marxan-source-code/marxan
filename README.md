@@ -22,7 +22,7 @@ Marxan has now been refactored to use c++17 for more modernised code and more ex
 
 Command to build is 
 ```
-g++ -O3 -std=c++17 -static -fopenmp marxan.cpp clumping.cpp heuristics.cpp input.cpp output.cpp probability.cpp algorithms.cpp computation.cpp utils.cpp -o bin/marxan
+g++ -O3 -std=c++17 -static -fopenmp *.cpp -o bin/marxan
 ```
 
 All libraries are statically linked so we ship 1 executable. 
@@ -37,11 +37,11 @@ brew install libomp
 ```
 Command to build without statically linked libraries is: 
 ```
-g++ marxan.cpp clumping.cpp heuristics.cpp input.cpp output.cpp probability.cpp  algorithms.cpp computation.cpp utils.cpp -lomp -o bin/marxan -Xclang -fopenmp -std=c++17  -O3
+g++ *.cpp -lomp -o bin/marxan -Xclang -fopenmp -std=c++17  -O3
 ```
 Command to build with statically linked openMP library is: 
 ```
-g++ marxan.cpp clumping.cpp heuristics.cpp input.cpp output.cpp probability.cpp  algorithms.cpp computation.cpp utils.cpp /usr/local/opt/libomp/lib/libomp.a -o bin/marxan -Xclang -fopenmp -std=c++17  -O3
+g++ *.cpp  /usr/local/opt/libomp/lib/libomp.a -o bin/marxan -Xclang -fopenmp -std=c++17  -O3
 ```
 
 # How to run (Mac with M1 processor)

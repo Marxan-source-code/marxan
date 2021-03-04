@@ -52,13 +52,14 @@ TEST(UtilsTestsGroup, formatted_string_stream_test)
     CHECK_EQUAL(i1,2);
     CHECK_TRUE(std::abs(d1-0.2)<0.00001);
     CHECK_EQUAL(i2,1);
-    CHECK_EQUAL(s1,"SG");
+    CHECK_TRUE(s1 == "SG");
 }
 
 TEST(UtilsTestsGroup, get_tokens_test)
 {
-    CHECK_EQUAL(get_tokens("id,prop,target,spf,name", ','), std::vector<string>({"id","prop","target","spf","name"}));
-    CHECK_EQUAL(get_tokens("id;prop;target;spf;name", ';'), std::vector<string>({"id","prop","target","spf","name"}));
+    std::vector<std::string> v1 = { "id","prop","target","spf","name" };
+    CHECK_TRUE( get_tokens("id,prop,target,spf,name", ',') ==  v1 );
+    CHECK_TRUE( get_tokens("id;prop;target;spf;name", ';') == v1 );
 }
 
 
