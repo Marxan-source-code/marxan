@@ -225,6 +225,23 @@ namespace marxan {
                     appendLogBuffer << "after hill climbing run " << run_id << endl;
                 }
 
+                if (runoptions.TwoStepHillClimbingOn)
+                {
+                    appendLogBuffer << "before two step hill climbing run " << run_id << endl;
+
+                    hill_climbing_two_steps( puno, spno,  pu, connections, spec,  SMGlobal, SM_out, R,  cm, reserve, costthresh, tpf1, tpf2,
+                        clumptype,  run_id, anneal.iterations, savename, appendLogBuffer, rngEngine);
+
+                    if (verbosity > 1)
+                    {
+                        computeReserveValue(puno, spno, R, pu, connections, SMGlobal, SM_out, cm, spec, aggexist, reserve, clumptype, appendLogBuffer);
+                        runConsoleOutput << "Run " << run_id << " Two Step Hill climbing: " << displayValueForPUs(puno, spno, R, reserve, spec, misslevel).str();
+
+                    }
+
+                    appendLogBuffer << "after hill climbing run " << run_id << endl;
+                }
+
                 if (runoptions.HeuristicOn)
                 {
                     appendLogBuffer << "before Heuristics run " << run_id << endl;
@@ -810,6 +827,7 @@ namespace marxan {
             runoptions.HillClimbingOn = 0;
             runoptions.HeuristicOn = 1;
             runoptions.ItImpOn = 0;
+            runoptions.TwoStepHillClimbingOn = 0;
             break;
         case 1:
             runoptions.CalcPenaltiesOn = 1;
@@ -817,6 +835,7 @@ namespace marxan {
             runoptions.HillClimbingOn = 0;
             runoptions.HeuristicOn = 0;
             runoptions.ItImpOn = 1;
+            runoptions.TwoStepHillClimbingOn = 0;
             break;
         case 2:
             runoptions.CalcPenaltiesOn = 1;
@@ -824,6 +843,7 @@ namespace marxan {
             runoptions.HillClimbingOn = 0;
             runoptions.HeuristicOn = 1;
             runoptions.ItImpOn = 1;
+            runoptions.TwoStepHillClimbingOn = 0;
             break;
         case 3:
             runoptions.CalcPenaltiesOn = 0;
@@ -831,6 +851,7 @@ namespace marxan {
             runoptions.HillClimbingOn = 0;
             runoptions.HeuristicOn = 1;
             runoptions.ItImpOn = 0;
+            runoptions.TwoStepHillClimbingOn = 0;
             break;
         case 4:
             runoptions.CalcPenaltiesOn = 0;
@@ -838,6 +859,7 @@ namespace marxan {
             runoptions.HillClimbingOn = 0;
             runoptions.HeuristicOn = 0;
             runoptions.ItImpOn = 1;
+            runoptions.TwoStepHillClimbingOn = 0;
             break;
         case 5:
             runoptions.CalcPenaltiesOn = 0;
@@ -845,6 +867,7 @@ namespace marxan {
             runoptions.HillClimbingOn = 0;
             runoptions.HeuristicOn = 1;
             runoptions.ItImpOn = 1;
+            runoptions.TwoStepHillClimbingOn = 0;
             break;
         case 6:
             runoptions.CalcPenaltiesOn = 1;
@@ -852,6 +875,7 @@ namespace marxan {
             runoptions.HillClimbingOn = 0;
             runoptions.HeuristicOn = 0;
             runoptions.ItImpOn = 0;
+            runoptions.TwoStepHillClimbingOn = 0;
             break;
         case 7:
             runoptions.CalcPenaltiesOn = 1;
@@ -859,6 +883,7 @@ namespace marxan {
             runoptions.HillClimbingOn = 0;
             runoptions.HeuristicOn = 0;
             runoptions.ItImpOn = 0;
+            runoptions.TwoStepHillClimbingOn = 0;
             break;
         case 8:
             runoptions.CalcPenaltiesOn = 0;
@@ -866,6 +891,7 @@ namespace marxan {
             runoptions.HillClimbingOn = 0;
             runoptions.HeuristicOn = 0;
             runoptions.ItImpOn = 0;
+            runoptions.TwoStepHillClimbingOn = 0;
             break;
         case 9:
             runoptions.CalcPenaltiesOn = 0;
@@ -873,6 +899,7 @@ namespace marxan {
             runoptions.HillClimbingOn = 0;
             runoptions.HeuristicOn = 0;
             runoptions.ItImpOn = 1;
+            runoptions.TwoStepHillClimbingOn = 0;
             break;
         case 10:
             runoptions.CalcPenaltiesOn = 0;
@@ -880,6 +907,7 @@ namespace marxan {
             runoptions.HillClimbingOn = 0;
             runoptions.HeuristicOn = 0;
             runoptions.ItImpOn = 1;
+            runoptions.TwoStepHillClimbingOn = 0;
             break;
         case 11:
             runoptions.CalcPenaltiesOn = 1;
@@ -887,6 +915,7 @@ namespace marxan {
             runoptions.HillClimbingOn = 1;
             runoptions.HeuristicOn = 0;
             runoptions.ItImpOn = 0;
+            runoptions.TwoStepHillClimbingOn = 0;
             break;
         case 12:
             runoptions.CalcPenaltiesOn = 1;
@@ -894,6 +923,7 @@ namespace marxan {
             runoptions.HillClimbingOn = 1;
             runoptions.HeuristicOn = 0;
             runoptions.ItImpOn = 1;
+            runoptions.TwoStepHillClimbingOn = 0;
             break;
         case 13:
             runoptions.CalcPenaltiesOn = 0;
@@ -901,6 +931,7 @@ namespace marxan {
             runoptions.HillClimbingOn = 1;
             runoptions.HeuristicOn = 0;
             runoptions.ItImpOn = 0;
+            runoptions.TwoStepHillClimbingOn = 0;
             break;
         case 14:
             runoptions.CalcPenaltiesOn = 0;
@@ -908,13 +939,40 @@ namespace marxan {
             runoptions.HillClimbingOn = 1;
             runoptions.HeuristicOn = 0;
             runoptions.ItImpOn = 1;
+            runoptions.TwoStepHillClimbingOn = 0;
             break;
+        case 15:
+            runoptions.CalcPenaltiesOn = 1;
+            runoptions.ThermalAnnealingOn = 0;
+            runoptions.HillClimbingOn = 1;
+            runoptions.HeuristicOn = 0;
+            runoptions.ItImpOn = 0;
+            runoptions.TwoStepHillClimbingOn = 0;
+            break;
+        case 16:
+            runoptions.CalcPenaltiesOn = 1;
+            runoptions.ThermalAnnealingOn = 0;
+            runoptions.HillClimbingOn = 1;
+            runoptions.HeuristicOn = 0;
+            runoptions.ItImpOn = 0;
+            runoptions.TwoStepHillClimbingOn = 0;
+            break;
+        case 17:
+            runoptions.CalcPenaltiesOn = 1;
+            runoptions.ThermalAnnealingOn = 0;
+            runoptions.HillClimbingOn = 1;
+            runoptions.HeuristicOn = 0;
+            runoptions.ItImpOn = 0;
+            runoptions.TwoStepHillClimbingOn = 1;
+            break;
+
         default:
             runoptions.CalcPenaltiesOn = 0;
             runoptions.ThermalAnnealingOn = 0;
             runoptions.HillClimbingOn = 0;
             runoptions.HeuristicOn = 0;
             runoptions.ItImpOn = 0;
+            runoptions.TwoStepHillClimbingOn = 0;
             break;
         }
     } // setDefaultRunOptions
