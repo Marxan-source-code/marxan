@@ -41,7 +41,7 @@ namespace marxan {
         vector<sspecies>& spec, const vector<spu>& SM, vector<spu_out>& SM_out, const vector<int>& R, double cm, int imode,
         scost& change, scost& reserve, double costthresh, double tpf1, double tpf2,
         double timeprop, int clumptype);
-    void doChange(int ipu, int puno, vector<int>& R, scost& reserve, scost& change,
+    void doChange(int ipu, int puno, vector<int>& R, scost& reserve, const scost& change,
         const vector<spustuff>& pu, const vector<spu>& SM, vector<spu_out>& SM_out, vector<sspecies>& spec, const vector<sconnections>& connections,
         int imode, int clumptype, stringstream& logBuffer);
 } // namespace marxan
