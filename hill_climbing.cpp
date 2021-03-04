@@ -195,7 +195,7 @@ namespace marxan {
     // 
     void hill_climbing_two_steps(int puno, int spno, const vector<spustuff>& pu, const vector<sconnections>& connections,
         vector<sspecies>& spec, const vector<spu>& SM, vector<spu_out>& SM_out, vector<int>& R, double cm,
-        scost& reserve, scost& change, double costthresh, double tpf1, double tpf2,
+        scost& reserve, double costthresh, double tpf1, double tpf2,
         int clumptype,  int irun, int iterations, string savename, stringstream& logBuffer, rng_engine& rngEngine)
     {
         int puvalid = 0,  ipu = 0;
@@ -241,18 +241,18 @@ namespace marxan {
 
                 for (int i0 = 0; i0 < puvalid && itime <= iterations; i0++)
                 {
-                    scost change0;
+                    scost change0  = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
                     int ichoice0 = iimparray[i0];
                     //remenber old score
                     int imode0 = R[ichoice0] == 1 ? -1 : 1;
                     computeChangeScore(-1, ichoice0, spno, puno, pu, connections, spec, SM, SM_out, R, cm, imode0, change0, reserve,
                                 costthresh, tpf1, tpf2, 1, clumptype);
 
-                    doChange(ichoice0, puno, R, reserve, change, pu, SM, SM_out, spec, connections, imode0, clumptype, logBuffer);
+                    doChange(ichoice0, puno, R, reserve, change0, pu, SM, SM_out, spec, connections, imode0, clumptype, logBuffer);
 
                     for (int i1 = i0+1; i1 < puvalid && itime <= iterations; i1++, itime++)
                     {
-                        scost change1;
+                        scost change1  = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
                         int ichoice1 = iimparray[i1];
 
                         int imode1 = R[ichoice1] == 1 ? -1 : 1;
@@ -266,7 +266,7 @@ namespace marxan {
                         }   
 
                         if (fnames.saveitimptrace)
-                            import_trace_saver.append( itime,  puno, reserve, change, R);
+                            import_trace_saver.append( itime,  puno, reserve, change1, R);
 
                     } // no untested PUs left
                     if(!was_change)
