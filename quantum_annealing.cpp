@@ -1,7 +1,8 @@
-// C++ code for Marxan
-// version 2.3 introduced multiple connectivity files and their associated weighting file
-// version 2.4.3 introduced 1D and 2D probability
-// version 3.0.0 is refactoring of code in 2019
+//Implemented QuantumAnnealing algorithm has the following issue:
+//computeQuantumChangeScore has to be redesigned beacause
+//Total score !=  Sum of scores of individual pu change
+//due mutual effect via species cups, boundaries and clumping.
+
 
 #define DEBUGTRACEFILE
 #define PROB2D
@@ -50,49 +51,6 @@ namespace marxan {
 
     using namespace algorithms;
     using namespace utils;
-/*
-    // Initialize global constants
-    double delta;
-    long int RandSeed1;
-    int iMemoryUsed = 0;
-    int fSpecPROPLoaded = 0;
-    int iProbFieldPresent = 0;
-    int iOptimisationCalcPenalties = 1;
-    int savelog;
-    int verbosity = 0;
-    int asymmetricconnectivity = 0;
-    string sVersionString = "Marxan v 4.0.4";
-    string sMarxanWebSite = "https://marxansolutions.org/";
-    string sTraceFileName;
-    string sApplicationPathName;
-    string savelogname;
-    FILE* fsavelog;
-
-    // init global structures
-    sanneal anneal_global;
-    vector<sconnections> connections;
-    sfname fnames;
-    vector<spu> SMGlobal;
-    vector<spusporder> SMsporder;
-    vector<spustuff> pu;
-    map<int, int> PULookup, SPLookup;
-    vector<sspecies> specGlobal, bestSpec;
-    srunoptions runoptions;
-    chrono::high_resolution_clock::time_point startTime;
-
-    double rProbabilityWeighting = 1;
-    double rStartDecThresh = 0.7, rEndDecThresh = 0.3, rStartDecMult = 3, rEndDecMult = 1;
-
-    int fProb2D = 0, fProb1D = 0, fUserPenalties = 0;
-    int fOptimiseConnectivityIn = 0;
-
-    // number of the best solution
-    int bestRun = 1;
-    // score of the best solution
-    double bestScore;
-    // R vector of planning unit status for the best solution
-    vector<int> bestR;
-*/
 
     double rQAPROP = 0.5, rQADECAY = 0.0001, rQADECAYB = 0, rQAACCPR = 0;
     int iQADECAYTYPE = 0;
@@ -115,6 +73,12 @@ namespace marxan {
         double timeprop, int clumptype, int iFluctuationCount, const vector<int>& PUChosen)
         // imode = 1 add PU, imode = -1 remove PU
     {
+
+        //computeQuantumChangeScore has to be redesigned beacause
+        //Total score !=  Sum of scores of individual pu change
+        //due mutual effect via species cups, boundaries and clumping.
+        throw runtime_error("computeQuantumChangeScore has to be redesigned beacause Total score !=  Sum of scores of individual pu change/n"); 
+
         // We query a whole bunch of changes in one, passed in by Quantum annealing.
         double threshpen = 0;
         int imode, i, j, threshtype = 1; // Debugging line. This should be input parameter not hardwired

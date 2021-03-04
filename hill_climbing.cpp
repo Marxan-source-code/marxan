@@ -1,8 +1,3 @@
-// C++ code for Marxan
-// version 2.3 introduced multiple connectivity files and their associated weighting file
-// version 2.4.3 introduced 1D and 2D probability
-// version 3.0.0 is refactoring of code in 2019
-
 
 #include <algorithm>
 #include <chrono>
@@ -105,24 +100,41 @@ namespace marxan {
             int iRowCounter, iRowLimit;
     };
 
+    void initialiseHillClimbing(int puno, int spno, const vector<spustuff>& pu, const vector<sconnections>& connections, vector<sspecies>& spec,
+        const vector<spu>& SM, vector<spu_out>& SM_out, double cm,  int aggexist,
+        vector<int>& R, double prop, int clumptype, int irun, stringstream& logBuffer, rng_engine& rngEngine)
+    {
+        scost reserve = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+
+        initialiseReserve(prop, pu, R, rngEngine);
+
+        if (aggexist)
+            ClearClumps(spno, spec, pu, SM, SM_out);
+
+        computeReserveValue(puno, spno, R, pu, connections, SM, SM_out, cm, spec, aggexist, reserve, clumptype, logBuffer);
+
+    } 
+
+
     // iteratively improves a planning unit solutions
     // a descent algorithm un-reserves planning units that don't have a negative value when removed
     void hill_climbing(int puno, int spno, const vector<spustuff>& pu, const vector<sconnections>& connections,
         vector<sspecies>& spec, const vector<spu>& SM, vector<spu_out>& SM_out, vector<int>& R, double cm,
-        scost& reserve, scost& change, double costthresh, double tpf1, double tpf2,
+        scost& reserve, double costthresh, double tpf1, double tpf2,
         int clumptype,  int irun, int iterations, string savename, stringstream& logBuffer, rng_engine& rngEngine)
     {
+        scost change = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
         int puvalid = 0,  ipu = 0, imode, ichoice;
         vector<int> iimparray;
 
-        logBuffer << "iterativeImprovement start\n";
+        logBuffer << "Hillclimbing  start iterations "<< iterations << "\n";
         // counting pu's we need to test
         for (int i = 0; i < puno; i++)
         {
             if ((R[i] < 2) && (pu[i].status < 2))
                 puvalid++;
         }
-        logBuffer << "iterativeImprovement puvalid " << puvalid << "\n";
+        logBuffer << "Hillclimbing puvalid " << puvalid << "\n";
 
         ImportTraceSaver import_trace_saver;
         if (fnames.saveitimptrace)
@@ -141,9 +153,9 @@ namespace marxan {
                 }
             }
 
-            logBuffer << "iterativeImprovement after array init\n";
+            logBuffer << "Hill climbing after array init\n";
+            displayProgress2("  Main Hillclimbing Section.\n");
 
-             
             for(int itime = 1; itime <= iterations; )
             {
                 // shuffle iimp array
@@ -155,18 +167,14 @@ namespace marxan {
                 {
                     ichoice = iimparray[i];
 
-                    if ((R[ichoice] < 2) && (pu[ichoice].status < 2))
-                    {
-                        imode = R[ichoice] == 1 ? -1 : 1;
-                        computeChangeScore(-1, ichoice, spno, puno, pu, connections, spec, SM, SM_out, R, cm, imode, change, reserve,
+                    imode = R[ichoice] == 1 ? -1 : 1;
+                    computeChangeScore(-1, ichoice, spno, puno, pu, connections, spec, SM, SM_out, R, cm, imode, change, reserve,
                             costthresh, tpf1, tpf2, 1, clumptype);
-                        if (change.total < 0)
-                        {
-                            displayProgress2("It Imp has changed %i with change value %lf \n", ichoice, change.total);
+                    if (change.total < 0 || (imode == -1 && change.total == 0 ))
+                    {
                             doChange(ichoice, puno, R, reserve, change, pu, SM, SM_out, spec, connections, imode, clumptype, logBuffer);
                             was_change = true;
-                        }   // I've just made a good change
-                    }
+                    }   // I've just made a good change
 
                     if (fnames.saveitimptrace)
                         import_trace_saver.append( itime,  puno, reserve, change, R);
@@ -180,7 +188,7 @@ namespace marxan {
                     
             }
         }
-        appendTraceFile("iterativeImprovement end\n");
+        displayProgress2("Hill climbing end\n");
     } // hill_climbing
 
     // iteratively improves a planning unit solutions
@@ -193,14 +201,14 @@ namespace marxan {
         int puvalid = 0,  ipu = 0;
         vector<int> iimparray;
 
-        logBuffer << "iterativeImprovement start\n";
+        logBuffer << "Two step hillclimbing start iterations "<< iterations << "\n";
         // counting pu's we need to test
         for (int i = 0; i < puno; i++)
         {
             if ((R[i] < 2) && (pu[i].status < 2))
                 puvalid++;
         }
-        logBuffer << "iterativeImprovement puvalid " << puvalid << "\n";
+        logBuffer << "Two step hillclimbing puvalid " << puvalid << "\n";
 
         ImportTraceSaver import_trace_saver;
         if (fnames.saveitimptrace)
@@ -219,7 +227,8 @@ namespace marxan {
                 }
             }
 
-            logBuffer << "iterativeImprovement after array init\n";
+            logBuffer << "Two step hillclimbing after array init\n";
+            displayProgress2("  Main two step hillclimbing section.\n");
 
              
             for(int itime = 1; itime <= iterations; )
@@ -252,10 +261,9 @@ namespace marxan {
 
                         if (change0.total + change1.total < 0)
                         {
-                            displayProgress2("It Imp has changed %i with change value %lf \n", ichoice1, change.total);
                             doChange(ichoice1, puno, R, reserve, change1, pu, SM, SM_out, spec, connections, imode1, clumptype, logBuffer);
                             was_change = true;
-                        }   // I've just made a good change
+                        }   
 
                         if (fnames.saveitimptrace)
                             import_trace_saver.append( itime,  puno, reserve, change, R);
@@ -275,7 +283,7 @@ namespace marxan {
             }
         }
 
-        appendTraceFile("iterativeImprovement end\n");
+        displayProgress2("Two step hillclimbing end\n");
     } // hill_climbing_two_step
 } // namespace marxan
 

@@ -26,6 +26,7 @@
 #include "iterative_improvement.hpp"
 #include "quantum_annealing.hpp"
 #include "thermal_annealing.hpp"
+#include "hill_climbing.hpp"
 
 #include "marxan.hpp"
 
@@ -176,11 +177,12 @@ namespace marxan {
                 if (aggexist)
                     ClearClumps(spno, spec, pu, SMGlobal, SM_out);
 
+                computeReserveValue(puno, spno, R, pu, connections, SMGlobal, SM_out, cm, spec, aggexist, reserve, clumptype, appendLogBuffer);
+
                 appendLogBuffer << "after computeReserveValue run " << run_id << endl;
 
                 if (verbosity > 1)
                 {
-                    computeReserveValue(puno, spno, R, pu, connections, SMGlobal, SM_out, cm, spec, aggexist, reserve, clumptype, appendLogBuffer);
                     runConsoleOutput << "Run " << run_id << " Init: " << displayValueForPUs(puno, spno, R, reserve, spec, misslevel).str();
                 }
                 if (verbosity > 5)
@@ -196,6 +198,7 @@ namespace marxan {
                         repeats, run_id, savename, misslevel,
                         aggexist, costthresh, tpf1, tpf2, clumptype, anneal, appendLogBuffer, rngEngine);
 
+
                     if (verbosity > 1)
                     {
                         computeReserveValue(puno, spno, R, pu, connections, SMGlobal, SM_out, cm, spec, aggexist, reserve, clumptype, appendLogBuffer);
@@ -205,22 +208,21 @@ namespace marxan {
                     appendLogBuffer << "after thermalAnnealing run " << run_id << endl;
                 }
 
-                if (runoptions.QuantumAnnealingOn)
+                if (runoptions.HillClimbingOn)
                 {
-                    appendLogBuffer << "before quantumAnnealing run " << run_id << endl;
+                    appendLogBuffer << "before hill climbing run " << run_id << endl;
 
-                    quantumAnnealing(spno, puno, connections, R, cm, spec, pu, SMGlobal, SM_out, change, reserve,
-                        repeats, run_id, savename, misslevel,
-                        aggexist, costthresh, tpf1, tpf2, clumptype, anneal, rngEngine);
+                    hill_climbing( puno, spno,  pu, connections, spec,  SMGlobal, SM_out, R,  cm, reserve, costthresh, tpf1, tpf2,
+                        clumptype,  run_id, anneal.iterations, savename, appendLogBuffer, rngEngine);
 
                     if (verbosity > 1)
                     {
                         computeReserveValue(puno, spno, R, pu, connections, SMGlobal, SM_out, cm, spec, aggexist, reserve, clumptype, appendLogBuffer);
-                        runConsoleOutput << "Run " << run_id << "  QuantumAnnealing: " << displayValueForPUs(puno, spno, R, reserve, spec, misslevel).str();
+                        runConsoleOutput << "Run " << run_id << "  Hill climbing: " << displayValueForPUs(puno, spno, R, reserve, spec, misslevel).str();
 
                     }
 
-                    appendLogBuffer << "after quantumAnnealing run " << run_id << endl;
+                    appendLogBuffer << "after hill climbing run " << run_id << endl;
                 }
 
                 if (runoptions.HeuristicOn)
@@ -700,7 +702,7 @@ namespace marxan {
         }
 
         // If we are in a runmode with only CalcPenalties, we stop/exit here gracefully because we are finished.
-        if (runoptions.HeuristicOn == 0 && runoptions.ThermalAnnealingOn == 0 && runoptions.QuantumAnnealingOn == 0 && runoptions.ItImpOn == 0)
+        if (runoptions.HeuristicOn == 0 && runoptions.ThermalAnnealingOn == 0 && runoptions.HillClimbingOn == 0 && runoptions.ItImpOn == 0)
         {
             appendTraceFile("end final file output\n");
             appendTraceFile("\nMarxan end execution\n");
@@ -805,112 +807,112 @@ namespace marxan {
         case 0:
             runoptions.CalcPenaltiesOn = 1;
             runoptions.ThermalAnnealingOn = 1;
-            runoptions.QuantumAnnealingOn = 0;
+            runoptions.HillClimbingOn = 0;
             runoptions.HeuristicOn = 1;
             runoptions.ItImpOn = 0;
             break;
         case 1:
             runoptions.CalcPenaltiesOn = 1;
             runoptions.ThermalAnnealingOn = 1;
-            runoptions.QuantumAnnealingOn = 0;
+            runoptions.HillClimbingOn = 0;
             runoptions.HeuristicOn = 0;
             runoptions.ItImpOn = 1;
             break;
         case 2:
             runoptions.CalcPenaltiesOn = 1;
             runoptions.ThermalAnnealingOn = 1;
-            runoptions.QuantumAnnealingOn = 0;
+            runoptions.HillClimbingOn = 0;
             runoptions.HeuristicOn = 1;
             runoptions.ItImpOn = 1;
             break;
         case 3:
             runoptions.CalcPenaltiesOn = 0;
             runoptions.ThermalAnnealingOn = 0;
-            runoptions.QuantumAnnealingOn = 0;
+            runoptions.HillClimbingOn = 0;
             runoptions.HeuristicOn = 1;
             runoptions.ItImpOn = 0;
             break;
         case 4:
             runoptions.CalcPenaltiesOn = 0;
             runoptions.ThermalAnnealingOn = 0;
-            runoptions.QuantumAnnealingOn = 0;
+            runoptions.HillClimbingOn = 0;
             runoptions.HeuristicOn = 0;
             runoptions.ItImpOn = 1;
             break;
         case 5:
             runoptions.CalcPenaltiesOn = 0;
             runoptions.ThermalAnnealingOn = 0;
-            runoptions.QuantumAnnealingOn = 0;
+            runoptions.HillClimbingOn = 0;
             runoptions.HeuristicOn = 1;
             runoptions.ItImpOn = 1;
             break;
         case 6:
             runoptions.CalcPenaltiesOn = 1;
             runoptions.ThermalAnnealingOn = 1;
-            runoptions.QuantumAnnealingOn = 0;
+            runoptions.HillClimbingOn = 0;
             runoptions.HeuristicOn = 0;
             runoptions.ItImpOn = 0;
             break;
         case 7:
             runoptions.CalcPenaltiesOn = 1;
             runoptions.ThermalAnnealingOn = 0;
-            runoptions.QuantumAnnealingOn = 0;
+            runoptions.HillClimbingOn = 0;
             runoptions.HeuristicOn = 0;
             runoptions.ItImpOn = 0;
             break;
         case 8:
             runoptions.CalcPenaltiesOn = 0;
             runoptions.ThermalAnnealingOn = 1;
-            runoptions.QuantumAnnealingOn = 0;
+            runoptions.HillClimbingOn = 0;
             runoptions.HeuristicOn = 0;
             runoptions.ItImpOn = 0;
             break;
         case 9:
             runoptions.CalcPenaltiesOn = 0;
             runoptions.ThermalAnnealingOn = 1;
-            runoptions.QuantumAnnealingOn = 0;
+            runoptions.HillClimbingOn = 0;
             runoptions.HeuristicOn = 0;
             runoptions.ItImpOn = 1;
             break;
         case 10:
             runoptions.CalcPenaltiesOn = 0;
             runoptions.ThermalAnnealingOn = 0;
-            runoptions.QuantumAnnealingOn = 0;
+            runoptions.HillClimbingOn = 0;
             runoptions.HeuristicOn = 0;
             runoptions.ItImpOn = 1;
             break;
         case 11:
             runoptions.CalcPenaltiesOn = 1;
             runoptions.ThermalAnnealingOn = 0;
-            runoptions.QuantumAnnealingOn = 1;
+            runoptions.HillClimbingOn = 1;
             runoptions.HeuristicOn = 0;
             runoptions.ItImpOn = 0;
             break;
         case 12:
             runoptions.CalcPenaltiesOn = 1;
             runoptions.ThermalAnnealingOn = 0;
-            runoptions.QuantumAnnealingOn = 1;
+            runoptions.HillClimbingOn = 1;
             runoptions.HeuristicOn = 0;
             runoptions.ItImpOn = 1;
             break;
         case 13:
             runoptions.CalcPenaltiesOn = 0;
             runoptions.ThermalAnnealingOn = 0;
-            runoptions.QuantumAnnealingOn = 1;
+            runoptions.HillClimbingOn = 1;
             runoptions.HeuristicOn = 0;
             runoptions.ItImpOn = 0;
             break;
         case 14:
             runoptions.CalcPenaltiesOn = 0;
             runoptions.ThermalAnnealingOn = 0;
-            runoptions.QuantumAnnealingOn = 1;
+            runoptions.HillClimbingOn = 1;
             runoptions.HeuristicOn = 0;
             runoptions.ItImpOn = 1;
             break;
         default:
             runoptions.CalcPenaltiesOn = 0;
             runoptions.ThermalAnnealingOn = 0;
-            runoptions.QuantumAnnealingOn = 0;
+            runoptions.HillClimbingOn = 0;
             runoptions.HeuristicOn = 0;
             runoptions.ItImpOn = 0;
             break;
