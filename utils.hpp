@@ -106,7 +106,7 @@ namespace marxan {
 
             formatted_string_stream& operator>>(std::string& s) 
             {
-                if(pos_ >= s.size())
+                if(pos_ >= s_.size())
                 {
                     fail_ = true;
                     return *this;
