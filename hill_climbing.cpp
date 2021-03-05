@@ -250,6 +250,12 @@ namespace marxan {
 
                     doChange(ichoice0, puno, R, reserve, change0, pu, SM, SM_out, spec, connections, imode0, clumptype, logBuffer);
 
+                    if (change0.total < 0 || (imode0 == -1 && change0.total == 0))
+                    {
+                        was_change_per_total_loop = true;
+                        continue; //no need to go further
+                    }
+
                     for (int i1 = i0+1; i1 < puvalid && itime <= iterations; i1++, itime++)
                     {
                         scost change1  = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
