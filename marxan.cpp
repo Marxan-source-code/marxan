@@ -719,7 +719,7 @@ namespace marxan {
         }
 
         // If we are in a runmode with only CalcPenalties, we stop/exit here gracefully because we are finished.
-        if (runoptions.HeuristicOn == 0 && runoptions.ThermalAnnealingOn == 0 && runoptions.HillClimbingOn == 0 && runoptions.ItImpOn == 0)
+        if (runoptions.HeuristicOn == 0 && runoptions.ThermalAnnealingOn == 0 && runoptions.HillClimbingOn == 0 && runoptions.ItImpOn == 0 && runoptions.TwoStepHillClimbingOn == 0)
         {
             appendTraceFile("end final file output\n");
             appendTraceFile("\nMarxan end execution\n");
