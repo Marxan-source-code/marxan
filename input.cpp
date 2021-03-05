@@ -242,6 +242,11 @@ namespace marxan {
                 {
                     sVarVal >> spectemp.ptarget2d;
                 }
+                else if (temp.compare("name") == 0)
+                {
+                    sVarVal >> spectemp.sname;
+                }
+
             } // looking for ivar different input variables
 
             if(sVarVal.fail())
