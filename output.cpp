@@ -424,14 +424,14 @@ namespace marxan {
         if (itemp >= 60 * 60)
         {
             printf(" %i hour%c,%i min%c and %i secs \n",
-                itemp / 3600, ((itemp / 3600 == 1) ? ' ' : 's'),
-                (itemp / 60) % 60, ((itemp / 60 == 1) ? ' ' : 's'), itemp % 60);
+                (int)(itemp / 3600), ((itemp / 3600 == 1) ? ' ' : 's'),
+                (int)((itemp / 60) % 60), ((itemp / 60 == 1) ? ' ' : 's'), (int)(itemp % 60));
         }
         else {
             if (itemp >= 60)
-                printf(" %i min%c and %i secs \n", itemp / 60, ((itemp / 60 == 1) ? ' ' : 's'), itemp % 60);
+                printf(" %i min%c and %i secs \n", (int)(itemp / 60), ((itemp / 60 == 1) ? ' ' : 's'), (int)(itemp % 60));
             else
-                printf("%i secs \n", itemp);
+                printf("%i secs \n", (int)(itemp));
         }
 
         if (savelog)
@@ -440,14 +440,14 @@ namespace marxan {
             if (itemp >= 60 * 60)
             {
                 fprintf(fsavelog, " %i hour%c,%i min%c and %i secs \n",
-                    itemp / 3600, ((itemp / 3600 == 1) ? ' ' : 's'),
-                    (itemp / 60) % 60, ((itemp / 60 == 1) ? ' ' : 's'), itemp % 60);
+                    (int)(itemp / 3600), ((itemp / 3600 == 1) ? ' ' : 's'),
+                    (int)((itemp / 60) % 60), ((itemp / 60 == 1) ? ' ' : 's'), (int)(itemp % 60));
             }
             else {
                 if (itemp >= 60)
-                    fprintf(fsavelog, " %i min%c and %i secs \n", itemp / 60, ((itemp / 60 == 1) ? ' ' : 's'), itemp % 60);
+                    fprintf(fsavelog, " %i min%c and %i secs \n", (int)(itemp / 60), ((itemp / 60 == 1) ? ' ' : 's'), (int)(itemp % 60));
                 else
-                    fprintf(fsavelog, "%i secs \n", itemp);
+                    fprintf(fsavelog, "%i secs \n", (int)(itemp));
             }
         }
     }

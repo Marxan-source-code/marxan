@@ -46,7 +46,7 @@ namespace marxan {
     int savelog;
     int verbosity = 0;
     int asymmetricconnectivity = 0;
-    string sVersionString = "Marxan v 4.0.4";
+    string sVersionString = "Marxan v 4.0.5";
     string sMarxanWebSite = "https://marxansolutions.org/";
     string sTraceFileName;
     string sApplicationPathName;
@@ -109,7 +109,7 @@ namespace marxan {
 
         printf("Running multithreaded over number of threads: %d\n", maxThreads);
         displayProgress1("Running multithreaded over number of threads: " + to_string(maxThreads) + "\n");
-        displayProgress1("Runs will be printed as they complete, and may not be in order due to parallelisation.");
+        displayProgress1("Runs will be printed as they complete, and may not be in order due to parallelisation.\n");
         //create seeds for local rng engines
         vector<unsigned int> seeds(repeats);
         for (int run_id = 1; run_id <= repeats; run_id++)
@@ -218,7 +218,7 @@ namespace marxan {
                     if (verbosity > 1)
                     {
                         computeReserveValue(puno, spno, R, pu, connections, SMGlobal, SM_out, cm, spec, aggexist, reserve, clumptype, appendLogBuffer);
-                        runConsoleOutput << "Run " << run_id << "  Hill climbing: " << displayValueForPUs(puno, spno, R, reserve, spec, misslevel).str();
+                        runConsoleOutput << "Run " << run_id << " Hill climbing: " << displayValueForPUs(puno, spno, R, reserve, spec, misslevel).str();
 
                     }
 
@@ -719,7 +719,7 @@ namespace marxan {
         }
 
         // If we are in a runmode with only CalcPenalties, we stop/exit here gracefully because we are finished.
-        if (runoptions.HeuristicOn == 0 && runoptions.ThermalAnnealingOn == 0 && runoptions.HillClimbingOn == 0 && runoptions.ItImpOn == 0)
+        if (runoptions.HeuristicOn == 0 && runoptions.ThermalAnnealingOn == 0 && runoptions.HillClimbingOn == 0 && runoptions.ItImpOn == 0 && runoptions.TwoStepHillClimbingOn == 0)
         {
             appendTraceFile("end final file output\n");
             appendTraceFile("\nMarxan end execution\n");
@@ -944,18 +944,18 @@ namespace marxan {
         case 15:
             runoptions.CalcPenaltiesOn = 1;
             runoptions.ThermalAnnealingOn = 0;
-            runoptions.HillClimbingOn = 1;
+            runoptions.HillClimbingOn = 0;
             runoptions.HeuristicOn = 0;
-            runoptions.ItImpOn = 0;
+            runoptions.ItImpOn = 1;
             runoptions.TwoStepHillClimbingOn = 0;
             break;
         case 16:
             runoptions.CalcPenaltiesOn = 1;
             runoptions.ThermalAnnealingOn = 0;
-            runoptions.HillClimbingOn = 1;
+            runoptions.HillClimbingOn = 0;
             runoptions.HeuristicOn = 0;
             runoptions.ItImpOn = 0;
-            runoptions.TwoStepHillClimbingOn = 0;
+            runoptions.TwoStepHillClimbingOn = 1;
             break;
         case 17:
             runoptions.CalcPenaltiesOn = 1;
