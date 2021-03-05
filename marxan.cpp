@@ -218,7 +218,7 @@ namespace marxan {
                     if (verbosity > 1)
                     {
                         computeReserveValue(puno, spno, R, pu, connections, SMGlobal, SM_out, cm, spec, aggexist, reserve, clumptype, appendLogBuffer);
-                        runConsoleOutput << "Run " << run_id << "  Hill climbing: " << displayValueForPUs(puno, spno, R, reserve, spec, misslevel).str();
+                        runConsoleOutput << "Run " << run_id << " Hill climbing: " << displayValueForPUs(puno, spno, R, reserve, spec, misslevel).str();
 
                     }
 
@@ -944,18 +944,18 @@ namespace marxan {
         case 15:
             runoptions.CalcPenaltiesOn = 1;
             runoptions.ThermalAnnealingOn = 0;
-            runoptions.HillClimbingOn = 1;
+            runoptions.HillClimbingOn = 0;
             runoptions.HeuristicOn = 0;
-            runoptions.ItImpOn = 0;
+            runoptions.ItImpOn = 1;
             runoptions.TwoStepHillClimbingOn = 0;
             break;
         case 16:
             runoptions.CalcPenaltiesOn = 1;
             runoptions.ThermalAnnealingOn = 0;
-            runoptions.HillClimbingOn = 1;
+            runoptions.HillClimbingOn = 0;
             runoptions.HeuristicOn = 0;
             runoptions.ItImpOn = 0;
-            runoptions.TwoStepHillClimbingOn = 0;
+            runoptions.TwoStepHillClimbingOn = 1;
             break;
         case 17:
             runoptions.CalcPenaltiesOn = 1;
