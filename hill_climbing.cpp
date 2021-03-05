@@ -235,13 +235,12 @@ namespace marxan {
             {
                 // shuffle iimp array
                 std::shuffle(iimparray.begin(), iimparray.end(), rngEngine);
-                bool was_change = false;
-
                 // ***** Doing the improvements ****  
 
                 for (int i0 = 0; i0 < puvalid && itime <= iterations; i0++)
                 {
                     scost change0  = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+                    bool was_change = false;
                     int ichoice0 = iimparray[i0];
                     //remenber old score
                     int imode0 = R[ichoice0] == 1 ? -1 : 1;
@@ -267,6 +266,9 @@ namespace marxan {
 
                         if (fnames.saveitimptrace)
                             import_trace_saver.append( itime,  puno, reserve, change1, R);
+
+                        if (was_change)
+                            break;//need to recompute change0
 
                     } // no untested PUs left
                     if(!was_change)
