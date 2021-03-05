@@ -46,7 +46,7 @@ namespace marxan {
     int savelog;
     int verbosity = 0;
     int asymmetricconnectivity = 0;
-    string sVersionString = "Marxan v 4.0.4";
+    string sVersionString = "Marxan v 4.0.5";
     string sMarxanWebSite = "https://marxansolutions.org/";
     string sTraceFileName;
     string sApplicationPathName;
@@ -109,7 +109,7 @@ namespace marxan {
 
         printf("Running multithreaded over number of threads: %d\n", maxThreads);
         displayProgress1("Running multithreaded over number of threads: " + to_string(maxThreads) + "\n");
-        displayProgress1("Runs will be printed as they complete, and may not be in order due to parallelisation.");
+        displayProgress1("Runs will be printed as they complete, and may not be in order due to parallelisation.\n");
         //create seeds for local rng engines
         vector<unsigned int> seeds(repeats);
         for (int run_id = 1; run_id <= repeats; run_id++)
