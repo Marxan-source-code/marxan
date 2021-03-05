@@ -965,6 +965,14 @@ namespace marxan {
             runoptions.ItImpOn = 0;
             runoptions.TwoStepHillClimbingOn = 1;
             break;
+        case 18:
+            runoptions.CalcPenaltiesOn = 1;
+            runoptions.ThermalAnnealingOn = 1;
+            runoptions.HillClimbingOn = 1;
+            runoptions.HeuristicOn = 0;
+            runoptions.ItImpOn = 0;
+            runoptions.TwoStepHillClimbingOn = 1;
+            break;
 
         default:
             runoptions.CalcPenaltiesOn = 0;
