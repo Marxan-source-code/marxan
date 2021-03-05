@@ -236,6 +236,7 @@ namespace marxan {
                 // shuffle iimp array
                 std::shuffle(iimparray.begin(), iimparray.end(), rngEngine);
                 // ***** Doing the improvements ****  
+                bool was_change_per_total_loop = false;
 
                 for (int i0 = 0; i0 < puvalid && itime <= iterations; i0++)
                 {
@@ -271,7 +272,11 @@ namespace marxan {
                             break;//need to recompute change0
 
                     } // no untested PUs left
-                    if(!was_change)
+                    if (was_change)
+                    {
+                        was_change_per_total_loop = true;
+                    }
+                    else
                     {
                         //undo change
                         int imode0_reverted = imode0  == 1 ? -1 : 1;
@@ -282,6 +287,9 @@ namespace marxan {
                     }
 
                 }
+
+                if (!was_change_per_total_loop)
+                    break;
             }
         }
 
