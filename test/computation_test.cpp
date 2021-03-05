@@ -291,38 +291,40 @@ TEST(ComputationTestsGroup, computeSpecProp_test) {
     pu[0].richness = 2;
     pu[0].offset = 0;
     pu[1].richness = 2;
-    pu[1].offset = 1;
+    pu[1].offset = 2;
     pu[2].richness = 2;
-    pu[2].offset = 2;
+    pu[2].offset = 4;
 
-    // Construct SM
-    /*
-    vector<map<int,spu>> SM(3);
-    SM[0][0].amount = 100.0;
-    SM[0][1].amount = 10.0;
-    SM[1][0].amount = 50.0;
-    SM[1][1].amount = 20.0;
-    SM[2][0].amount = 5.0;
-    SM[2][2].amount = 200.0;
-    */
-    //Temporal fix test compilaton
     vector<spu> SM(6);
+    
     SM[0].amount = 100.0;
+    SM[0].spindex = 0;
+    
     SM[1].amount = 10.0;
+    SM[1].spindex = 1;
+
+
     SM[2].amount = 50.0;
+    SM[2].spindex = 0;
+
     SM[3].amount = 20.0;
+    SM[3].spindex = 2;
+
     SM[4].amount = 5.0;
+    SM[4].spindex = 1;
+
     SM[5].amount = 200.0;
+    SM[5].spindex = 2;
 
     computeSpecProp(3, spec, 3, pu, SM);
 
-    CHECK_EQUAL(15.5, spec[0].target);
-    CHECK_EQUAL(15, spec[1].target);
-    CHECK_EQUAL(0, spec[2].target);
+    CHECK_EQUAL(15, spec[0].target);
+    CHECK_EQUAL(7.5, spec[1].target);
+    CHECK_EQUAL(0.0, spec[2].target);
 }
 
 // This function is a fixed value, we just need to check the 0 cases.
 TEST(ComputationTestsGroup, computeSepPenalty_test_zero) {
     CHECK_EQUAL(0.0, computeSepPenalty(1, 0));
-    CHECK(computeSepPenalty(0, 1) != 0);
+    CHECK(computeSepPenalty(0, 1) == 0.0);
 }
