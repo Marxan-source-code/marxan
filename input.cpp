@@ -13,6 +13,7 @@
 #include "output.hpp"
 #include "options.hpp"
 #include "utils.hpp"
+#include "defines.hpp"
 
 // functions that read from input files
 namespace marxan {
@@ -787,7 +788,7 @@ namespace marxan {
     void readInputOptions(double& cm, double& prop, sanneal& anneal,
         int& iseed,
         long int& repeats, string& savename, sfname& fnames, string filename,
-        int& runopts, double& misslevel, int& heurotype, int& clumptype,
+        srunoptions& runoptions, double& misslevel, int& heurotype, int& clumptype,
         int& itimptype, int& verb,
         double& costthresh, double& tpf1, double& tpf2)
     {
@@ -944,7 +945,13 @@ namespace marxan {
         readInputOption(fileLines, "RBINARYPATHNAME", fnames.rbinarypath, 0, present);
 
         /* various other controls */
-        readInputOption(fileLines, "RUNMODE", runopts, 1, present);
+        int runmode;
+        readInputOption(fileLines, "RUNMODE", runmode, 0, present);
+        if(present)
+        {
+            runoptions.setDefaultRunOptions(runmode);
+        }
+        
         readInputOption(fileLines, "MISSLEVEL", misslevel, 0, present);
         readInputOption(fileLines, "HEURTYPE", heurotype, 0, present);
         readInputOption(fileLines, "CLUMPTYPE", clumptype, 0, present);

@@ -6,6 +6,7 @@
 #include <map>
 #include "output.hpp"
 #include "computation.hpp"
+#include "defines.hpp"
 
 namespace marxan {
 
@@ -14,15 +15,6 @@ namespace marxan {
        {0, "Clumping - default step function"},
        {1, "Clumping - two level step function."},
        {2, "Clumping - rising benefit function"}
-    };
-
-    map<int, string> runoptsMap = {
-       {0,"Annealing and Heuristic"},
-       {1,"Annealing and Iterative Improvement"},
-       {2,"Annealing and Both"},
-       {3,"Heuristic only"},
-       {4,"Iterative Improvement only"},
-       {5,"Heuristic and Iterative Improvement"}
     };
 
     map<int, string> heurotypeMap = {
@@ -761,7 +753,7 @@ namespace marxan {
     // write scenario file: a text file with input parameters
     void writeScenario(int puno, int spno, double prop, double cm,
         sanneal& anneal, int seedinit, long int repeats, int clumptype,
-        int runopts, int heurotype, double costthresh, double tpf1, double tpf2,
+        srunoptions runoptions, int heurotype, double costthresh, double tpf1, double tpf2,
         string savename)
     {
         FILE* fp;
@@ -778,9 +770,9 @@ namespace marxan {
         // print clump type
         fprintf(fp, "%s\n", clumptypeMap[clumptype].c_str());
 
-        fprintf(fp, "Algorithm Used :%s\n", runoptsMap[runopts].c_str());
+        fprintf(fp, "Algorithm Used :%s\n", runoptions.algorithm_description().c_str());
 
-        if (runopts == 0 || runopts == 3 || runopts == 5)
+        if (runoptions.HeuristicOn)
         {
             if (heurotypeMap.find(heurotype) == heurotypeMap.end()) {
                 temp = "Unkown Heuristic Type";
@@ -795,7 +787,7 @@ namespace marxan {
             fprintf(fp, "No Heuristic used \n");
         }
 
-        if (runopts <= 2)
+        if (runoptions.ThermalAnnealingOn)
         {
             fprintf(fp, "Number of iterations %ld\n", anneal.iterations);
             if (anneal.Tinit >= 0)

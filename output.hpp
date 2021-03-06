@@ -10,6 +10,7 @@
 #include "spu.hpp"
 #include "anneal.hpp"
 #include "input.hpp"
+#include "options.hpp"
 
 
 namespace marxan {
@@ -49,7 +50,7 @@ namespace marxan {
     void writeRichness(int puno, const vector<spustuff>& pu, string savename, int iOutputType);
     void writeScenario(int puno, int spno, double prop, double cm,
         sanneal& anneal, int seedinit, long int repeats, int clumptype,
-        int runopts, int heurotype, double costthresh, double tpf1, double tpf2,
+        srunoptions runoptions, int heurotype, double costthresh, double tpf1, double tpf2,
         string savename);
     void writeSecondarySyncFile(void);
     void writeSecondarySyncFileRun(int iSyncRun);

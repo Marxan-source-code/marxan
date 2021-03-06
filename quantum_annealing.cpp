@@ -46,6 +46,7 @@
 #include "output.hpp"
 
 #include "score_change.hpp"
+#include "defines.hpp"
 
 namespace marxan {
 
