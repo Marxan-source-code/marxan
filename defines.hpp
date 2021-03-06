@@ -91,6 +91,4 @@ namespace marxan {
 
     extern sfname fnames;
 
-    //extern srunoptions runoptions;
-
 }

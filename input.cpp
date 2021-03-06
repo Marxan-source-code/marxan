@@ -945,12 +945,18 @@ namespace marxan {
         readInputOption(fileLines, "RBINARYPATHNAME", fnames.rbinarypath, 0, present);
 
         /* various other controls */
-        int runmode;
+        int runmode = -1;
         readInputOption(fileLines, "RUNMODE", runmode, 0, present);
-        if(present)
-        {
-            runoptions.setDefaultRunOptions(runmode);
-        }
+
+        runoptions.setDefaultRunOptions(runmode);
+        
+        //Read or replace individual run options
+        readInputOption(fileLines, "CALCPENALTIES", runoptions.CalcPenaltiesOn, 0, present);
+        readInputOption(fileLines, "THERMALANNEALING", runoptions.ThermalAnnealingOn, 0, present);
+        readInputOption(fileLines, "HEURISTIC", runoptions.HeuristicOn, 0, present);
+        readInputOption(fileLines, "HILLCLIMBING", runoptions.HillClimbingOn, 0, present);
+        readInputOption(fileLines, "TWOSTEPHILLCLIMBING", runoptions.TwoStepHillClimbingOn, 0, present);
+        readInputOption(fileLines, "ITERATIVEIMPROVEMENT", runoptions.ItImpOn, 0, present);
         
         readInputOption(fileLines, "MISSLEVEL", misslevel, 0, present);
         readInputOption(fileLines, "HEURTYPE", heurotype, 0, present);

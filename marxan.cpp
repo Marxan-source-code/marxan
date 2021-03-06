@@ -62,7 +62,6 @@ namespace marxan {
     vector<spustuff> pu;
     map<int, int> PULookup, SPLookup;
     vector<sspecies> specGlobal, bestSpec;
-    srunoptions runoptions;
     chrono::high_resolution_clock::time_point startTime;
 
     double rProbabilityWeighting = 1;
@@ -417,6 +416,7 @@ namespace marxan {
         long int itemp;
         int isp;
         int maxThreads = omp_get_max_threads();
+        srunoptions runoptions;
 
 
         displayStartupMessage();
