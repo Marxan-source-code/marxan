@@ -62,7 +62,6 @@ namespace marxan {
     vector<spustuff> pu;
     map<int, int> PULookup, SPLookup;
     vector<sspecies> specGlobal, bestSpec;
-    srunoptions runoptions;
     chrono::high_resolution_clock::time_point startTime;
 
     double rProbabilityWeighting = 1;
@@ -83,7 +82,7 @@ namespace marxan {
 
     // runs the loop for each "solution" marxan is generating
     void executeRunLoop(long int repeats, int puno, int spno, double cm, int aggexist, double prop, int clumptype, double misslevel,
-        string savename, double costthresh, double tpf1, double tpf2, int heurotype, int runopts,
+        string savename, double costthresh, double tpf1, double tpf2, int heurotype, srunoptions& runoptions,
         int itimptype, vector<int>& sumsoln, rng_engine& rngEngineGlobal)
     {
         string bestRunString;
@@ -249,7 +248,7 @@ namespace marxan {
                     Heuristics(spno, puno, pu, connections, R, cm, spec, SMGlobal, SM_out, reserve,
                         costthresh, tpf1, tpf2, heurotype, clumptype, appendLogBuffer, rngEngine);
 
-                    if (verbosity > 1 && (runopts == 2 || runopts == 5))
+                    if (verbosity > 1 && runoptions.ItImpOn)
                     {
                         computeReserveValue(puno, spno, R, pu, connections, SMGlobal, SM_out, cm, spec, aggexist, reserve, clumptype, appendLogBuffer);
                         runConsoleOutput << "Run " << run_id << "  Heuristic: " << displayValueForPUs(puno, spno, R, reserve, spec, misslevel).str();
@@ -406,7 +405,7 @@ namespace marxan {
         long int repeats;
         int puno, spno, gspno;
         double cm, prop;
-        int runopts, heurotype, clumptype, itimptype;
+        int heurotype, clumptype, itimptype;
         string savename, tempname2;
         double misslevel;
         int iseed = time(NULL), seedinit;
@@ -417,6 +416,7 @@ namespace marxan {
         long int itemp;
         int isp;
         int maxThreads = omp_get_max_threads();
+        srunoptions runoptions;
 
 
         displayStartupMessage();
@@ -424,10 +424,8 @@ namespace marxan {
 
         readInputOptions(cm, prop, anneal_global,
             iseed, repeats, savename, fnames, sInputFileName,
-            runopts, misslevel, heurotype, clumptype, itimptype, verbosity,
+            runoptions, misslevel, heurotype, clumptype, itimptype, verbosity,
             costthresh, tpf1, tpf2);
-
-        setDefaultRunOptions(runopts, runoptions);
 
         sTraceFileName = savename + "_TraceFile.txt";
         createTraceFile();
@@ -604,7 +602,7 @@ namespace marxan {
 
             tempname2 = savename + "_sen.dat";
             writeScenario(puno, spno, prop, cm, anneal_global, seedinit, repeats, clumptype,
-                runopts, heurotype, costthresh, tpf1, tpf2, tempname2);
+                runoptions, heurotype, costthresh, tpf1, tpf2, tempname2);
 
             appendTraceFile("after writeScenario\n");
         }
@@ -761,7 +759,7 @@ namespace marxan {
         try
         {
             executeRunLoop(repeats, puno, spno, cm, aggexist, prop, clumptype, misslevel,
-                savename, costthresh, tpf1, tpf2, heurotype, runopts,
+                savename, costthresh, tpf1, tpf2, heurotype, runoptions,
                 itimptype, sumsoln, rngEngine);
         }
         catch (const exception& e)
@@ -812,170 +810,6 @@ namespace marxan {
         return 0;
     } // executeMarxan
 
-
-    // set default run options based on the selection algorithm chosen
-    void setDefaultRunOptions(int runopts, srunoptions& runoptions)
-    {
-        if (runopts < 0)
-            return; // runopts < 0 indicates that these are set in some other way
-
-        switch (runopts)
-        {
-        case 0:
-            runoptions.CalcPenaltiesOn = 1;
-            runoptions.ThermalAnnealingOn = 1;
-            runoptions.HillClimbingOn = 0;
-            runoptions.HeuristicOn = 1;
-            runoptions.ItImpOn = 0;
-            runoptions.TwoStepHillClimbingOn = 0;
-            break;
-        case 1:
-            runoptions.CalcPenaltiesOn = 1;
-            runoptions.ThermalAnnealingOn = 1;
-            runoptions.HillClimbingOn = 0;
-            runoptions.HeuristicOn = 0;
-            runoptions.ItImpOn = 1;
-            runoptions.TwoStepHillClimbingOn = 0;
-            break;
-        case 2:
-            runoptions.CalcPenaltiesOn = 1;
-            runoptions.ThermalAnnealingOn = 1;
-            runoptions.HillClimbingOn = 0;
-            runoptions.HeuristicOn = 1;
-            runoptions.ItImpOn = 1;
-            runoptions.TwoStepHillClimbingOn = 0;
-            break;
-        case 3:
-            runoptions.CalcPenaltiesOn = 0;
-            runoptions.ThermalAnnealingOn = 0;
-            runoptions.HillClimbingOn = 0;
-            runoptions.HeuristicOn = 1;
-            runoptions.ItImpOn = 0;
-            runoptions.TwoStepHillClimbingOn = 0;
-            break;
-        case 4:
-            runoptions.CalcPenaltiesOn = 0;
-            runoptions.ThermalAnnealingOn = 0;
-            runoptions.HillClimbingOn = 0;
-            runoptions.HeuristicOn = 0;
-            runoptions.ItImpOn = 1;
-            runoptions.TwoStepHillClimbingOn = 0;
-            break;
-        case 5:
-            runoptions.CalcPenaltiesOn = 0;
-            runoptions.ThermalAnnealingOn = 0;
-            runoptions.HillClimbingOn = 0;
-            runoptions.HeuristicOn = 1;
-            runoptions.ItImpOn = 1;
-            runoptions.TwoStepHillClimbingOn = 0;
-            break;
-        case 6:
-            runoptions.CalcPenaltiesOn = 1;
-            runoptions.ThermalAnnealingOn = 1;
-            runoptions.HillClimbingOn = 0;
-            runoptions.HeuristicOn = 0;
-            runoptions.ItImpOn = 0;
-            runoptions.TwoStepHillClimbingOn = 0;
-            break;
-        case 7:
-            runoptions.CalcPenaltiesOn = 1;
-            runoptions.ThermalAnnealingOn = 0;
-            runoptions.HillClimbingOn = 0;
-            runoptions.HeuristicOn = 0;
-            runoptions.ItImpOn = 0;
-            runoptions.TwoStepHillClimbingOn = 0;
-            break;
-        case 8:
-            runoptions.CalcPenaltiesOn = 0;
-            runoptions.ThermalAnnealingOn = 1;
-            runoptions.HillClimbingOn = 0;
-            runoptions.HeuristicOn = 0;
-            runoptions.ItImpOn = 0;
-            runoptions.TwoStepHillClimbingOn = 0;
-            break;
-        case 9:
-            runoptions.CalcPenaltiesOn = 0;
-            runoptions.ThermalAnnealingOn = 1;
-            runoptions.HillClimbingOn = 0;
-            runoptions.HeuristicOn = 0;
-            runoptions.ItImpOn = 1;
-            runoptions.TwoStepHillClimbingOn = 0;
-            break;
-        case 10:
-            runoptions.CalcPenaltiesOn = 0;
-            runoptions.ThermalAnnealingOn = 0;
-            runoptions.HillClimbingOn = 0;
-            runoptions.HeuristicOn = 0;
-            runoptions.ItImpOn = 1;
-            runoptions.TwoStepHillClimbingOn = 0;
-            break;
-        case 11:
-            runoptions.CalcPenaltiesOn = 1;
-            runoptions.ThermalAnnealingOn = 0;
-            runoptions.HillClimbingOn = 1;
-            runoptions.HeuristicOn = 0;
-            runoptions.ItImpOn = 0;
-            runoptions.TwoStepHillClimbingOn = 0;
-            break;
-        case 12:
-            runoptions.CalcPenaltiesOn = 1;
-            runoptions.ThermalAnnealingOn = 0;
-            runoptions.HillClimbingOn = 1;
-            runoptions.HeuristicOn = 0;
-            runoptions.ItImpOn = 1;
-            runoptions.TwoStepHillClimbingOn = 0;
-            break;
-        case 13:
-            runoptions.CalcPenaltiesOn = 0;
-            runoptions.ThermalAnnealingOn = 0;
-            runoptions.HillClimbingOn = 1;
-            runoptions.HeuristicOn = 0;
-            runoptions.ItImpOn = 0;
-            runoptions.TwoStepHillClimbingOn = 0;
-            break;
-        case 14:
-            runoptions.CalcPenaltiesOn = 0;
-            runoptions.ThermalAnnealingOn = 0;
-            runoptions.HillClimbingOn = 1;
-            runoptions.HeuristicOn = 0;
-            runoptions.ItImpOn = 1;
-            runoptions.TwoStepHillClimbingOn = 0;
-            break;
-        case 15:
-            runoptions.CalcPenaltiesOn = 1;
-            runoptions.ThermalAnnealingOn = 0;
-            runoptions.HillClimbingOn = 0;
-            runoptions.HeuristicOn = 0;
-            runoptions.ItImpOn = 1;
-            runoptions.TwoStepHillClimbingOn = 0;
-            break;
-        case 16:
-            runoptions.CalcPenaltiesOn = 1;
-            runoptions.ThermalAnnealingOn = 0;
-            runoptions.HillClimbingOn = 0;
-            runoptions.HeuristicOn = 0;
-            runoptions.ItImpOn = 0;
-            runoptions.TwoStepHillClimbingOn = 1;
-            break;
-        case 17:
-            runoptions.CalcPenaltiesOn = 1;
-            runoptions.ThermalAnnealingOn = 0;
-            runoptions.HillClimbingOn = 1;
-            runoptions.HeuristicOn = 0;
-            runoptions.ItImpOn = 0;
-            runoptions.TwoStepHillClimbingOn = 1;
-            break;
-
-        default:
-            runoptions.CalcPenaltiesOn = 0;
-            runoptions.ThermalAnnealingOn = 0;
-            runoptions.HillClimbingOn = 0;
-            runoptions.HeuristicOn = 0;
-            runoptions.ItImpOn = 0;
-            runoptions.TwoStepHillClimbingOn = 0;
-            break;
-        }
-    } // setDefaultRunOptions
 
     // handle command line parameters for the marxan executable
     void handleOptions(int argc, char* argv[], string sInputFileName)

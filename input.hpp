@@ -8,6 +8,7 @@
 #include "species.hpp"
 #include "spu.hpp"
 #include "anneal.hpp"
+#include "options.hpp"
 
 namespace marxan {
     using namespace std;
@@ -65,7 +66,7 @@ namespace marxan {
     void readInputOptions(double& cm, double& prop, sanneal& anneal,
         int& iseed,
         long int& repeats, string& savename, sfname& fnames, string filename,
-        int& runopts, double& misslevel, int& heurotype, int& clumptype,
+        srunoptions& runoptions, double& misslevel, int& heurotype, int& clumptype,
         int& itimptype, int& verb,
         double& costthresh, double& tpf1, double& tpf2);
     void readPenalties(vector<sspecies>& spec, int spno, sfname& fnames, map<int, int>& SPLookup);

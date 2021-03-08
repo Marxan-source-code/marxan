@@ -20,7 +20,6 @@
 namespace marxan {
     using namespace std;
     void setBlockDefinitions(int gspno, int spno, int puno, vector<sgenspec>& gspec, vector<sspecies>& spec, vector<spustuff>& PU, vector<spu>& SM);
-    void setDefaultRunOptions(int runopts, srunoptions& runoptions);
     void secondaryExit(void);
 
 } // namespace marxan
