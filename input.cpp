@@ -750,9 +750,17 @@ namespace marxan {
         for (string line : infile)
         {   /* loop through file looking for varname */
             // if line contains varname
-            if (line.find(modifiedVar) != string::npos) {
+            size_t  var_start =  line.find(modifiedVar);
+            size_t  var_end =  var_start + modifiedVar.size();
+            if (var_start != string::npos) {
+                //skip if we found only partial word
+                if(var_start > 0 && (isalpha(line[var_start-1])))
+                    continue;
+                if(var_end < line.size() && (isalpha(line[var_end])))
+                    continue;
+               
                 // try to parse the value next to the variable by erasing first modifiedVar characters of line
-                string varValue = line.erase(0, modifiedVar.size());
+                string varValue = line.erase(var_start, modifiedVar.size());
                 utils::trim(varValue);
 
                 if (varValue.empty()) { // variable defined but no value - keep looping.
