@@ -13,24 +13,22 @@
 #include "output.hpp"
 #include "options.hpp"
 #include "utils.hpp"
+#include "defines.hpp"
 
 // functions that read from input files
 namespace marxan {
     using namespace std;
 
-    vector<string> GetFieldNames(const string& fname, const vector<string>& tokens, const vector<string>& varList)
+    vector<string> GetFieldNames(const string& fname, const vector<string>& tokens, const vector<string>& varList, bool allow_extra = false)
     {
         vector<string> fieldNames;
 
         for (string sVarName : tokens)
         {
-            if (sVarName.empty())
-                continue;
-
             utils::to_lower(sVarName);
             utils::trim(sVarName);
 
-            if (find(fieldNames.begin(), fieldNames.end(), sVarName) != fieldNames.end())
+            if ((!sVarName.empty()) && find(fieldNames.begin(), fieldNames.end(), sVarName) != fieldNames.end())
             {
                 displayErrorMessage("Variable %s has been defined twice in data file %s.\n", sVarName.c_str(), fname.c_str());
             }
@@ -41,7 +39,13 @@ namespace marxan {
             }
             else
             {
-                displayErrorMessage("Variable %s defined in data file %s is not from the list of allowed variables for this data file.\n", sVarName.c_str(), fname.c_str());
+                if(allow_extra)
+                {
+                    fieldNames.push_back(sVarName);
+                    displayWarningMessage("Variable %s defined in data file %s is not from the list of allowed variables for this data file.\n", sVarName.c_str(), fname.c_str());
+                }
+                else
+                    displayErrorMessage("Variable %s defined in data file %s is not from the list of allowed variables for this data file.\n", sVarName.c_str(), fname.c_str());
             }
 
         }
@@ -54,7 +58,7 @@ namespace marxan {
     {
         ifstream fp;
         string readname;
-        string sLine;
+        string sLine, extra_field;
         vector<string> varlist = { "id","cost","status","xloc","yloc","prob" };
 
         readname = fnames.inputdir + fnames.puname;
@@ -66,7 +70,7 @@ namespace marxan {
         char delim = utils::guess_delimeter(sLine);
         vector<string> tokens = utils::get_tokens(sLine, delim); 
 
-        vector<string> head = GetFieldNames(fnames.puname, tokens, varlist);
+        vector<string> head = GetFieldNames(fnames.puname, tokens, varlist, true);
 
         /* While there are still lines left feed information into temporary list */
 
@@ -119,6 +123,10 @@ namespace marxan {
                     sVarVal >> putemp.prob;
                     iProbFieldPresent = 1;
                 }
+                else
+                {
+                    sVarVal >> extra_field;
+                }
             } /* looking for ivar different input variables */
 
             if(sVarVal.fail())
@@ -148,7 +156,7 @@ namespace marxan {
     {
         ifstream  fp;
         string readname;
-        string sLine;
+        string sLine, extra_field;
         vector<string> varlist = { "id","type","target","spf",
                              "target2","sepdistance","sepnum","name",
                              "targetocc","prop","ptarget1d","ptarget2d" };
@@ -162,7 +170,7 @@ namespace marxan {
         char delim = utils::guess_delimeter(sLine);
         vector<string> tokens = utils::get_tokens(sLine, delim); 
 
-        vector<string> snhead = GetFieldNames(fnames.specname, tokens, varlist);
+        vector<string> snhead = GetFieldNames(fnames.specname, tokens, varlist, true);
 
         // While there are still lines left feed information into temporary link list
         for (int line_num = 2; getline(fp, sLine); line_num++)
@@ -246,6 +254,10 @@ namespace marxan {
                 {
                     sVarVal >> spectemp.sname;
                 }
+                else
+                {
+                    sVarVal >> extra_field;
+                }
 
             } // looking for ivar different input variables
 
@@ -266,7 +278,7 @@ namespace marxan {
     {
         ifstream fp;
         string readname;
-        string sLine;
+        string sLine, extra_field;
         vector<string> varlist = { "type","target","target2","targetocc",
                             "sepnum","sepdistance","prop","spf" };
         int ivars, i = 0;
@@ -281,7 +293,7 @@ namespace marxan {
         getline(fp, sLine);
         char delim = utils::guess_delimeter(sLine);
         vector<string> tokens = utils::get_tokens(sLine, delim); 
-        vector<string> head = GetFieldNames(fnames.blockdefname, tokens, varlist);
+        vector<string> head = GetFieldNames(fnames.blockdefname, tokens, varlist, true);
 
         /* While there are still lines left feed information into temporary link list */
         for(int line_num = 2; getline(fp, sLine); line_num++) {
@@ -325,10 +337,8 @@ namespace marxan {
                 else if (temp.compare("spf") == 0) {
                     sVarVal >> gstemp.spf;
                 }
-                else
-                {
-                    displayWarningMessage("Cannot find >%s< \n", temp.c_str());
-                    displayErrorMessage("Serious error in GenSpecies data reading function.\n");
+                else{
+                    sVarVal >> extra_field;
                 }
             } /* looking for ivar different input variables */
 
@@ -778,7 +788,7 @@ namespace marxan {
     void readInputOptions(double& cm, double& prop, sanneal& anneal,
         int& iseed,
         long int& repeats, string& savename, sfname& fnames, string filename,
-        int& runopts, double& misslevel, int& heurotype, int& clumptype,
+        srunoptions& runoptions, double& misslevel, int& heurotype, int& clumptype,
         int& itimptype, int& verb,
         double& costthresh, double& tpf1, double& tpf2)
     {
@@ -935,7 +945,19 @@ namespace marxan {
         readInputOption(fileLines, "RBINARYPATHNAME", fnames.rbinarypath, 0, present);
 
         /* various other controls */
-        readInputOption(fileLines, "RUNMODE", runopts, 1, present);
+        int runmode = -1;
+        readInputOption(fileLines, "RUNMODE", runmode, 0, present);
+
+        runoptions.setDefaultRunOptions(runmode);
+        
+        //Read or replace individual run options
+        readInputOption(fileLines, "CALCPENALTIES", runoptions.CalcPenaltiesOn, 0, present);
+        readInputOption(fileLines, "THERMALANNEALING", runoptions.ThermalAnnealingOn, 0, present);
+        readInputOption(fileLines, "HEURISTIC", runoptions.HeuristicOn, 0, present);
+        readInputOption(fileLines, "HILLCLIMBING", runoptions.HillClimbingOn, 0, present);
+        readInputOption(fileLines, "TWOSTEPHILLCLIMBING", runoptions.TwoStepHillClimbingOn, 0, present);
+        readInputOption(fileLines, "ITERATIVEIMPROVEMENT", runoptions.ItImpOn, 0, present);
+        
         readInputOption(fileLines, "MISSLEVEL", misslevel, 0, present);
         readInputOption(fileLines, "HEURTYPE", heurotype, 0, present);
         readInputOption(fileLines, "CLUMPTYPE", clumptype, 0, present);
