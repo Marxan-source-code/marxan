@@ -1327,7 +1327,7 @@ namespace marxan {
 
 #ifdef DEBUGTRACEFILE
             sprintf(debugbuffer, "connectivity file %s weighting %lf asymmetric >%s< records %i\n",
-                sFileName, rWeighting, sAsymmetric, iRecords);
+                sFileName.c_str(), rWeighting, sAsymmetric.c_str(), iRecords);
             appendTraceFile(debugbuffer);
 #endif
         }
