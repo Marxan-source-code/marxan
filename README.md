@@ -17,14 +17,26 @@ We will officially announce the release of the new version and merge changes to 
 Please feel free to use our [Google Group](https://groups.google.com/g/marxan). You can also create GitHub issues on this repo or e-mail marxancloud@gmail.com  
 
 # Releases
-## v4.0.3
-- Windows [x86-64](https://github.com/Marxan-source-code/marxan/releases/download/v4.0.3/build4.0.3Windows.zip)
-- Linux [x86-64](https://github.com/Marxan-source-code/marxan/releases/download/v4.0.3/build4.0.3Linux.zip)
-- MacOS 10.15 (Catalina) [x86-64](https://github.com/Marxan-source-code/marxan/releases/download/v4.0.3/Marxan-4.0.3-macOS.zip)
-- MacOS 10.13 (High Sierra) [x86-64](https://github.com/Marxan-source-code/marxan/releases/download/v4.0.3/Marxan-4.0.3-MacOS-10.13.zip)
+## v4.0.5
+- Windows [x86-64](https://github.com/Marxan-source-code/marxan/releases/download/v4.0.5/marxan4.0.5-windows.zip)
+- Linux [x86-64](https://github.com/Marxan-source-code/marxan/releases/download/v4.0.5/marxan4.0.5-linux.zip)
+- MacOS 10.15 (Catalina) [x86-64](https://github.com/Marxan-source-code/marxan/releases/download/v4.0.5/marxan-4.0.5-MacOS-10.15-x86-64.zip)
+- MacOS 11 M1 [x86-64](https://github.com/Marxan-source-code/marxan/releases/download/v4.0.5/marxan-4.0.5-MacOS-11-M1.zip)
 # Test Data
 - From Google Drive: [MarxanData.zip](https://drive.google.com/file/d/1VGN4S5L_F80Ds2JlSy0MclxS5-KpkwlH/view?usp=sharing)
 - From Releases: [MarxanData.zip](https://github.com/Marxan-source-code/marxan/releases/download/v4.0.3/MarxanData.zip)
+
+# How to Run (Windows)
+Instructions on how to run are similar in Linux (minus the .bat file). Ensure your input files are in the structure:
+
+```
+root/
+- /input (contains pu.dat, spec.dat ..etc.)
+- /output (empty directory)
+```
+
+1. Copy the marxan executable and bat file (if windows) into the root of your data folder, outside of /input and /output
+2. Run the .bat file (if windows) or double click on the executable. If you want the terminal to stay open upon finishing, calling from the .bat file is needed.
 
 # How to Build (Windows)
 Marxan has now been refactored to use c++17 for more modernised code and more extensive standard library. MinGW64 is needed to build on windows. Ideally we would compile with latest c++ (c++20 at the time of writing) but I could not find a windows build toolchain that was up to date with gcc 10.2 that actually worked. 
