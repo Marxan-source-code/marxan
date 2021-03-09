@@ -20,8 +20,8 @@ Please feel free to use our [Google Group](https://groups.google.com/g/marxan). 
 ## v4.0.5
 - Windows [x86-64](https://github.com/Marxan-source-code/marxan/releases/download/v4.0.5/marxan4.0.5-windows.zip)
 - Linux [x86-64](https://github.com/Marxan-source-code/marxan/releases/download/v4.0.5/marxan4.0.5-linux.zip)
-- MacOS 10.15 (Catalina) [x86-64](https://github.com/Marxan-source-code/marxan/releases/download/v4.0.5/marxan-4.0.5-MacOS-10.15-x86-64.zip)
-- MacOS 11 M1 [x86-64](https://github.com/Marxan-source-code/marxan/releases/download/v4.0.5/marxan-4.0.5-MacOS-11-M1.zip)
+- MacOS [x86-64] (Created using MacOS 10.15 Catalina) (https://github.com/Marxan-source-code/marxan/releases/download/v4.0.5/marxan-4.0.5-MacOS-10.15-x86-64.zip)
+- MacOS [M1] (Created using MacOS 11 Big Sur) (https://github.com/Marxan-source-code/marxan/releases/download/v4.0.5/marxan-4.0.5-MacOS-11-M1.zip)
 # Test Data
 - From Google Drive: [MarxanData.zip](https://drive.google.com/file/d/1VGN4S5L_F80Ds2JlSy0MclxS5-KpkwlH/view?usp=sharing)
 - From Releases: [MarxanData.zip](https://github.com/Marxan-source-code/marxan/releases/download/v4.0.3/MarxanData.zip)
@@ -65,7 +65,8 @@ Command to build with statically linked openMP library is:
 g++ *.cpp  /usr/local/opt/libomp/lib/libomp.a -o bin/marxan -Xclang -fopenmp -std=c++17  -O3
 ```
 # How to run (Mac with M1 processor)
-Install translator from Intel architecture using terminal command:
+M1 build runs noticable faster.
+To be able to run x-86 builds, install translator from Intel architecture using terminal command:
 ```
 softwareupdate --install-rosetta
 ```
@@ -79,7 +80,7 @@ Try to run marxan:
 ```
 ./marxan
 ```
-System will prevent it from running. 
+If system prevents it from running due to Unidentified Developer. 
 Go to System preferences -> Security & Privacy -> Allow apps downloaded from:  
 Allow to run marxan.
 
