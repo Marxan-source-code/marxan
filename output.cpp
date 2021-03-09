@@ -6,6 +6,7 @@
 #include <map>
 #include "output.hpp"
 #include "computation.hpp"
+#include "defines.hpp"
 
 namespace marxan {
 
@@ -14,15 +15,6 @@ namespace marxan {
        {0, "Clumping - default step function"},
        {1, "Clumping - two level step function."},
        {2, "Clumping - rising benefit function"}
-    };
-
-    map<int, string> runoptsMap = {
-       {0,"Annealing and Heuristic"},
-       {1,"Annealing and Iterative Improvement"},
-       {2,"Annealing and Both"},
-       {3,"Heuristic only"},
-       {4,"Iterative Improvement only"},
-       {5,"Heuristic and Iterative Improvement"}
     };
 
     map<int, string> heurotypeMap = {
@@ -256,14 +248,13 @@ namespace marxan {
     // program is then terminated
     void displayErrorMessage(string sMess, ...)
     {
-        extern jmp_buf jmpbuf;
         va_list args;
 
         va_start(args, sMess);
         vprintf(sMess.c_str(), args);
         if (savelog) vfprintf(fsavelog, sMess.c_str(), args);
         va_end(args);
-        longjmp(jmpbuf, 1);
+        throw runtime_error("Error message was generated.\n");
     }
 
     // displays a warning message when verbosity > 0
@@ -419,20 +410,20 @@ namespace marxan {
     void displayTimePassed(chrono::high_resolution_clock::time_point start)
     {
         auto end = chrono::high_resolution_clock::now();
-        int itemp = chrono::duration_cast<std::chrono::seconds>(end - start).count();
+        uint64_t itemp = chrono::duration_cast<std::chrono::seconds>(end - start).count();
 
         printf("Time passed so far is ");
         if (itemp >= 60 * 60)
         {
             printf(" %i hour%c,%i min%c and %i secs \n",
-                itemp / 3600, ((itemp / 3600 == 1) ? ' ' : 's'),
-                (itemp / 60) % 60, ((itemp / 60 == 1) ? ' ' : 's'), itemp % 60);
+                (int)(itemp / 3600), ((itemp / 3600 == 1) ? ' ' : 's'),
+                (int)((itemp / 60) % 60), ((itemp / 60 == 1) ? ' ' : 's'), (int)(itemp % 60));
         }
         else {
             if (itemp >= 60)
-                printf(" %i min%c and %i secs \n", itemp / 60, ((itemp / 60 == 1) ? ' ' : 's'), itemp % 60);
+                printf(" %i min%c and %i secs \n", (int)(itemp / 60), ((itemp / 60 == 1) ? ' ' : 's'), (int)(itemp % 60));
             else
-                printf("%i secs \n", itemp);
+                printf("%i secs \n", (int)(itemp));
         }
 
         if (savelog)
@@ -441,14 +432,14 @@ namespace marxan {
             if (itemp >= 60 * 60)
             {
                 fprintf(fsavelog, " %i hour%c,%i min%c and %i secs \n",
-                    itemp / 3600, ((itemp / 3600 == 1) ? ' ' : 's'),
-                    (itemp / 60) % 60, ((itemp / 60 == 1) ? ' ' : 's'), itemp % 60);
+                    (int)(itemp / 3600), ((itemp / 3600 == 1) ? ' ' : 's'),
+                    (int)((itemp / 60) % 60), ((itemp / 60 == 1) ? ' ' : 's'), (int)(itemp % 60));
             }
             else {
                 if (itemp >= 60)
-                    fprintf(fsavelog, " %i min%c and %i secs \n", itemp / 60, ((itemp / 60 == 1) ? ' ' : 's'), itemp % 60);
+                    fprintf(fsavelog, " %i min%c and %i secs \n", (int)(itemp / 60), ((itemp / 60 == 1) ? ' ' : 's'), (int)(itemp % 60));
                 else
-                    fprintf(fsavelog, "%i secs \n", itemp);
+                    fprintf(fsavelog, "%i secs \n", (int)(itemp));
             }
         }
     }
@@ -762,7 +753,7 @@ namespace marxan {
     // write scenario file: a text file with input parameters
     void writeScenario(int puno, int spno, double prop, double cm,
         sanneal& anneal, int seedinit, long int repeats, int clumptype,
-        int runopts, int heurotype, double costthresh, double tpf1, double tpf2,
+        srunoptions runoptions, int heurotype, double costthresh, double tpf1, double tpf2,
         string savename)
     {
         FILE* fp;
@@ -779,9 +770,9 @@ namespace marxan {
         // print clump type
         fprintf(fp, "%s\n", clumptypeMap[clumptype].c_str());
 
-        fprintf(fp, "Algorithm Used :%s\n", runoptsMap[runopts].c_str());
+        fprintf(fp, "Algorithm Used :%s\n", runoptions.algorithm_description().c_str());
 
-        if (runopts == 0 || runopts == 3 || runopts == 5)
+        if (runoptions.HeuristicOn)
         {
             if (heurotypeMap.find(heurotype) == heurotypeMap.end()) {
                 temp = "Unkown Heuristic Type";
@@ -796,7 +787,7 @@ namespace marxan {
             fprintf(fp, "No Heuristic used \n");
         }
 
-        if (runopts <= 2)
+        if (runoptions.ThermalAnnealingOn)
         {
             fprintf(fp, "Number of iterations %ld\n", anneal.iterations);
             if (anneal.Tinit >= 0)
@@ -1336,7 +1327,7 @@ namespace marxan {
 
 #ifdef DEBUGTRACEFILE
             sprintf(debugbuffer, "connectivity file %s weighting %lf asymmetric >%s< records %i\n",
-                sFileName, rWeighting, sAsymmetric, iRecords);
+                sFileName.c_str(), rWeighting, sAsymmetric.c_str(), iRecords);
             appendTraceFile(debugbuffer);
 #endif
         }
