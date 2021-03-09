@@ -1,7 +1,7 @@
 # Marxan
 
 ## Latest Release
-### **Marxan 4 is here for you to try**
+### **Marxan 4**
  
 Marxan has been rebuilt in C++ and we are ready for you to test the new version 4.  
  
