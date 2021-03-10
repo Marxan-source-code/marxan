@@ -690,7 +690,7 @@ namespace marxan {
 
             anneal_global.Tlen = anneal_global.iterations / anneal_global.Titns;
             displayProgress2("  Temperature length %ld \n", anneal_global.Tlen);
-            displayProgress2("  iterations %ld, repeats %ld \n", anneal_global.iterations, repeats);
+            displayProgress2("  iterations %lld, repeats %ld \n", anneal_global.iterations, repeats);
         } // Annealing Preprocessing. Should be moved to SetAnnealingOptions
 
         if (fnames.savepenalty)

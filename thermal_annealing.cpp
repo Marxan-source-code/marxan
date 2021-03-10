@@ -39,7 +39,8 @@ namespace marxan {
         const vector<spu>& SM, vector<spu_out>& SM_out, double cm, sanneal& anneal, int aggexist,
         vector<int>& R, double prop, int clumptype, int irun, stringstream& logBuffer, rng_engine& rngEngine)
     {
-        long int i, ipu, imode, iOldR;
+        long long i;
+        long int ipu, imode, iOldR;
         double deltamin = 0, deltamax = 0;
         double localdelta = 1E-10;
         scost change = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
@@ -165,7 +166,8 @@ namespace marxan {
         int aggexist, double costthresh, double tpf1, double tpf2, int clumptype, sanneal& anneal, stringstream& logBuffer, rng_engine& rngEngine)
     {
         scost change = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-        long int itime = 0, ipu = -1, i, itemp, snapcount = 0, ichanges = 0, iPreviousR, iGoodChange = 0;
+        long long itime = 0; 
+        long int ipu = -1, i, itemp, snapcount = 0, ichanges = 0, iPreviousR, iGoodChange = 0;
         long int iRowCounter, iRowLimit;
         double rTemperature, rThreshold, rThresholdMultiplier;
         string tempname1, tempname2, sRun = to_string(irun), paddedRun = utils::intToPaddedString(irun, 5);
