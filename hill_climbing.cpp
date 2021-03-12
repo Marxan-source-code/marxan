@@ -229,15 +229,13 @@ namespace marxan {
 
             logBuffer << "Two step hillclimbing after array init\n";
             displayProgress2("  Main two step hillclimbing section.\n");
-
-             
+            bool skip_add_two_units = true; 
             for(long long itime = 1; itime <= iterations; )
             {
                 // shuffle iimp array
                 std::shuffle(iimparray.begin(), iimparray.end(), rngEngine);
                 // ***** Doing the improvements ****  
                 bool was_change_per_total_loop = false;
-                bool skip_add_two_units = true; 
 
                 for (int i0 = 0; i0 < puvalid && itime <= iterations; i0++)
                 {
