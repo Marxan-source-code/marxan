@@ -129,8 +129,8 @@ namespace marxan {
             stringstream appendLogBuffer; // stores the trace file log
             stringstream runConsoleOutput; // stores the console message for the run. This is needed for more organized printing output due to multithreading.
             sanneal anneal = anneal_global;
-            scost reserve = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-            scost change = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+            scost reserve;
+            scost change;
 
             vector<int> R(puno);
 

@@ -43,8 +43,8 @@ namespace marxan {
         long int ipu, imode, iOldR;
         double deltamin = 0, deltamax = 0;
         double localdelta = 1E-10;
-        scost change = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-        scost reserve = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+        scost change;
+        scost reserve;
 
 #ifdef DEBUGTRACEFILE
         FILE* fp = nullptr;
@@ -165,7 +165,7 @@ namespace marxan {
         long int repeats, int irun, string savename, double misslevel,
         int aggexist, double costthresh, double tpf1, double tpf2, int clumptype, sanneal& anneal, stringstream& logBuffer, rng_engine& rngEngine)
     {
-        scost change = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+        scost change;
         long long itime = 0; 
         long int ipu = -1, i, itemp, snapcount = 0, ichanges = 0, iPreviousR, iGoodChange = 0;
         long int iRowCounter, iRowLimit;
