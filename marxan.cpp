@@ -866,7 +866,7 @@ int main(int argc, char* argv[]) {
     if (argc > 1)
     {
         // handle the program options
-        marxan::handleOptions(argc, argv, sInputFileName);
+        marxan::handleOptions(argc, argv, sInputFileName, marxan::marxanIsSecondary);
     }
 
     try
