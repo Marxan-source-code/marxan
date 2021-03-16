@@ -241,6 +241,8 @@ namespace marxan {
                     appendLogBuffer << "after hill climbing run " << run_id << endl;
                 }
 
+                cout<<"\nHeuristic on = " <<runoptions.HeuristicOn<<" type " << heurotype << "\n"; 
+
                 if (runoptions.HeuristicOn)
                 {
                     appendLogBuffer << "before Heuristics run " << run_id << endl;
@@ -248,7 +250,7 @@ namespace marxan {
                     Heuristics(spno, puno, pu, connections, R, cm, spec, SMGlobal, SM_out, reserve,
                         costthresh, tpf1, tpf2, heurotype, clumptype, appendLogBuffer, rngEngine);
 
-                    if (verbosity > 1 && runoptions.ItImpOn)
+                    if (verbosity > 1)
                     {
                         computeReserveValue(puno, spno, R, pu, connections, SMGlobal, SM_out, cm, spec, aggexist, reserve, clumptype, appendLogBuffer);
                         runConsoleOutput << "Run " << run_id << "  Heuristic: " << displayValueForPUs(puno, spno, R, reserve, spec, misslevel).str();
@@ -812,7 +814,7 @@ namespace marxan {
 
 
     // handle command line parameters for the marxan executable
-    void handleOptions(int argc, char* argv[], string sInputFileName)
+    void handleOptions(int argc, char* argv[], string& sInputFileName)
     {
         if (argc > 4)
         {  // if more than one commandline argument then exit
