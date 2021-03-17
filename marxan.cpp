@@ -812,7 +812,7 @@ namespace marxan {
 
 
     // handle command line parameters for the marxan executable
-    void handleOptions(int argc, char* argv[], string sInputFileName)
+    void handleOptions(int argc, char* argv[], string& sInputFileName)
     {
         if (argc > 4)
         {  // if more than one commandline argument then exit
