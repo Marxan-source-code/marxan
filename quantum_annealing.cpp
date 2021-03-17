@@ -271,7 +271,8 @@ namespace marxan {
         long int repeats, int irun, string savename, double misslevel,
         int aggexist, double costthresh, double tpf1, double tpf2, int clumptype, sanneal& anneal, rng_engine& rngEngine)
     {
-        long int itime, i, j, itemp = 0, snapcount, ichanges = 0, iGoodChange;
+        long long itime;
+        long int  i, j, itemp = 0, snapcount, ichanges = 0, iGoodChange;
         long int iRowCounter, iRowLimit, iFluctuationCount;
         double rFluctuationMagnitude, rThreshold, rThresholdMultiplier,
             rAcceptanceProbability;
@@ -279,7 +280,8 @@ namespace marxan {
         FILE* fp = nullptr, * ttfp = nullptr, * Rfp = nullptr;
         string writename, sDecayType;
         vector<int> PUChosen;
-        long int iTests = 0, iIterations;
+        long int iTests = 0;
+        long long iIterations;
         uniform_real_distribution<double> float_range(0.0, 1.0);
 
         if (iQADECAYTYPE == 0)
@@ -287,7 +289,7 @@ namespace marxan {
         else
             sDecayType = "SIGMOIDAL";
 
-        appendTraceFile("quantumAnnealing start iterations %ld decay type %s proportion %f decay A %f decay B %f acceptance probability %f saveannealingtrace %i\n",
+        appendTraceFile("quantumAnnealing start iterations %lld decay type %s proportion %f decay A %f decay B %f acceptance probability %f saveannealingtrace %i\n",
             anneal.iterations, sDecayType.c_str(), rQAPROP, rQADECAY, rQADECAYB, rQAACCPR, fnames.saveannealingtrace);
         if (verbosity > 4)
         {
@@ -416,7 +418,7 @@ namespace marxan {
                 }
 
                 if (verbosity > 4)
-                    fprintf(fp, "%li,%li,%li,%f,%f,%f,%f,%f\n",
+                    fprintf(fp, "%lli,%li,%li,%f,%f,%f,%f,%f\n",
                         itime, itemp, iGoodChange, change.total, change.cost, change.connection, change.penalty, anneal.temp);
 
                 if (fnames.saveannealingtrace)
@@ -427,9 +429,9 @@ namespace marxan {
 
                     if (iRowCounter == 1)
                     {
-                        fprintf(Rfp, "%li", itime);
+                        fprintf(Rfp, "%lli", itime);
 
-                        fprintf(ttfp, "%li,%f,%li,%f,%i,%f,%f,%f\n",
+                        fprintf(ttfp, "%lli,%f,%li,%f,%i,%f,%f,%f\n",
                             itime, costthresh, iGoodChange, reserve.total,
                             reserve.pus, reserve.cost, reserve.connection, reserve.penalty);
                         if (fProb1D == 1)

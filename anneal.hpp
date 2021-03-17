@@ -5,7 +5,7 @@ namespace marxan {
     typedef struct sanneal
     {
         long int Titns;
-        long int iterations;
+        long long iterations;
         long int Tlen;
         double Tinit;    /* Initial Temperature */
         double Tcool;    /* Cooling Factor */

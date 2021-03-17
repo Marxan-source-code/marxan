@@ -789,7 +789,7 @@ namespace marxan {
 
         if (runoptions.ThermalAnnealingOn)
         {
-            fprintf(fp, "Number of iterations %ld\n", anneal.iterations);
+            fprintf(fp, "Number of iterations %lld\n", anneal.iterations);
             if (anneal.Tinit >= 0)
             {
                 fprintf(fp, "Initial temperature %.2f\n", anneal.Tinit);
