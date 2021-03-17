@@ -46,7 +46,7 @@ namespace marxan {
             //repace last comma with "and" 
             auto pos = res.find_last_of(',');
             if(pos != string::npos)
-                res.replace(pos, pos+1, " and");
+                res.replace(pos, 1, " and");
             return res;
         }
 

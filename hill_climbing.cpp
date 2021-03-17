@@ -67,7 +67,7 @@ namespace marxan {
 
             }
 
-            void append(int i, int puno, const scost& reserve, const scost& change, const vector<int>& R)
+            void append(long long i, int puno, const scost& reserve, const scost& change, const vector<int>& R)
             {
                 iRowCounter++;
                 if (iRowCounter > iRowLimit)
@@ -75,9 +75,9 @@ namespace marxan {
 
                 if (iRowCounter == 1)
                 {
-                    fprintf(Rfp, "%i", i);
+                    fprintf(Rfp, "%lli", i);
 
-                    fprintf(ttfp, "%i,%f,%i,%f,%f,%f,%f\n"
+                    fprintf(ttfp, "%lli,%f,%i,%f,%f,%f,%f\n"
                                 , i, reserve.total
                                 , reserve.pus, reserve.cost, reserve.connection, reserve.penalty,
                                 change.total); // i,costthresh,pus,cost,connection,penalty
@@ -104,7 +104,7 @@ namespace marxan {
         const vector<spu>& SM, vector<spu_out>& SM_out, double cm,  int aggexist,
         vector<int>& R, double prop, int clumptype, int irun, stringstream& logBuffer, rng_engine& rngEngine)
     {
-        scost reserve = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+        scost reserve;
 
         initialiseReserve(prop, pu, R, rngEngine);
 
@@ -121,9 +121,9 @@ namespace marxan {
     void hill_climbing(int puno, int spno, const vector<spustuff>& pu, const vector<sconnections>& connections,
         vector<sspecies>& spec, const vector<spu>& SM, vector<spu_out>& SM_out, vector<int>& R, double cm,
         scost& reserve, double costthresh, double tpf1, double tpf2,
-        int clumptype,  int irun, int iterations, string savename, stringstream& logBuffer, rng_engine& rngEngine)
+        int clumptype,  int irun, long long iterations, string savename, stringstream& logBuffer, rng_engine& rngEngine)
     {
-        scost change = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+        scost change;
         int puvalid = 0,  ipu = 0, imode, ichoice;
         vector<int> iimparray;
 
@@ -156,7 +156,7 @@ namespace marxan {
             logBuffer << "Hill climbing after array init\n";
             displayProgress2("  Main Hillclimbing Section.\n");
 
-            for(int itime = 1; itime <= iterations; )
+            for(long long itime = 1; itime <= iterations; )
             {
                 // shuffle iimp array
                 std::shuffle(iimparray.begin(), iimparray.end(), rngEngine);
@@ -196,7 +196,7 @@ namespace marxan {
     void hill_climbing_two_steps(int puno, int spno, const vector<spustuff>& pu, const vector<sconnections>& connections,
         vector<sspecies>& spec, const vector<spu>& SM, vector<spu_out>& SM_out, vector<int>& R, double cm,
         scost& reserve, double costthresh, double tpf1, double tpf2,
-        int clumptype,  int irun, int iterations, string savename, stringstream& logBuffer, rng_engine& rngEngine)
+        int clumptype,  int irun, long long iterations, string savename, stringstream& logBuffer, rng_engine& rngEngine)
     {
         int puvalid = 0,  ipu = 0;
         vector<int> iimparray;
@@ -229,9 +229,8 @@ namespace marxan {
 
             logBuffer << "Two step hillclimbing after array init\n";
             displayProgress2("  Main two step hillclimbing section.\n");
-
-             
-            for(int itime = 1; itime <= iterations; )
+            bool skip_add_two_units = true; 
+            for(long long itime = 1; itime <= iterations; )
             {
                 // shuffle iimp array
                 std::shuffle(iimparray.begin(), iimparray.end(), rngEngine);
@@ -240,10 +239,10 @@ namespace marxan {
 
                 for (int i0 = 0; i0 < puvalid && itime <= iterations; i0++)
                 {
-                    scost change0  = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+                    scost change0;
                     bool was_change = false;
                     int ichoice0 = iimparray[i0];
-                    //remenber old score
+                    //remember old score
                     int imode0 = R[ichoice0] == 1 ? -1 : 1;
                     computeChangeScore(-1, ichoice0, spno, puno, pu, connections, spec, SM, SM_out, R, cm, imode0, change0, reserve,
                                 costthresh, tpf1, tpf2, 1, clumptype);
@@ -258,10 +257,21 @@ namespace marxan {
 
                     for (int i1 = i0+1; i1 < puvalid && itime <= iterations; i1++, itime++)
                     {
-                        scost change1  = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+                        scost change1;
                         int ichoice1 = iimparray[i1];
 
                         int imode1 = R[ichoice1] == 1 ? -1 : 1;
+
+                        if(skip_add_two_units && (imode1 == imode0 && imode0 == 1))
+                        {
+                            //If there is not enough iterations for complete coverage,
+                            //for cases where result amount of units is small part of total units,
+                            //concentration of search on swap or remove pair  
+                            //may improve chance of success 
+                            itime--;
+                            continue;
+                        }
+
                         computeChangeScore(-1, ichoice1, spno, puno, pu, connections, spec, SM, SM_out, R, cm, imode1, change1, reserve,
                                 costthresh, tpf1, tpf2, 1, clumptype);
 
@@ -295,7 +305,12 @@ namespace marxan {
                 }
 
                 if (!was_change_per_total_loop)
-                    break;
+                {   
+                    if(skip_add_two_units)
+                        skip_add_two_units = false;
+                    else
+                        break;
+                }
             }
         }
 
