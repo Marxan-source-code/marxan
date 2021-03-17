@@ -958,24 +958,19 @@ namespace marxan {
     // compute total area available, reserved, excluded. write it to a file if verbosity > 3.
     void computeTotalAreas(int puno, int spno, const vector<spustuff>& pu, const vector<sspecies>& spec, const vector<spu>& SM)
     {
-        if (verbosity > 3)
-        {
-            vector<int> TotalOccurrences(spno, 0), TO_2(spno, 0), TO_3(spno, 0);
-            vector<double> TotalAreas(spno, 0), TA_2(spno, 0), TA_3(spno, 0);
-            FILE* TotalAreasFile;
+        vector<int> TotalOccurrences(spno, 0), TO_2(spno, 0), TO_3(spno, 0);
+        vector<double> TotalAreas(spno, 0), TA_2(spno, 0), TA_3(spno, 0);
+        FILE *TotalAreasFile;
 
-            computeOccurrencesAndAreas(puno, pu, SM,
-                TotalOccurrences, TO_2, TO_3,
-                TotalAreas, TA_2, TA_3);
+        computeOccurrencesAndAreas(puno, pu, SM,
+                                   TotalOccurrences, TO_2, TO_3,
+                                   TotalAreas, TA_2, TA_3);
 
-            TotalAreasFile = fopen("MarOptTotalAreas.csv", "w");
-            fprintf(TotalAreasFile, "spname,spindex,totalarea,reservedarea,excludedarea,targetarea,totalocc,reservedocc,excludedocc,targetocc\n");
-            for (int i = 0; i < spno; i++)
-                fprintf(TotalAreasFile, "%i,%i,%g,%g,%g,%g,%i,%i,%i,%i\n"
-                    , spec[i].name, i, TotalAreas[i], TA_2[i], TA_3[i], spec[i].target
-                    , TotalOccurrences[i], TO_2[i], TO_3[i], spec[i].targetocc);
-            fclose(TotalAreasFile);
-        }
+        TotalAreasFile = fopen("MarOptTotalAreas.csv", "w");
+        fprintf(TotalAreasFile, "spname,spindex,totalarea,reservedarea,excludedarea,targetarea,totalocc,reservedocc,excludedocc,targetocc\n");
+        for (int i = 0; i < spno; i++)
+            fprintf(TotalAreasFile, "%i,%i,%g,%g,%g,%g,%i,%i,%i,%i\n", spec[i].name, i, TotalAreas[i], TA_2[i], TA_3[i], spec[i].target, TotalOccurrences[i], TO_2[i], TO_3[i], spec[i].targetocc);
+        fclose(TotalAreasFile);
     }
 
     // compute total area available, reserved, excluded. write it to a file output_totalareas.csv
