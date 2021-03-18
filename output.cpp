@@ -679,7 +679,7 @@ namespace marxan {
         {
             fprintf(fp, "SolutionsMatrix");
 
-            for (int i = (puno - 1); i > (-1); i--)
+            for (int i = 0; i < puno; i++)
                 fprintf(fp, "%cP%i", sDelimiter, pu[i].id);
 
             fprintf(fp, "\n");
@@ -698,21 +698,18 @@ namespace marxan {
 
         if (iIncludeHeaders == 1)
         {
-            fprintf(fp, "S%i%c", iRun, sDelimiter);
+            fprintf(fp, "S%i", iRun);
         }
 
-        for (i = (puno - 1); i > (-1); i--)
+        for (i = 0; i < puno; i++)
         {
-            if (i < (puno - 1))
-                fprintf(fp, "%c", sDelimiter);
-
             iStatus = R[i];
             if (R[i] == 3)
                 iStatus = 0;
             if (R[i] == 2)
                 iStatus = 1;
 
-            fprintf(fp, "%i", iStatus);
+            fprintf(fp, "%c%i", sDelimiter, iStatus);
         }
 
         fprintf(fp, "\n");
@@ -734,7 +731,7 @@ namespace marxan {
                 fprintf(fp, "\"planning_unit\",\"solution\"\n");
         }
 
-        for (i = puno - 1; i > -1; i--)
+        for (i = 0; i < puno; i++)
         {
             if (R[i] == 1 || R[i] == 2)
             {
@@ -934,7 +931,7 @@ namespace marxan {
             fprintf(fp, "\"planning_unit\",\"number\"\n");
         }
 
-        for (int i = 0; i < puno; i++)
+        for (int i = puno -1 ; i >= 0; i--)
             fprintf(fp, "%i%c%i\n", pu[i].id, sDelimiter, sumsoln[i]);
 
         fclose(fp);
