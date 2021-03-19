@@ -241,8 +241,6 @@ namespace marxan {
                     appendLogBuffer << "after hill climbing run " << run_id << endl;
                 }
 
-                cout<<"\nHeuristic on = " <<runoptions.HeuristicOn<<" type " << heurotype << "\n"; 
-
                 if (runoptions.HeuristicOn)
                 {
                     appendLogBuffer << "before Heuristics run " << run_id << endl;
