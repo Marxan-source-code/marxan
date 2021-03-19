@@ -35,5 +35,5 @@ jobs:
       # Uploads build results to an artifact
       - uses: actions/upload-artifact@v2
         with:
-          name: marxan-acOS-86-64
+          name: marxan-macOS-86-64
           path: bin/marxan-macOS-x86-64.zip
