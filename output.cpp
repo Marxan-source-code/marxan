@@ -679,7 +679,7 @@ namespace marxan {
         {
             fprintf(fp, "SolutionsMatrix");
 
-            for (int i = (puno - 1); i > (-1); i--)
+            for (int i = 0; i < puno; i++)
                 fprintf(fp, "%cP%i", sDelimiter, pu[i].id);
 
             fprintf(fp, "\n");
@@ -698,21 +698,18 @@ namespace marxan {
 
         if (iIncludeHeaders == 1)
         {
-            fprintf(fp, "S%i%c", iRun, sDelimiter);
+            fprintf(fp, "S%i", iRun);
         }
 
-        for (i = (puno - 1); i > (-1); i--)
+        for (i = 0; i < puno; i++)
         {
-            if (i < (puno - 1))
-                fprintf(fp, "%c", sDelimiter);
-
             iStatus = R[i];
             if (R[i] == 3)
                 iStatus = 0;
             if (R[i] == 2)
                 iStatus = 1;
 
-            fprintf(fp, "%i", iStatus);
+            fprintf(fp, "%c%i", sDelimiter, iStatus);
         }
 
         fprintf(fp, "\n");
@@ -734,7 +731,7 @@ namespace marxan {
                 fprintf(fp, "\"planning_unit\",\"solution\"\n");
         }
 
-        for (i = puno - 1; i > -1; i--)
+        for (i = 0; i < puno; i++)
         {
             if (R[i] == 1 || R[i] == 2)
             {
@@ -770,7 +767,7 @@ namespace marxan {
         // print clump type
         fprintf(fp, "%s\n", clumptypeMap[clumptype].c_str());
 
-        fprintf(fp, "Algorithm Used :%s\n", runoptions.algorithm_description().c_str());
+        fprintf(fp, "Algorithm Used: %s\n", runoptions.algorithm_description().c_str());
 
         if (runoptions.HeuristicOn)
         {
@@ -789,7 +786,7 @@ namespace marxan {
 
         if (runoptions.ThermalAnnealingOn)
         {
-            fprintf(fp, "Number of iterations %ld\n", anneal.iterations);
+            fprintf(fp, "Number of iterations %lld\n", anneal.iterations);
             if (anneal.Tinit >= 0)
             {
                 fprintf(fp, "Initial temperature %.2f\n", anneal.Tinit);
@@ -845,7 +842,7 @@ namespace marxan {
 
         fprintf(fp, "\n");
 
-        for (isp = 0; isp < spno; isp++)
+        for (isp = spno - 1 ; isp >= 0; isp--)
         {
             rMPM = 1;
 
@@ -934,7 +931,7 @@ namespace marxan {
             fprintf(fp, "\"planning_unit\",\"number\"\n");
         }
 
-        for (int i = 0; i < puno; i++)
+        for (int i = puno - 1 ; i >= 0; i--)
             fprintf(fp, "%i%c%i\n", pu[i].id, sDelimiter, sumsoln[i]);
 
         fclose(fp);
@@ -958,24 +955,19 @@ namespace marxan {
     // compute total area available, reserved, excluded. write it to a file if verbosity > 3.
     void computeTotalAreas(int puno, int spno, const vector<spustuff>& pu, const vector<sspecies>& spec, const vector<spu>& SM)
     {
-        if (verbosity > 3)
-        {
-            vector<int> TotalOccurrences(spno, 0), TO_2(spno, 0), TO_3(spno, 0);
-            vector<double> TotalAreas(spno, 0), TA_2(spno, 0), TA_3(spno, 0);
-            FILE* TotalAreasFile;
+        vector<int> TotalOccurrences(spno, 0), TO_2(spno, 0), TO_3(spno, 0);
+        vector<double> TotalAreas(spno, 0), TA_2(spno, 0), TA_3(spno, 0);
+        FILE *TotalAreasFile;
 
-            computeOccurrencesAndAreas(puno, pu, SM,
-                TotalOccurrences, TO_2, TO_3,
-                TotalAreas, TA_2, TA_3);
+        computeOccurrencesAndAreas(puno, pu, SM,
+                                   TotalOccurrences, TO_2, TO_3,
+                                   TotalAreas, TA_2, TA_3);
 
-            TotalAreasFile = fopen("MarOptTotalAreas.csv", "w");
-            fprintf(TotalAreasFile, "spname,spindex,totalarea,reservedarea,excludedarea,targetarea,totalocc,reservedocc,excludedocc,targetocc\n");
-            for (int i = 0; i < spno; i++)
-                fprintf(TotalAreasFile, "%i,%i,%g,%g,%g,%g,%i,%i,%i,%i\n"
-                    , spec[i].name, i, TotalAreas[i], TA_2[i], TA_3[i], spec[i].target
-                    , TotalOccurrences[i], TO_2[i], TO_3[i], spec[i].targetocc);
-            fclose(TotalAreasFile);
-        }
+        TotalAreasFile = fopen("MarOptTotalAreas.csv", "w");
+        fprintf(TotalAreasFile, "spname,spindex,totalarea,reservedarea,excludedarea,targetarea,totalocc,reservedocc,excludedocc,targetocc\n");
+        for (int i = 0; i < spno; i++)
+            fprintf(TotalAreasFile, "%i,%i,%g,%g,%g,%g,%i,%i,%i,%i\n", spec[i].name, i, TotalAreas[i], TA_2[i], TA_3[i], spec[i].target, TotalOccurrences[i], TO_2[i], TO_3[i], spec[i].targetocc);
+        fclose(TotalAreasFile);
     }
 
     // compute total area available, reserved, excluded. write it to a file output_totalareas.csv
