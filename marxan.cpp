@@ -46,7 +46,7 @@ namespace marxan {
     int savelog;
     int verbosity = 0;
     int asymmetricconnectivity = 0;
-    string sVersionString = "Marxan v 4.0.5";
+    string sVersionString = "Marxan v 4.0.6";
     string sMarxanWebSite = "https://marxansolutions.org/";
     string sTraceFileName;
     string sApplicationPathName;
@@ -240,8 +240,6 @@ namespace marxan {
 
                     appendLogBuffer << "after hill climbing run " << run_id << endl;
                 }
-
-                cout<<"\nHeuristic on = " <<runoptions.HeuristicOn<<" type " << heurotype << "\n"; 
 
                 if (runoptions.HeuristicOn)
                 {

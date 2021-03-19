@@ -767,7 +767,7 @@ namespace marxan {
         // print clump type
         fprintf(fp, "%s\n", clumptypeMap[clumptype].c_str());
 
-        fprintf(fp, "Algorithm Used :%s\n", runoptions.algorithm_description().c_str());
+        fprintf(fp, "Algorithm Used: %s\n", runoptions.algorithm_description().c_str());
 
         if (runoptions.HeuristicOn)
         {
@@ -842,7 +842,7 @@ namespace marxan {
 
         fprintf(fp, "\n");
 
-        for (isp = 0; isp < spno; isp++)
+        for (isp = spno - 1 ; isp >= 0; isp--)
         {
             rMPM = 1;
 
@@ -931,7 +931,7 @@ namespace marxan {
             fprintf(fp, "\"planning_unit\",\"number\"\n");
         }
 
-        for (int i = puno -1 ; i >= 0; i--)
+        for (int i = puno - 1 ; i >= 0; i--)
             fprintf(fp, "%i%c%i\n", pu[i].id, sDelimiter, sumsoln[i]);
 
         fclose(fp);
