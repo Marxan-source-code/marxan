@@ -35,7 +35,7 @@ root/
 - /output (empty directory)
 ```
 
-1. Copy the marxan executable and bat file (if windows) into the root of your data folder, outside of /input and /output
+1. Copy the Marxan_x64 executable and bat file (if windows) into the root of your data folder, outside of /input and /output
 2. Run the .bat file (if windows) or double click on the executable. If you want the terminal to stay open upon finishing, calling from the .bat file is needed.
 
 # How to Build (Windows)
@@ -74,11 +74,11 @@ Follow the steps for Mac with x86-64 processor.
 # How to run (Mac with x86-64 processor)
 From directory with marxan excutable, assign executable flag to marxan
 ```
-chmod +x ./marxan
+chmod +x ./Marxan_x64
 ```
 Try to run marxan:
 ```
-./marxan
+./Marxan_x64
 ```
 If system prevents it from running due to Unidentified Developer. 
 Go to System preferences -> Security & Privacy -> Allow apps downloaded from:  
