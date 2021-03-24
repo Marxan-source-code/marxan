@@ -1,3 +1,3 @@
 @echo off
-marxan.exe
+Marxan_x64.exe
 pause

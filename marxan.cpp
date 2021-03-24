@@ -46,7 +46,7 @@ namespace marxan {
     int savelog;
     int verbosity = 0;
     int asymmetricconnectivity = 0;
-    string sVersionString = "Marxan v 4.0.5";
+    string sVersionString = "Marxan v 4.0.6";
     string sMarxanWebSite = "https://marxansolutions.org/";
     string sTraceFileName;
     string sApplicationPathName;
@@ -129,8 +129,8 @@ namespace marxan {
             stringstream appendLogBuffer; // stores the trace file log
             stringstream runConsoleOutput; // stores the console message for the run. This is needed for more organized printing output due to multithreading.
             sanneal anneal = anneal_global;
-            scost reserve = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-            scost change = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+            scost reserve;
+            scost change;
 
             vector<int> R(puno);
 
@@ -248,7 +248,7 @@ namespace marxan {
                     Heuristics(spno, puno, pu, connections, R, cm, spec, SMGlobal, SM_out, reserve,
                         costthresh, tpf1, tpf2, heurotype, clumptype, appendLogBuffer, rngEngine);
 
-                    if (verbosity > 1 && runoptions.ItImpOn)
+                    if (verbosity > 1)
                     {
                         computeReserveValue(puno, spno, R, pu, connections, SMGlobal, SM_out, cm, spec, aggexist, reserve, clumptype, appendLogBuffer);
                         runConsoleOutput << "Run " << run_id << "  Heuristic: " << displayValueForPUs(puno, spno, R, reserve, spec, misslevel).str();
@@ -690,7 +690,7 @@ namespace marxan {
 
             anneal_global.Tlen = anneal_global.iterations / anneal_global.Titns;
             displayProgress2("  Temperature length %ld \n", anneal_global.Tlen);
-            displayProgress2("  iterations %ld, repeats %ld \n", anneal_global.iterations, repeats);
+            displayProgress2("  iterations %lld, repeats %ld \n", anneal_global.iterations, repeats);
         } // Annealing Preprocessing. Should be moved to SetAnnealingOptions
 
         if (fnames.savepenalty)
@@ -812,7 +812,7 @@ namespace marxan {
 
 
     // handle command line parameters for the marxan executable
-    void handleOptions(int argc, char* argv[], string sInputFileName)
+    void handleOptions(int argc, char* argv[], string& sInputFileName, int& marxanIsSecondary)
     {
         if (argc > 4)
         {  // if more than one commandline argument then exit
@@ -864,7 +864,7 @@ int main(int argc, char* argv[]) {
     if (argc > 1)
     {
         // handle the program options
-        marxan::handleOptions(argc, argv, sInputFileName);
+        marxan::handleOptions(argc, argv, sInputFileName, marxan::marxanIsSecondary);
     }
 
     try

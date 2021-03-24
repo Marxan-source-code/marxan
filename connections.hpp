@@ -16,6 +16,18 @@ namespace marxan {
         double shortfall;
         double probability1D;
         double probability2D;
+        scost(): 
+            total(0.0), 
+            pus(0), 
+            connection(0.0), 
+            missing(0), 
+            penalty(0.0),  
+            cost(0.0),
+            threshpen(0.0),
+            shortfall(0.0),
+            probability1D(0.0),
+            probability2D(0.0)
+            {}
     } scost;
 
     /* Connectivity Structure. Fixed connectivity number.*/
