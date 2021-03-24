@@ -43,7 +43,7 @@ Marxan has now been refactored to use c++17 for more modernised code and more ex
 
 Command to build is 
 ```
-g++ -O3 -std=c++17 -static -fopenmp *.cpp -o bin/marxan
+g++ -O3 -std=c++17 -static -fopenmp *.cpp -o bin/Marxan_x64
 ```
 
 All libraries are statically linked so we ship 1 executable. 
@@ -58,11 +58,11 @@ brew install libomp
 ```
 Command to build without statically linked libraries is: 
 ```
-g++ *.cpp -lomp -o bin/marxan -Xclang -fopenmp -std=c++17  -O3
+g++ *.cpp -lomp -o bin/Marxan_x64 -Xclang -fopenmp -std=c++17  -O3
 ```
 Command to build with statically linked openMP library is: 
 ```
-g++ *.cpp  /usr/local/opt/libomp/lib/libomp.a -o bin/marxan -Xclang -fopenmp -std=c++17  -O3
+g++ *.cpp  /usr/local/opt/libomp/lib/libomp.a -o bin/Marxan_x64 -Xclang -fopenmp -std=c++17  -O3
 ```
 # How to run (Mac with M1 processor)
 M1 build runs noticable faster.
