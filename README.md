@@ -17,11 +17,11 @@ We will officially announce the release of the new version and merge changes to 
 Please feel free to use our [Google Group](https://groups.google.com/g/marxan). You can also create GitHub issues on this repo or e-mail marxancloud@gmail.com  
 
 # Releases
-## v4.0.5
-- Windows [x86-64](https://github.com/Marxan-source-code/marxan/releases/download/v4.0.5/marxan4.0.5-windows.zip)
-- Linux [x86-64](https://github.com/Marxan-source-code/marxan/releases/download/v4.0.5/marxan4.0.5-linux.zip)
-- MacOS [x86-64](https://github.com/Marxan-source-code/marxan/releases/download/v4.0.5/marxan-4.0.5-MacOS-10.15-x86-64.zip) (Created in MacOS 10.15 Catalina)
-- MacOS [M1](https://github.com/Marxan-source-code/marxan/releases/download/v4.0.5/marxan-4.0.5-MacOS-11-M1.zip) (Created in MacOS 11 Big Sur)
+## v4.0.6
+- Windows [x86-64](https://github.com/Marxan-source-code/marxan/releases/download/v4.0.6/Marxan_x64-4.0.6-Windows.zip)
+- Linux [x86-64](https://github.com/Marxan-source-code/marxan/releases/download/v4.0.6/Marxan_x64-4.0.6-Linux.zip)
+- MacOS [x86-64](https://github.com/Marxan-source-code/marxan/releases/download/v4.0.6/marxan-4.0.6-MacOS-10.15-x86-64.zip) (Created in MacOS 10.15 Catalina)
+- MacOS [M1](https://github.com/Marxan-source-code/marxan/releases/download/v4.0.6/marxan-4.0.6-MacOS-11-M1.zip) (Created in MacOS 11 Big Sur)
 # Test Data
 - From Google Drive: [MarxanData.zip](https://drive.google.com/file/d/1VGN4S5L_F80Ds2JlSy0MclxS5-KpkwlH/view?usp=sharing)
 - From Releases: [MarxanData.zip](https://github.com/Marxan-source-code/marxan/releases/download/v4.0.3/MarxanData.zip)
