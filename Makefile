@@ -1,12 +1,10 @@
 #COMPILER=g++
 #FLAGS = -O3 -std=c++17 -fopenmp -Wall
-BIN_DIR = bin/
+TARGET_EXEC := marxan
+BUILD_DIR := ./bin
 
-all: directories marxan
+all: $(BUILD_DIR)/$(TARGET_EXEC)
 
-directories:
-	mkdir -p $(BIN_DIR)
-
-marxan: marxan.cpp
-	g++ -O3 -std=c++17 -static -fopenmp *.cpp -o bin/marxan
-
+$(BUILD_DIR)/marxan: marxan.cpp
+	mkdir -p $(dir $@)
+	g++ -O3 -std=c++17 -static -fopenmp *.cpp -o $(BUILD_DIR)/marxan
