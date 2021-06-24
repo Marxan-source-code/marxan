@@ -1,12 +1,21 @@
-#COMPILER=g++
-#FLAGS = -O3 -std=c++17 -fopenmp -Wall
-BIN_DIR = bin/
+prefix		?= /usr
+bindir		?= $(prefix)/bin
 
-all: directories marxan
+CXXFLAGS ?= -O3 -std=c++17 -fopenmp
+TARGET_EXEC := marxan
+BUILD_DIR := ./bin
 
-directories:
-	mkdir -p $(BIN_DIR)
+all: $(BUILD_DIR)/$(TARGET_EXEC)
 
-marxan: marxan.cpp
-	g++ -O3 -std=c++17 -static -fopenmp *.cpp -o bin/marxan
+$(BUILD_DIR)/$(TARGET_EXEC): marxan.cpp
+	mkdir -p $(dir $@)
+	$(CXX) -static $(CXXFLAGS) $(CFLAGS) *.cpp -o $(BUILD_DIR)/$(TARGET_EXEC)
 
+install: $(BUILD_DIR)/$(TARGET_EXEC)
+	install -d $(DESTDIR)/$(bindir)
+	install -m 755 $(BUILD_DIR)/$(TARGET_EXEC) $(DESTDIR)/$(bindir)
+
+clean:
+	rm -r $(BUILD_DIR)
+
+.PHONY: clean install
